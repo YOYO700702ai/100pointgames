@@ -473,19 +473,31 @@
                 
                 setPlayer(prev => ({ ...prev, gold: prev.gold - cost }));
                 
+                const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
+                const unownedEggs = allEggs.filter(eggId => !hasItem(eggId));
+                
+                // 每顆未擁有的蛋佔 5%
+                const eggProbability = unownedEggs.length * 5; 
+                // 吐槽固定佔 5%
+                const jokeProbability = 5; 
+                // 剩下的機率全部分給補給品 (70% + 被抽走的蛋的機率)
+                const normalProbability = 100 - eggProbability - jokeProbability;
+
                 const roll = Math.random() * 100;
                 
-                if (roll < 25) { // 25% for eggs
-                    const eggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
-                    const gotEgg = eggs[Math.floor(Math.random() * eggs.length)];
+                if (roll < eggProbability && unownedEggs.length > 0) { 
+                    // 抽中蛋
+                    const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
-                } else if (roll < 95) { // 70% for potions/nutrition
+                } else if (roll < (eggProbability + normalProbability)) { 
+                    // 抽中普通道具
                     const normalItems = ['potion_s', 'potion_l', 'potion_nutri'];
                     const gotItem = normalItems[Math.floor(Math.random() * normalItems.length)];
                     addItem(gotItem, 1);
                     showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
-                } else { // 5% anime joke
+                } else { 
+                    // 抽中動畫吐槽 (最後的 5%)
                     const jokes = [
                         "老闆：這轉蛋機裡的獎品，簡直就像是沒經費的動畫第二季一樣慘不忍睹...",
                         "老闆：你以為會出SSR嗎？不，這只是一場沒有盡頭的「漫步」的開始...",
