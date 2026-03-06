@@ -536,6 +536,10 @@
                                             <div className="flex items-center w-full">
                                                 <input type="password" placeholder="Gemini API Key (選填，有Key老闆會說話)" className="p-4 border-[3px] border-[#ddd] rounded-2xl text-sm text-center outline-none text-[#555] font-bold bg-white/95 w-full focus:border-[#FF7043]" value={player.apiKey} onChange={e => updatePlayer({apiKey: e.target.value})} />
                                             </div>
+                                            <div className="flex gap-2 w-full">
+                                                <input id="cheat-input" type="password" placeholder="GM測試欄" className="p-3 border-2 border-dashed border-[#AAA] text-sm text-center outline-none text-[#333] bg-[#F0F0F0] flex-1 rounded-xl focus:border-[#00FF00] focus:bg-black focus:text-[#00FF00]" />
+                                                <button className="px-4 bg-[#333] text-[#00FF00] font-mono text-sm border border-[#00FF00] rounded-xl hover:bg-black" onClick={() => applyCheat(document.getElementById('cheat-input').value.trim().toUpperCase())}>啟用</button>
+                                            </div>
                                             <button className="text-xl p-4 bg-[#4361EE] text-white font-bold rounded-xl shadow-[0_4px_0_#2841ac] active:translate-y-1 active:shadow-none transition-all mt-2" onClick={handleStart}>開始 / 讀取冒險</button>
                                             {loadingMsg && <div className="text-white mt-2 font-bold drop-shadow-md">{loadingMsg}</div>}
                                         </div>
