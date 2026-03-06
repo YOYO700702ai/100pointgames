@@ -134,10 +134,16 @@
             frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '外環廢墟的通關證明' },
             key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
             coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
-            cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' }
+            cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
+            potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'material', icon: '🧪', desc: '補充神秘能量（暫無作用）' },
+            egg_1: { id: 'egg_1', name: '紫晶符文', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(1).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' },
+            egg_2: { id: 'egg_2', name: '蔚藍星塵', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' },
+            egg_3: { id: 'egg_3', name: '翡翠藤蔓', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' },
+            egg_4: { id: 'egg_4', name: '琥珀金沙', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(3).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' },
+            egg_5: { id: 'egg_5', name: '虛空黑曜', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' }
         };
 
-        const SHOP_ITEMS = ['potion_s', 'potion_l', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat'];
+        const SHOP_ITEMS = ['potion_s', 'potion_l', 'potion_nutri', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat'];
         const LEVEL_EXP_TABLE = [0, 50, 80, 120, 130, 150, 170, 400, 800, 1500];
         const MAX_LEVEL = 10;
 
@@ -461,6 +467,37 @@
                 } catch (error) { let lines = profile.defaultLines; addSystemMsg(`(系統：老闆累了改用罐頭回應)\n${lines[Math.floor(Math.random() * lines.length)]}`); }
             };
 
+            const rollGacha = () => {
+                const cost = 100;
+                if (player.gold < cost) { showMessage('金幣不足', `轉蛋一次需要 ${cost} 金幣！`, '🐔'); return; }
+                
+                setPlayer(prev => ({ ...prev, gold: prev.gold - cost }));
+                
+                const roll = Math.random() * 100;
+                
+                if (roll < 25) { // 25% for eggs
+                    const eggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
+                    const gotEgg = eggs[Math.floor(Math.random() * eggs.length)];
+                    addItem(gotEgg, 1);
+                    showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
+                } else if (roll < 95) { // 70% for potions/nutrition
+                    const normalItems = ['potion_s', 'potion_l', 'potion_nutri'];
+                    const gotItem = normalItems[Math.floor(Math.random() * normalItems.length)];
+                    addItem(gotItem, 1);
+                    showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
+                } else { // 5% anime joke
+                    const jokes = [
+                        "老闆：這轉蛋機裡的獎品，簡直就像是沒經費的動畫第二季一樣慘不忍睹...",
+                        "老闆：你以為會出SSR嗎？不，這只是一場沒有盡頭的「漫步」的開始...",
+                        "老闆：轉出這種廢物，就連男主角的青梅竹馬都不會多看你一眼的。",
+                        "老闆：這機率比那些穿越異世界卻拿不到外掛作弊能力的機率還要低啊...",
+                        "老闆：放棄吧，你的幸運值大概跟那個只會狂死的倒霉男主角差不多吧。"
+                    ];
+                    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+                    showMessage('銘謝惠顧...', `轉蛋機發出奇怪的聲音，什麼也沒掉出來。\n\n旁邊神秘商店老闆探出頭吐槽：\n「${joke}」`, '🐔');
+                }
+            };
+
             return (
                 <div className="w-full h-[100vh] bg-[#2B2D42] text-[#2B2D42] font-sans flex items-center justify-center overflow-hidden select-none">
                     <style>{`
@@ -566,7 +603,7 @@
                                     <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
                                     <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
                                     <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('村長', '歡迎來到初心村，勇者！', '👴')}></div>
-                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('轉蛋雞', '咕咕！(功能開發中)', '🐔')}></div>
+                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title="花費 100 金幣轉一次"></div>
                                     <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
                                 </div>
