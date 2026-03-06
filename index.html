@@ -482,39 +482,39 @@
                     <div className={`w-full max-w-[1050px] h-full max-h-[580px] bg-white relative flex flex-row shadow-[0_0_30px_rgba(0,0,0,0.5)] rounded-[20px] overflow-hidden ${battle.flashRed ? 'anim-flash-red' : ''}`}>
                         
                         {scene !== 'start' && (
-                            <div className="w-[135px] h-full bg-[#FFF8E1] text-[#5D4037] p-6 pt-8 flex flex-col gap-4 text-sm shadow-[4px_0_15px_rgba(0,0,0,0.1)] z-50 relative border-r-2 border-dashed border-[#D7CCC8] shrink-0">
+                            <div className="w-[145px] h-full bg-[#FFF8E1] text-[#5D4037] p-5 pt-8 flex flex-col gap-2 text-sm shadow-[4px_0_15px_rgba(0,0,0,0.1)] z-50 relative border-r-2 border-dashed border-[#D7CCC8] shrink-0">
                                 <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#333] rounded-full shadow-inner"></div>
                                 <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-[2px] h-[30px] bg-[#8D6E63]"></div>
                                 
-                                <div className="text-base font-black text-white text-center mt-1 mb-2 p-1.5 bg-[#FFAB91] rounded-2xl border-2 border-white shadow-sm truncate" style={{textShadow: "1px 1px 0 rgba(0,0,0,0.2)"}}>
-                                    {player.name || "勇者狀態"}
+                                <div className="text-base font-black text-white text-center mt-1 mb-1 p-1.5 bg-[#FFAB91] rounded-2xl border-2 border-white shadow-sm truncate whitespace-nowrap overflow-visible px-2" style={{textShadow: "1px 1px 0 rgba(0,0,0,0.2)"}}>
+                                    {player.name || "勇者"}
                                 </div>
 
                                 <div className="flex flex-col gap-0.5 p-1 border-b border-black/5">
-                                    <span className="text-[0.7rem] text-[#8D6E63] uppercase tracking-wider font-bold">等級 Level</span>
-                                    <span className="text-lg font-black font-mono">LV.{player.level}</span>
+                                    <span className="text-[0.65rem] text-[#8D6E63] uppercase tracking-wider font-bold">等級 Level</span>
+                                    <span className="text-base font-black font-mono">LV.{player.level}</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5 p-1 border-b border-black/5">
-                                    <span className="text-[0.7rem] text-[#8D6E63] uppercase tracking-wider font-bold">生命值 HP</span>
-                                    <span className="text-lg font-black font-mono text-[#E57373]">{player.hp}/{stats.maxHp}</span>
+                                    <span className="text-[0.65rem] text-[#8D6E63] uppercase tracking-wider font-bold">生命值 HP</span>
+                                    <span className="text-base font-black font-mono text-[#E57373]">{player.hp}/{stats.maxHp}</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5 p-1 border-b border-black/5">
-                                    <span className="text-[0.7rem] text-[#8D6E63] uppercase tracking-wider font-bold">經驗值 EXP</span>
-                                    <span className="text-lg font-black font-mono text-[#64B5F6]">{player.exp}/{player.maxExp}</span>
+                                    <span className="text-[0.65rem] text-[#8D6E63] uppercase tracking-wider font-bold">經驗值 EXP</span>
+                                    <span className="text-base font-black font-mono text-[#64B5F6]">{player.exp}/{player.maxExp}</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5 p-1 border-b border-black/5">
-                                    <span className="text-[0.7rem] text-[#8D6E63] uppercase tracking-wider font-bold">金幣 Gold</span>
-                                    <span className="text-lg font-black font-mono text-[#FFB74D]">💰 {player.gold}</span>
+                                    <span className="text-[0.65rem] text-[#8D6E63] uppercase tracking-wider font-bold">金幣 Gold</span>
+                                    <span className="text-base font-black font-mono text-[#FFB74D]">💰 {player.gold}</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5 p-1 border-b border-black/5">
-                                    <span className="text-[0.7rem] text-[#8D6E63] uppercase tracking-wider font-bold">攻擊力 ATK</span>
-                                    <span className="text-lg font-black font-mono">⚔️ {stats.atk}</span>
+                                    <span className="text-[0.65rem] text-[#8D6E63] uppercase tracking-wider font-bold">攻擊力 ATK</span>
+                                    <span className="text-base font-black font-mono">⚔️ {stats.atk}</span>
                                 </div>
 
-                                <button className="mt-auto w-full p-2 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => setScene('equipment')}>
+                                <button className="mt-auto w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => setScene('equipment')}>
                                     🎒 背包
                                 </button>
-                                <button className="mt-2 w-full p-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform" onClick={saveToCloud}>
+                                <button className="mt-1.5 w-full p-1.5 mb-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform" onClick={saveToCloud}>
                                     💾 存檔
                                 </button>
                             </div>
