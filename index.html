@@ -236,19 +236,23 @@
             const hasItem = (itemId) => player.inventory.some(slot => slot.id === itemId);
 
             const gainExpAndGold = (expAmt, goldAmt) => {
+                let didLevelUp = false; let newLvl = player.level;
+                let testExp = player.exp + expAmt; let testMax = player.maxExp;
+                while (newLvl < MAX_LEVEL && testExp >= testMax) { testExp -= testMax; newLvl++; testMax = newLvl < MAX_LEVEL ? LEVEL_EXP_TABLE[newLvl] : 99999; didLevelUp = true; }
+                
                 setPlayer(prev => {
                     let newExp = prev.exp + expAmt; let newLevel = prev.level; let newMaxExp = prev.maxExp; let leveledUp = false;
                     while (newLevel < MAX_LEVEL && newExp >= newMaxExp) { newExp -= newMaxExp; newLevel++; newMaxExp = newLevel < MAX_LEVEL ? LEVEL_EXP_TABLE[newLevel] : 99999; leveledUp = true; }
                     let newMaxHp = prev.baseMaxHp + (newLevel - 1) * 10;
                     if (prev.equipped.weapon && ITEMS[prev.equipped.weapon]) newMaxHp += (ITEMS[prev.equipped.weapon].hp || 0);
                     if (prev.equipped.pet && ITEMS[prev.equipped.pet]) newMaxHp += (ITEMS[prev.equipped.pet].hp || 0);
-                    if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\nHP 全滿！`, '🎉'), 100);
                     return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt, hp: leveledUp ? newMaxHp : prev.hp };
                 });
+                return { leveledUp: didLevelUp, newLevel: newLvl };
             };
 
             const heal = (amount) => setPlayer(prev => ({ ...prev, hp: Math.min(prev.hp + amount, stats.maxHp) }));
-            const takeDamage = (amount) => { triggerFlashRed(); showDamage(amount, 'player'); let isDead = false; setPlayer(prev => { const newHp = Math.max(0, prev.hp - amount); if (newHp <= 0) isDead = true; return { ...prev, hp: newHp }; }); return isDead; };
+            const takeDamage = (amount) => { triggerFlashRed(); showDamage(amount, 'player'); const isDead = (player.hp - amount) <= 0; setPlayer(prev => ({ ...prev, hp: Math.max(0, prev.hp - amount) })); return isDead; };
 
             const useItem = (index) => {
                 const slot = player.inventory[index]; const item = ITEMS[slot.id];
@@ -369,7 +373,13 @@
                     if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 4) { dmg += 15; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
                     const newHp = battle.monster.hp - dmg;
                     showDamage(isCrit ? `蓄力一擊! -${dmg}` : dmg, isCrit ? 'monster-crit' : 'monster'); triggerMonsterShake();
-                    if (newHp <= 0) handleWinWave(battle.monster); else { setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } })); setTimeout(() => { if (battle.active) setupNextQuestion(battle.questionPool, null); }, 400); }
+                    if (newHp <= 0) {
+                        setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 } }));
+                        setTimeout(() => handleWinWave(battle.monster, battle.wave), 800);
+                    } else { 
+                        setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } })); 
+                        setTimeout(() => { if (battle.active) setupNextQuestion(battle.questionPool, null); }, 400); 
+                    }
                 } else {
                     updatePlayer({ streak: 0 }); const dmg = battle.monster.atk;
                     const btns = btnEvent.target.parentElement.children; for(let b of btns) { if(b.textContent === String(battle.answer)) b.classList.add('bg-green-400'); }
@@ -378,10 +388,22 @@
                 }
             };
 
-            const handleWinWave = (monsterDef) => { gainExpAndGold(monsterDef.exp, monsterDef.gold); if (battle.wave < 3) { showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, monster: null, wave: prev.wave + 1 })); } else { handleWinBattle(monsterDef); } };
+            const handleWinWave = (monsterDef, currentWave) => { 
+                const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold); 
+                if (currentWave < 3) { 
+                    showDamage("下一隻怪物出現！", "monster-crit"); 
+                    if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\nHP 全滿！`, '🎉'), 100);
+                    setBattle(prev => ({ ...prev, active: true, monster: null, wave: prev.wave + 1 })); 
+                } else { 
+                    handleWinBattle(monsterDef, leveledUp, newLevel); 
+                } 
+            };
 
-            const handleWinBattle = (monsterDef) => {
-                setBattle(prev => ({ ...prev, active: false })); let msg = `獲得 EXP +${monsterDef.exp}，金幣 +${monsterDef.gold}`; let icon = '🏆'; let dropMsgParts = [];
+            const handleWinBattle = (monsterDef, leveledUp, newLevel) => {
+                setBattle(prev => ({ ...prev, active: false })); 
+                let msg = `獲得 EXP +${monsterDef.exp}，金幣 +${monsterDef.gold}`; 
+                if (leveledUp) { msg += `\n\n🎉 恭喜升級到 LV.${newLevel}！HP 全滿！`; }
+                let icon = '🏆'; let dropMsgParts = [];
                 if (battle.zone.dropItem) { const dropId = battle.zone.dropItem; if (!hasItem(dropId)) { addItem(dropId, 1); dropMsgParts.push(`✨ 區域秘寶：${ITEMS[dropId].name}`); icon = ITEMS[dropId].icon; } }
                 if (battle.zone.id === 'final_castle') {
                     showMessage('擊敗全科魔王！', '魔王掉落了一個巨大的寶箱...\n但是上了鎖。', '🧰', () => {
