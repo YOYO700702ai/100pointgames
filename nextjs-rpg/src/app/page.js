@@ -349,8 +349,14 @@ export default function App() {
 
     const applyCheat = (code) => {
         if (code === 'YOYOLOVE') {
-            setPlayer(p => ({ ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999 })); // simplified HP fill
-            showMessage('秘技', '✨ 金手指生效：等級 MAX + 10000 金幣！', '✨');
+            setPlayer(p => {
+                const newInventory = [...p.inventory];
+                if (!newInventory.some(item => item.id === 'sword_god')) {
+                    newInventory.push({ id: 'sword_god', qty: 1 });
+                }
+                return { ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999, inventory: newInventory };
+            }); // simplified HP fill & added god sword
+            showMessage('秘技', '✨ 金手指生效：獲得一擊必殺的神劍、等級 MAX、10000 金幣！', '✨');
         }
     };
 
@@ -674,7 +680,7 @@ export default function App() {
                 .custom-scroll::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
             `}</style>
 
-            <div className={\`w-full max-w-[1050px] h-full max-h-[580px] bg-white relative flex flex-row shadow-[0_0_30px_rgba(0,0,0,0.5)] rounded-[20px] overflow-hidden ${battle.flashRed ? 'anim-flash-red' : ''}\`}>
+            <div className={`w-full max-w-[1050px] h-full max-h-[580px] bg-white relative flex flex-row shadow-[0_0_30px_rgba(0,0,0,0.5)] rounded-[20px] overflow-hidden ${battle.flashRed ? 'anim-flash-red' : ''}`}>
                 
                 {/* --- 側邊欄 Sidebar --- */}
                 {scene !== 'start' && (
@@ -805,7 +811,7 @@ export default function App() {
                             <div className="flex-1 flex flex-col items-center justify-center">
                                 {battle.monster && (
                                     <div className="text-center relative">
-                                        <div className={\`text-[7rem] drop-shadow-[0_10px_5px_rgba(0,0,0,0.2)] anim-float inline-block ${battle.isShaking ? 'anim-shake' : ''}\`}>
+                                        <div className={`text-[7rem] drop-shadow-[0_10px_5px_rgba(0,0,0,0.2)] anim-float inline-block ${battle.isShaking ? 'anim-shake' : ''}`}>
                                             {battle.monster.icon}
                                         </div>
                                         <div className="bg-white/90 px-4 py-2 rounded-2xl mt-3 font-bold shadow-sm">
@@ -877,7 +883,7 @@ export default function App() {
                                     <div className="font-bold text-[#5D4037] mb-2">⚔️ 目前裝備</div>
                                     
                                     {/* Weapon Slot */}
-                                    <div className={\`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.weapon ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}\`}
+                                    <div className={`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.weapon ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}`}
                                          onClick={() => unequipItem('weapon')} title={player.equipped.weapon ? "點擊脫下" : "武器欄"}>
                                         <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">武器</div>
                                         {player.equipped.weapon ? (
@@ -889,7 +895,7 @@ export default function App() {
                                     </div>
 
                                     {/* Pet Slot */}
-                                    <div className={\`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.pet ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}\`}
+                                    <div className={`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.pet ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}`}
                                          onClick={() => unequipItem('pet')} title={player.equipped.pet ? "點擊脫下" : "寵物欄"}>
                                         <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">寵物</div>
                                         {player.equipped.pet ? (
@@ -918,7 +924,7 @@ export default function App() {
                                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-[#333]"></div>
                                     
                                     {npcHistories[currentNpc].map((msg, idx) => (
-                                        <div key={idx} className={\`p-2 rounded-xl text-[0.9rem] leading-[1.4] max-w-[90%] border ${msg.role === 'user' ? 'bg-[#E3F2FD] rounded-br-sm self-end border-[#BBDEFB]' : 'bg-white rounded-bl-sm self-start border-[#eee]'}\`}>
+                                        <div key={idx} className={`p-2 rounded-xl text-[0.9rem] leading-[1.4] max-w-[90%] border ${msg.role === 'user' ? 'bg-[#E3F2FD] rounded-br-sm self-end border-[#BBDEFB]' : 'bg-white rounded-bl-sm self-start border-[#eee]'}`}>
                                             {msg.text.split('\n').map((line, i) => <React.Fragment key={i}>{line}<br/></React.Fragment>)}
                                         </div>
                                     ))}
@@ -949,7 +955,7 @@ export default function App() {
                                         const item = ITEMS[itemId];
                                         const isHidden = itemId === 'key_strange';
                                         return (
-                                            <div key={itemId} className={\`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}\`}>
+                                            <div key={itemId} className={`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}`}>
                                                 <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">
                                                     {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}
                                                 </div>

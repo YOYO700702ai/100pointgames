@@ -136,6 +136,7 @@
             key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
             coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
             cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
+            sword_god: { id: 'sword_god', name: '一擊必殺的神劍', price: 99999, type: 'weapon', icon: '🗡️', atk: 99999, desc: '神明賜予的武器，無視一切直接秒殺。' },
             potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'material', icon: '🧪', desc: '補充神秘能量（暫無作用）' },
             egg_1: { id: 'egg_1', name: '紫晶符文', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(1).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' },
             egg_2: { id: 'egg_2', name: '蔚藍星塵', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' },
@@ -321,7 +322,16 @@
             };
 
             const applyCheat = (code) => {
-                if (code === 'YOYOLOVE') { setPlayer(p => ({ ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999 })); showMessage('秘技', '✨ 金手指生效：等級 MAX + 10000 金幣！', '✨'); }
+                if (code === 'YOYOLOVE') { 
+                    setPlayer(p => {
+                        const newInventory = [...p.inventory];
+                        if (!newInventory.some(item => item.id === 'sword_god')) {
+                            newInventory.push({ id: 'sword_god', qty: 1 });
+                        }
+                        return { ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999, inventory: newInventory };
+                    }); 
+                    showMessage('秘技', '✨ 金手指生效：獲得一擊必殺的神劍、等級 MAX、10000 金幣！', '✨'); 
+                }
             };
 
             const generateMathQuestion = () => {
