@@ -88,7 +88,11 @@
             "如果沒有要買東西的話，不要擋在路中間。",
             "轉蛋雞的開機鑰匙不小心掉到沙漠裡了。",
             "買不起沒關係啦。",
-            "那把弓？喔，那是給有實力的人用的。"
+            "那把弓？喔，那是給有實力的人用的。",
+            "最近天氣真差，害我都想打烊了。",
+            "不要亂碰商品，弄壞要賠十倍。",
+            "聽說沙漠深處有奇怪的機器，不知道是真的假的。",
+            "唉...人生好難，還是睡覺最實在。"
         ];
 
         const NPC_PURCHASE_LINES = [
@@ -129,6 +133,7 @@
             frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
             frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '外環廢墟的通關證明' },
             key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
+            key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
             coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
             cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
             potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'material', icon: '🧪', desc: '補充神秘能量（暫無作用）' },
@@ -410,6 +415,11 @@
                 if (leveledUp) { msg += `\n\n🎉 恭喜升級到 LV.${newLevel}！HP 全滿！`; }
                 let icon = '🏆'; let dropMsgParts = [];
                 if (battle.zone.dropItem) { const dropId = battle.zone.dropItem; if (!hasItem(dropId)) { addItem(dropId, 1); dropMsgParts.push(`✨ 區域秘寶：${ITEMS[dropId].name}`); icon = ITEMS[dropId].icon; } }
+                if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && Math.random() < 0.5) {
+                    addItem('key_gacha', 1);
+                    dropMsgParts.push(`🔑 驚喜掉落：${ITEMS['key_gacha'].name}`);
+                    if (icon === '🏆') icon = ITEMS['key_gacha'].icon;
+                }
                 if (battle.zone.id === 'final_castle') {
                     showMessage('擊敗全科魔王！', '魔王掉落了一個巨大的寶箱...\n但是上了鎖。', '🧰', () => {
                         if (hasItem('key_chest')) { if (!hasItem('cert_clear')) addItem('cert_clear', 1); showMessage('恭喜通關！', '你使用了鑰匙打開寶箱！\n獲得了「全科通關證明」！', '📜', () => setScene('map')); } else { showMessage('無法開啟', '寶箱鎖住了，你需要「魔王寶箱鑰匙」！', '🔒', () => setScene('map')); }
@@ -431,8 +441,12 @@
                 if (npcId === 'merchant') {
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
                     let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
-                    if (npcHistories.merchant.length === 0) setNpcHistories(prev => ({...prev, merchant: [{ role: 'model', text: introText }]}));
-                } else { if (npcHistories.shopkeeper.length === 0) triggerNpcResponse("ENTER", npcId); }
+                    setNpcHistories(prev => ({...prev, merchant: [{ role: 'model', text: introText }]}));
+                } else { 
+                    const profile = NPC_PROFILES[npcId];
+                    const randomLine = profile.defaultLines[Math.floor(Math.random() * profile.defaultLines.length)];
+                    setNpcHistories(prev => ({...prev, shopkeeper: [{ role: 'model', text: randomLine }]}));
+                }
                 setScene('shop');
             };
 
@@ -455,6 +469,10 @@
             };
 
             const rollGacha = () => {
+                if (!hasItem('key_gacha')) {
+                    showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！', '🔒');
+                    return;
+                }
                 const cost = 100;
                 if (player.gold < cost) { showMessage('金幣不足', `轉蛋一次需要 ${cost} 金幣！`, '🐔'); return; }
                 
