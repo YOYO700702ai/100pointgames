@@ -577,16 +577,27 @@
                     const newSlots = [...prev.slots];
                     const gameBlanks = prev.blanks;
                     
-                    let filledAny = false;
+                    let targetBlankIndex = -1;
                     for (let bIdx of gameBlanks) {
                         if (newSlots[bIdx] === null) {
                             newSlots[bIdx] = optChar;
-                            filledAny = true;
+                            targetBlankIndex = bIdx;
                             break;
                         }
                     }
                     
-                    if (!filledAny) return prev; // 沒空位了不要理他
+                    if (targetBlankIndex === -1) return prev; // 沒空位了不要理他
+
+                    // 檢查是否答錯
+                    if (optChar !== prev.currentIdiom[targetBlankIndex]) {
+                        setTimeout(() => {
+                            setIdiomGame(p => ({ ...p, active: false }));
+                            showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '😤', () => {
+                                setScene('map');
+                            });
+                        }, 500);
+                        return { ...prev, slots: newSlots };
+                    }
 
                     // 移除選項
                     const newOptions = [...prev.options];
@@ -652,6 +663,55 @@
                 const initialSlots = [null, null, null, null];
                 for (let i = 0; i < 4; i++) { if (!blanks.includes(i)) initialSlots[i] = chars[i]; }
                 setIdiomGame(prev => ({ ...prev, active: true, score: currentScore, currentIdiom: chars, options: allOptions, slots: initialSlots, blanks: blanks }));
+            };
+
+            const startClownGame = () => {
+                setClownGame({
+                    active: true,
+                    round: 1,
+                    maxRound: 5,
+                    targetChest: Math.floor(Math.random() * 5),
+                    chests: [0, 1, 2, 3, 4],
+                    revealed: null
+                });
+                setScene('minigame_clown');
+            };
+
+            const handleChestSelect = (chestIndex) => {
+                if (!clownGame.active || clownGame.revealed !== null) return;
+                
+                setClownGame(prev => ({ ...prev, revealed: chestIndex }));
+                
+                setTimeout(() => {
+                    if (chestIndex === clownGame.targetChest) {
+                        // 猜對了
+                        if (clownGame.round >= clownGame.maxRound) {
+                            // 贏得遊戲
+                            setClownGame(prev => ({ ...prev, active: false }));
+                            showMessage('恭喜過關！', '小丑不可置信的看著你：\n「這...這不可能！你居然全猜對了！」\n(獲得「小丑的藍寶石」)', '💎', () => {
+                                if (!hasItem('gem_blue')) addItem('gem_blue', 1);
+                                setScene('library_lobby');
+                            });
+                        } else {
+                            // 下一回合
+                            showDamage("運氣不錯嘛！", "player");
+                            setTimeout(() => {
+                                setClownGame(prev => ({
+                                    ...prev,
+                                    round: prev.round + 1,
+                                    targetChest: Math.floor(Math.random() * 5),
+                                    revealed: null
+                                }));
+                            }, 800);
+                        }
+                    } else {
+                        // 猜錯了
+                        setClownGame(prev => ({ ...prev, active: false }));
+                        showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🐸', () => {
+                            setScene('map');
+                        });
+                    }
+                }, 1000);
             };
 
             const handleLose = () => { setBattle(prev => ({ ...prev, active: false })); showMessage('戰鬥失敗', '勇者倒下了...\n但是女神眷顧了你！\n(HP 恢復為 1，趕快去喝藥水吧)', '👼', () => { setPlayer(prev => ({ ...prev, hp: 1 })); setScene('map'); }); };
