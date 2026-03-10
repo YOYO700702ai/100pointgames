@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 // ==========================================
@@ -21,35 +21,31 @@ let QUESTION_BANKS = {
 };
 
 const NPC_DEFAULT_LINES = [
-    "喔...歡迎光臨。如果不買東西的話，能不能站旁邊一點？你擋到光線了...",
-    "那把弓？喔，那是給有實力的人用的，你...嗯，看看就好，別弄髒了。",
-    "買不起沒關係啦，反正我也懶得找錢，挺麻煩的。",
-    "又要去打怪喔？記得死遠一點，別臭到我的店門口...",
-    "哈欠...你還在啊？我剛以為那是個放得比較久的垃圾桶...",
-    "隨便看吧，別叫我介紹，我今天聲帶想休息。"
+    "歡迎光臨。",
+    "隨便看看吧。",
+    "如果沒有要買東西的話，不要擋在路中間。",
+    "轉蛋雞的開機鑰匙不小心掉到沙漠裡了。",
+    "買不起沒關係啦。",
+    "那把弓？喔，那是給有實力的人用的。"
 ];
 
 const NPC_PURCHASE_LINES = [
     "喔，拿去吧。",
-    "錢放桌上就好，懶得收。",
-    "居然買得起？真意外。",
-    "還有要買的嗎？一次講完好不好...",
-    "多謝惠顧...哈欠...",
+    "多謝惠顧。",
+    "還有要買的嗎？",
     "慢慢走，不送。"
 ];
 
 const NPC_PROFILES = {
     shopkeeper: {
-        name: "神秘商店老闆",
+        name: "商店老闆",
         img: "🧔",
-        prompt: `你是一個 RPG 遊戲裡的武器店老闆。你的個性：極度慵懶、厭世、沒幹勁、說話慢條斯理但句句帶刺。你不會大吼大叫，而是用一種「好麻煩喔」、「隨便啦」的態度來嘲諷玩家的窮酸或弱小。雖然講話很機車，但因為太懶了所以不會讓人覺得有攻擊性，反而有點好笑。【特殊設定】：你是一個重度動漫宅。如果玩家的話題跟動漫（Anime/Manga）有關，你的態度會 180 度大轉變！你會變得超級興奮、語速變快、熱情地跟玩家討論劇情或推坑。請用繁體中文回應玩家。回應要簡短有力（不超過 50 字）。`,
         defaultLines: NPC_DEFAULT_LINES,
         purchaseLines: NPC_PURCHASE_LINES
     },
     merchant: {
         name: "流浪商人",
         img: "👳‍♂️",
-        prompt: `你是一個神秘的流浪商人，專門收集世界各地的奇珍異寶。你的個性：神秘、精明、語氣稍微誇張，喜歡用「年輕人」、「冒險者」來稱呼玩家。你對「碎片」非常感興趣，並且總是暗示自己有「好東西」（奇怪的鑰匙）。請用繁體中文回應玩家。回應要簡短有力（不超過 50 字）。`,
         defaultLines: ["年輕人，外面的世界很危險的...", "有沒有看到什麼發光的碎片？", "我的駱駝好像走丟了..."],
         purchaseLines: ["好眼光！這可是這片大陸上少見的珍品。", "交易愉快，願風指引你的道路。"]
     }
@@ -99,7 +95,7 @@ export default function App() {
     
     // 玩家狀態
     const [player, setPlayer] = useState({
-        name: '', apiKey: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
+        name: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
         inventory: [], equipped: { weapon: null, pet: null }
     });
 
@@ -642,43 +638,13 @@ export default function App() {
         triggerNpcResponse("CHAT", currentNpc, msg);
     };
 
-    // 簡化的 NPC 反應處理 (包含 AI)
+    // 簡化的 NPC 反應處理 (移除 AI)
     const triggerNpcResponse = async (action, npcId, payload = "") => {
         const profile = NPC_PROFILES[npcId];
         const addSystemMsg = (txt) => setNpcHistories(prev => ({...prev, [npcId]: [...prev[npcId], { role: 'model', text: txt }]}));
         
-        if (!player.apiKey) {
-            let lines = action === "BUY" ? profile.purchaseLines : profile.defaultLines;
-            addSystemMsg(lines[Math.floor(Math.random() * lines.length)]);
-            return;
-        }
-
-        // Add a temp loading message if needed (simplified here by just waiting)
-        let promptText = `(玩家狀態：金幣 ${player.gold}，等級 ${player.level})`;
-        if (action === "ENTER") promptText = `*玩家剛走進店裡* ${promptText}`;
-        else if (action === "NO_MONEY") promptText = `*玩家想買東西但錢不夠* ${promptText}`;
-        else if (action === "BUY") promptText = `*玩家購買了 ${payload}* ${promptText}`;
-        else if (action === "CHAT") promptText = `玩家說：「${payload}」${promptText}`;
-
-        let contents = [{ role: "user", parts: [{ text: profile.prompt }] }];
-        // 取最後 6 句避免 token 過長
-        const historySlice = npcHistories[npcId].slice(-6);
-        historySlice.forEach(m => contents.push({ role: m.role, parts: [{ text: m.text }] }));
-        contents.push({ role: "user", parts: [{ text: promptText }] });
-
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${player.apiKey}`, {
-                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents })
-            });
-            if (!response.ok) throw new Error("API Error");
-            const data = await response.json(); 
-            const reply = data.candidates[0].content.parts[0].text;
-            addSystemMsg(reply);
-        } catch (error) {
-            console.error(error);
-            let lines = profile.defaultLines;
-            addSystemMsg(`(系統：老闆累了改用罐頭回應)\\n${lines[Math.floor(Math.random() * lines.length)]}`);
-        }
+        let lines = action === "BUY" ? profile.purchaseLines : profile.defaultLines;
+        addSystemMsg(lines[Math.floor(Math.random() * lines.length)]);
     };
 
 
@@ -769,15 +735,6 @@ export default function App() {
                                             className="p-4 border-[3px] border-[#FFAB91] rounded-2xl text-lg text-center outline-none text-[#5D4037] font-bold bg-white/95 w-full focus:border-[#FF7043]"
                                             value={player.name}
                                             onChange={e => updatePlayer({name: e.target.value})}
-                                        />
-                                    </div>
-                                    <div className="flex items-center w-full">
-                                        <input 
-                                            type="password" 
-                                            placeholder="Gemini API Key (選填，有Key老闆會說話)"
-                                            className="p-4 border-[3px] border-[#ddd] rounded-2xl text-sm text-center outline-none text-[#555] font-bold bg-white/95 w-full focus:border-[#FF7043]"
-                                            value={player.apiKey}
-                                            onChange={e => updatePlayer({apiKey: e.target.value})}
                                         />
                                     </div>
                                     <div className="flex gap-2 w-full">
