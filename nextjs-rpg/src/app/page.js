@@ -477,13 +477,12 @@ export default function App() {
 
         if (zone.type === 'minigame') {
             if (zone.id === 'magic_library') {
+                if (!hasItem('key_strange')) {
+                    showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒');
+                    return;
+                }
                 startIdiomGame();
             }
-            return;
-        }
-
-        if (zoneId === 'final_castle' && !hasItem('key_strange')) {
-            showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒');
             return;
         }
         if (player.hp <= 0) {
