@@ -131,10 +131,10 @@
             frag_south: { id: 'frag_south', name: '元素之心', type: 'material', icon: '🔥', desc: '南方港灣的通關證明' },
             frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
             frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
-            frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '外環廢墟的通關證明' },
+            frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '編年廢墟的通關證明' },
             key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
             key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
-            coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
+            coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 100, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
             cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
             sword_god: { id: 'sword_god', name: '一擊必殺的神劍', price: 99999, type: 'weapon', icon: '🗡️', atk: 99999, desc: '神明賜予的武器，無視一切直接秒殺。' },
             potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'material', icon: '🧪', desc: '補充神秘能量（暫無作用）' },
@@ -145,7 +145,7 @@
             egg_5: { id: 'egg_5', name: '虛空黑曜', type: 'material', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘的轉蛋（暫無作用）' }
         };
 
-        const SHOP_ITEMS = ['potion_s', 'potion_l', 'potion_nutri', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat'];
+        const SHOP_ITEMS = ['potion_s', 'potion_l', 'coin_gacha', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat'];
         const LEVEL_EXP_TABLE = [0, 50, 80, 120, 130, 150, 170, 400, 800, 1500];
         const MAX_LEVEL = 10;
 
@@ -241,6 +241,18 @@
 
             const removeItemAt = (index, count = 1) => {
                 setPlayer(prev => { let newInv = [...prev.inventory]; if (newInv[index].qty > count) { newInv[index].qty -= count; } else { newInv.splice(index, 1); } return { ...prev, inventory: newInv }; });
+            };
+
+            const removeItemById = (itemId, count = 1) => {
+                setPlayer(prev => {
+                    let newInv = [...prev.inventory];
+                    const index = newInv.findIndex(slot => slot.id === itemId);
+                    if (index !== -1) {
+                        if (newInv[index].qty > count) newInv[index].qty -= count;
+                        else newInv.splice(index, 1);
+                    }
+                    return { ...prev, inventory: newInv };
+                });
             };
 
             const removeSpecificItem = (itemId) => { setPlayer(prev => ({ ...prev, inventory: prev.inventory.filter(s => s.id !== itemId) })); };
@@ -490,10 +502,9 @@
                     showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！', '🔒');
                     return;
                 }
-                const cost = 100;
-                if (player.gold < cost) { showMessage('金幣不足', `轉蛋一次需要 ${cost} 金幣！`, '🐔'); return; }
+                if (!hasItem('coin_gacha')) { showMessage('轉蛋幣不足', `轉蛋一次需要 1 枚轉蛋幣！可以去商店購買哦。`, '🐔'); return; }
                 
-                setPlayer(prev => ({ ...prev, gold: prev.gold - cost }));
+                removeItemById('coin_gacha', 1);
                 
                 const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
                 const unownedEggs = allEggs.filter(eggId => !hasItem(eggId));
@@ -634,7 +645,7 @@
                                     <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
                                     <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
                                     <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('村長', '歡迎來到初心村，勇者！', '👴')}></div>
-                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 100 金幣轉一次" : "上鎖的轉蛋機"}></div>
+                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}></div>
                                     <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
                                     <button className="absolute bottom-5 right-5 z-100 bg-transparent text-[#FFAB91] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('chicken_farm')}>往雞舍 ➡</button>

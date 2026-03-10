@@ -65,7 +65,7 @@ const ITEMS = {
     frag_south: { id: 'frag_south', name: '元素之心', type: 'material', icon: '🔥', desc: '南方港灣的通關證明' },
     frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
     frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
-    frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '外環廢墟的通關證明' },
+    frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '編年廢墟的通關證明' },
     key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
     coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '<img src="https://i.ibb.co/Jj633tHd/1.png" style="width:32px; height:32px; object-fit:contain;" alt="轉蛋幣">', desc: '可用於轉蛋機' },
     cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' }
@@ -197,8 +197,60 @@ export default function App() {
         setPlayer(prev => ({ ...prev, inventory: prev.inventory.filter(s => s.id !== itemId) }));
     };
 
+    const removeItemById = (itemId, count = 1) => {
+        setPlayer(prev => {
+            let newInv = [...prev.inventory];
+            const index = newInv.findIndex(slot => slot.id === itemId);
+            if (index !== -1) {
+                if (newInv[index].qty > count) newInv[index].qty -= count;
+                else newInv.splice(index, 1);
+            }
+            return { ...prev, inventory: newInv };
+        });
+    };
+
     const hasItem = (itemId) => {
         return player.inventory.some(slot => slot.id === itemId);
+    };
+
+    const rollGacha = () => {
+        if (!player.gachaUnlocked) {
+            if (hasItem('key_gacha')) {
+                showMessage('發現鎖孔', '轉蛋機上鎖了，但你手上的「轉蛋機鑰匙」形狀剛好吻合！\\n要使用鑰匙打開嗎？', '🔑', () => {
+                    setPlayer(prev => ({ ...prev, gachaUnlocked: true }));
+                    showMessage('解鎖成功！', '轉蛋機發出「嗶嗶」聲，可以使用了！\\n(鑰匙留作紀念，已收回背包)', '🔓');
+                });
+                return;
+            }
+            showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！', '🔒');
+            return;
+        }
+        
+        if (!hasItem('coin_gacha')) { showMessage('轉蛋幣不足', `轉蛋一次需要 1 枚轉蛋幣！可以去商店購買哦。`, '🐔'); return; }
+        
+        removeItemById('coin_gacha', 1);
+        
+        const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
+        const unownedEggs = allEggs.filter(eggId => !hasItem(eggId));
+        
+        const eggProbability = unownedEggs.length * 5; 
+        const jokeProbability = 5; 
+        const normalProbability = 100 - eggProbability - jokeProbability;
+
+        const roll = Math.random() * 100;
+        
+        if (roll < eggProbability && unownedEggs.length > 0) { 
+            const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
+            addItem(gotEgg, 1);
+            showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
+        } else if (roll < (eggProbability + normalProbability)) { 
+            const normalItems = ['potion_s', 'potion_l', 'potion_nutri'];
+            const gotItem = normalItems[Math.floor(Math.random() * normalItems.length)];
+            addItem(gotItem, 1);
+            showMessage('轉蛋結果', `咕...轉出了一件普通道具：\\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
+        } else { 
+            showMessage('轉蛋結果', '什麼也沒獲得...\\n轉蛋雞：咕咕！再接再厲！', '💩');
+        }
     };
 
     const gainExpAndGold = (expAmt, goldAmt) => {
@@ -794,10 +846,36 @@ export default function App() {
                             <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
                             <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
                             <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('村長', '歡迎來到初心村，勇者！', '👴')}></div>
-                            <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('轉蛋雞', '咕咕！(功能開發中)', '🐔')}></div>
+                            <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}></div>
                             <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
 
-                            <button className="btn-leave-village" onClick={() => setScene('map')}>⬅ 離開村子</button>
+                            <button className="absolute bottom-5 left-5 z-[100] bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all text-shadow-outline" onClick={() => setScene('map')}>⬅ 離開村子</button>
+                            <button className="absolute bottom-5 right-5 z-[100] bg-transparent text-[#FFAB91] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:translate-x-1 transition-all text-shadow-outline" onClick={() => setScene('chicken_farm')}>往雞舍 ➡</button>
+                        </div>
+                    )}
+
+                    {/* Scene: Chicken Farm */}
+                    {scene === 'chicken_farm' && (
+                        <div className="absolute inset-0 bg-[#E8F5E9]">
+                            {/* Placeholder Background */}
+                            <div className="w-full h-full flex flex-col items-center justify-center relative">
+                                <div className="absolute top-10 text-3xl font-bold text-[#388E3C] bg-white/80 px-4 py-2 rounded-xl shadow-sm border-2 border-[#81C784]">咕咕雞舍</div>
+                                
+                                <div className="flex gap-20 mt-10">
+                                    {/* NPC */}
+                                    <div className="flex flex-col items-center cursor-pointer hover:-translate-y-2 transition-transform" onClick={() => showMessage('養雞人', '有撿到蛋再來找我吧！咕咕！', '🧑‍🌾')}>
+                                        <div className="text-[6rem] drop-shadow-md">🧑‍🌾</div>
+                                        <div className="bg-white px-3 py-1 font-bold rounded-lg mt-2 shadow-sm border-2 border-[#A5D6A7]">養雞人</div>
+                                    </div>
+
+                                    {/* Incubator */}
+                                    <div className="flex flex-col items-center cursor-pointer hover:-translate-y-2 transition-transform" onClick={() => showMessage('孵蛋所', '機器正在運轉，放入蛋就可以開始孵化... (開發中)', '🥚')}>
+                                        <div className="text-[6rem] drop-shadow-md">🥚</div>
+                                        <div className="bg-white px-3 py-1 font-bold rounded-lg mt-2 shadow-sm border-2 border-[#FFCC80]">孵蛋所</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button className="absolute bottom-5 left-5 z-[100] bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all text-shadow-outline" onClick={() => setScene('village')}>⬅ 回村莊</button>
                         </div>
                     )}
 
@@ -979,7 +1057,7 @@ export default function App() {
                              style={df.target === 'player' ? { color: 'red', top: '60%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' } 
                                   : df.target === 'monster-crit' ? { color: '#FFD700', top: '35%', left: '45%', fontSize: '2.5rem', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }
                                   : { color: 'red', top: '40%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' }}>
-                            {typeof df.amount === 'number' && !df.target.includes('crit') ? \`-${df.amount}\` : df.amount}
+                            {typeof df.amount === 'number' && !df.target.includes('crit') ? `-${df.amount}` : df.amount}
                         </div>
                     ))}
 
