@@ -168,7 +168,7 @@
             
             const [player, setPlayer] = useState({
                 name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
-                inventory: [], equipped: { weapon: null, pet: null }
+                inventory: [], equipped: { weapon: null, pet: null }, gachaUnlocked: false
             });
 
             const [battle, setBattle] = useState({
@@ -415,7 +415,7 @@
                 if (leveledUp) { msg += `\n\n🎉 恭喜升級到 LV.${newLevel}！HP 全滿！`; }
                 let icon = '🏆'; let dropMsgParts = [];
                 if (battle.zone.dropItem) { const dropId = battle.zone.dropItem; if (!hasItem(dropId)) { addItem(dropId, 1); dropMsgParts.push(`✨ 區域秘寶：${ITEMS[dropId].name}`); icon = ITEMS[dropId].icon; } }
-                if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && Math.random() < 0.5) {
+                if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && !player.gachaUnlocked && Math.random() < 0.5) {
                     addItem('key_gacha', 1);
                     dropMsgParts.push(`🔑 驚喜掉落：${ITEMS['key_gacha'].name}`);
                     if (icon === '🏆') icon = ITEMS['key_gacha'].icon;
@@ -469,7 +469,14 @@
             };
 
             const rollGacha = () => {
-                if (!hasItem('key_gacha')) {
+                if (!player.gachaUnlocked) {
+                    if (hasItem('key_gacha')) {
+                        showMessage('發現鎖孔', '轉蛋機上鎖了，但你手上的「轉蛋機鑰匙」形狀剛好吻合！\n要使用鑰匙打開嗎？', '🔑', () => {
+                            setPlayer(prev => ({ ...prev, gachaUnlocked: true }));
+                            showMessage('解鎖成功！', '轉蛋機發出「嗶嗶」聲，可以使用了！\n(鑰匙留作紀念，已收回背包)', '🔓');
+                        });
+                        return;
+                    }
                     showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！', '🔒');
                     return;
                 }
@@ -617,9 +624,34 @@
                                     <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
                                     <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
                                     <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('村長', '歡迎來到初心村，勇者！', '👴')}></div>
-                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title="花費 100 金幣轉一次"></div>
+                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 100 金幣轉一次" : "上鎖的轉蛋機"}></div>
                                     <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
+                                    <button className="absolute bottom-5 right-5 z-100 bg-transparent text-[#FFAB91] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('chicken_farm')}>往雞舍 ➡</button>
+                                </div>
+                            )}
+
+                            {scene === 'chicken_farm' && (
+                                <div className="absolute inset-0 bg-[#E8F5E9]">
+                                    {/* Placeholder Background */}
+                                    <div className="w-full h-full flex flex-col items-center justify-center relative">
+                                        <div className="absolute top-10 text-3xl font-bold text-[#388E3C] bg-white/80 px-4 py-2 rounded-xl shadow-sm border-2 border-[#81C784]">咕咕雞舍</div>
+                                        
+                                        <div className="flex gap-20 mt-10">
+                                            {/* NPC */}
+                                            <div className="flex flex-col items-center cursor-pointer hover:-translate-y-2 transition-transform" onClick={() => showMessage('養雞人', '有撿到蛋再來找我吧！咕咕！', '🧑‍🌾')}>
+                                                <div className="text-[6rem] drop-shadow-md">🧑‍🌾</div>
+                                                <div className="bg-white px-3 py-1 font-bold rounded-lg mt-2 shadow-sm border-2 border-[#A5D6A7]">養雞人</div>
+                                            </div>
+
+                                            {/* Incubator */}
+                                            <div className="flex flex-col items-center cursor-pointer hover:-translate-y-2 transition-transform" onClick={() => showMessage('孵蛋所', '機器正在運轉，放入蛋就可以開始孵化... (開發中)', '🥚')}>
+                                                <div className="text-[6rem] drop-shadow-md">🥚</div>
+                                                <div className="bg-white px-3 py-1 font-bold rounded-lg mt-2 shadow-sm border-2 border-[#FFCC80]">孵蛋所</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('village')}>⬅ 回村莊</button>
                                 </div>
                             )}
 

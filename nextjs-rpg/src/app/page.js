@@ -96,7 +96,7 @@ export default function App() {
     // 玩家狀態
     const [player, setPlayer] = useState({
         name: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
-        inventory: [], equipped: { weapon: null, pet: null }
+        inventory: [], equipped: { weapon: null, pet: null }, gachaUnlocked: false
     });
 
     // 戰鬥狀態
@@ -309,7 +309,7 @@ export default function App() {
             const r = await fetch(url);
             const text = await r.text();
             const res = [];
-            text.split('\\n').forEach(row => {
+            text.split('\n').forEach(row => {
                 const c = row.split(',').map(x => x.trim());
                 if (c.length >= 2 && c[0] !== "題目" && c[0] !== "Question") {
                     res.push({ q: c[0], a: c[1], wrong: [c[2], c[3], c[4]].filter(Boolean) });
@@ -341,7 +341,7 @@ export default function App() {
 
     const handleStart = () => {
         if (!/[a-zA-Z\\u4e00-\\u9fa5]+/.test(player.name) || player.name.length < 1) {
-            showMessage('提示', '名字格式錯誤！\\n請輸入至少1個中文字或英文字母。', '⚠️');
+            showMessage('提示', '名字格式錯誤！\n請輸入至少1個中文字或英文字母。', '⚠️');
             return;
         }
         loadAllDatabases();
@@ -384,7 +384,7 @@ export default function App() {
 
     const startBattle = (zoneKey) => {
         if (zoneKey === 'final_castle' && !hasItem('key_strange')) {
-            showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\\n好像需要一把「奇怪的鑰匙」才能打開。\\n(去問問村莊裡的流浪商人吧)', '🔒');
+            showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒');
             return;
         }
         if (player.hp <= 0) {
@@ -543,10 +543,10 @@ export default function App() {
 
         // Final Boss logic
         if (battle.zone.id === 'final_castle') {
-            showMessage('擊敗全科魔王！', '魔王掉落了一個巨大的寶箱...\\n但是上了鎖。', '🧰', () => {
+            showMessage('擊敗全科魔王！', '魔王掉落了一個巨大的寶箱...\n但是上了鎖。', '🧰', () => {
                 if (hasItem('key_chest')) {
                     if (!hasItem('cert_clear')) addItem('cert_clear', 1);
-                    showMessage('恭喜通關！', '你使用了鑰匙打開寶箱！\\n獲得了「全科通關證明」！', '📜', () => setScene('map'));
+                    showMessage('恭喜通關！', '你使用了鑰匙打開寶箱！\n獲得了「全科通關證明」！', '📜', () => setScene('map'));
                 } else {
                     showMessage('無法開啟', '寶箱鎖住了，你需要「魔王寶箱鑰匙」！', '🔒', () => setScene('map'));
                 }
@@ -570,14 +570,14 @@ export default function App() {
              dropMsgParts.push(`💨 運氣不好，什麼都沒掉...`);
         }
 
-        if (dropMsgParts.length > 0) msg += "\\n\\n" + dropMsgParts.join("\\n");
+        if (dropMsgParts.length > 0) msg += "\n\n" + dropMsgParts.join("\n");
         
         showMessage('戰鬥勝利！', msg, icon, () => setScene('map'));
     };
 
     const handleLose = () => {
         setBattle(prev => ({ ...prev, active: false }));
-        showMessage('戰鬥失敗', '勇者倒下了...\\n但是女神眷顧了你！\\n(HP 恢復為 1，趕快去喝藥水吧)', '👼', () => { 
+        showMessage('戰鬥失敗', '勇者倒下了...\n但是女神眷顧了你！\n(HP 恢復為 1，趕快去喝藥水吧)', '👼', () => { 
             setPlayer(prev => ({ ...prev, hp: 1 }));
             setScene('map'); 
         });
@@ -597,9 +597,9 @@ export default function App() {
             const collectedCount = fragments.filter(id => hasItem(id)).length;
             let introText = "";
             if (collectedCount === 5) { 
-                introText = "喔喔！你竟然真的收集齊了五大碎片！\\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！"; 
+                introText = "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！"; 
             } else { 
-                introText = `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\\n(目前收集: ${collectedCount}/5)`; 
+                introText = `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`; 
             }
             if (npcHistories.merchant.length === 0) {
                 setNpcHistories(prev => ({...prev, merchant: [{ role: 'model', text: introText }]}));
@@ -674,7 +674,7 @@ export default function App() {
                 .custom-scroll::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
             `}</style>
 
-            <div className={\`w-full max-w-[1050px] h-full max-h-[580px] bg-white relative flex flex-row shadow-[0_0_30px_rgba(0,0,0,0.5)] rounded-[20px] overflow-hidden \${battle.flashRed ? 'anim-flash-red' : ''}\`}>
+            <div className={\`w-full max-w-[1050px] h-full max-h-[580px] bg-white relative flex flex-row shadow-[0_0_30px_rgba(0,0,0,0.5)] rounded-[20px] overflow-hidden ${battle.flashRed ? 'anim-flash-red' : ''}\`}>
                 
                 {/* --- 側邊欄 Sidebar --- */}
                 {scene !== 'start' && (
@@ -805,7 +805,7 @@ export default function App() {
                             <div className="flex-1 flex flex-col items-center justify-center">
                                 {battle.monster && (
                                     <div className="text-center relative">
-                                        <div className={\`text-[7rem] drop-shadow-[0_10px_5px_rgba(0,0,0,0.2)] anim-float inline-block \${battle.isShaking ? 'anim-shake' : ''}\`}>
+                                        <div className={\`text-[7rem] drop-shadow-[0_10px_5px_rgba(0,0,0,0.2)] anim-float inline-block ${battle.isShaking ? 'anim-shake' : ''}\`}>
                                             {battle.monster.icon}
                                         </div>
                                         <div className="bg-white/90 px-4 py-2 rounded-2xl mt-3 font-bold shadow-sm">
@@ -877,7 +877,7 @@ export default function App() {
                                     <div className="font-bold text-[#5D4037] mb-2">⚔️ 目前裝備</div>
                                     
                                     {/* Weapon Slot */}
-                                    <div className={\`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative \${player.equipped.weapon ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}\`}
+                                    <div className={\`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.weapon ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}\`}
                                          onClick={() => unequipItem('weapon')} title={player.equipped.weapon ? "點擊脫下" : "武器欄"}>
                                         <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">武器</div>
                                         {player.equipped.weapon ? (
@@ -889,7 +889,7 @@ export default function App() {
                                     </div>
 
                                     {/* Pet Slot */}
-                                    <div className={\`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative \${player.equipped.pet ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}\`}
+                                    <div className={\`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.pet ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}\`}
                                          onClick={() => unequipItem('pet')} title={player.equipped.pet ? "點擊脫下" : "寵物欄"}>
                                         <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">寵物</div>
                                         {player.equipped.pet ? (
@@ -918,8 +918,8 @@ export default function App() {
                                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-[#333]"></div>
                                     
                                     {npcHistories[currentNpc].map((msg, idx) => (
-                                        <div key={idx} className={\`p-2 rounded-xl text-[0.9rem] leading-[1.4] max-w-[90%] border \${msg.role === 'user' ? 'bg-[#E3F2FD] rounded-br-sm self-end border-[#BBDEFB]' : 'bg-white rounded-bl-sm self-start border-[#eee]'}\`}>
-                                            {msg.text.split('\\n').map((line, i) => <React.Fragment key={i}>{line}<br/></React.Fragment>)}
+                                        <div key={idx} className={\`p-2 rounded-xl text-[0.9rem] leading-[1.4] max-w-[90%] border ${msg.role === 'user' ? 'bg-[#E3F2FD] rounded-br-sm self-end border-[#BBDEFB]' : 'bg-white rounded-bl-sm self-start border-[#eee]'}\`}>
+                                            {msg.text.split('\n').map((line, i) => <React.Fragment key={i}>{line}<br/></React.Fragment>)}
                                         </div>
                                     ))}
                                 </div>
@@ -949,7 +949,7 @@ export default function App() {
                                         const item = ITEMS[itemId];
                                         const isHidden = itemId === 'key_strange';
                                         return (
-                                            <div key={itemId} className={\`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] \${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}\`}>
+                                            <div key={itemId} className={\`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}\`}>
                                                 <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">
                                                     {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}
                                                 </div>
@@ -973,7 +973,7 @@ export default function App() {
                              style={df.target === 'player' ? { color: 'red', top: '60%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' } 
                                   : df.target === 'monster-crit' ? { color: '#FFD700', top: '35%', left: '45%', fontSize: '2.5rem', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }
                                   : { color: 'red', top: '40%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' }}>
-                            {typeof df.amount === 'number' && !df.target.includes('crit') ? \`-\${df.amount}\` : df.amount}
+                            {typeof df.amount === 'number' && !df.target.includes('crit') ? \`-${df.amount}\` : df.amount}
                         </div>
                     ))}
 
