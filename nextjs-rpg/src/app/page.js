@@ -62,14 +62,34 @@ const ITEMS = {
     pet_bat: { id: 'pet_bat', name: '小蝙蝠', price: 250, type: 'pet', atk: 3, icon: '🦇', desc: '攻擊力 +3' },
     pet_wolf: { id: 'pet_wolf', name: '戰狼', price: 600, type: 'pet', atk: 8, icon: '🐺', desc: '攻擊力 +8' },
     frag_north: { id: 'frag_north', name: '冰霜之語', type: 'material', icon: '❄️', desc: '北方凍原的通關證明' },
-    frag_south: { id: 'frag_south', name: '元素之心', type: 'material', icon: '🔥', desc: '南方港灣的通關證明' },
-    frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
-    frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
-    frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '編年廢墟的通關證明' },
     key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
     coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '<img src="https://i.ibb.co/Jj633tHd/1.png" style="width:32px; height:32px; object-fit:contain;" alt="轉蛋幣">', desc: '可用於轉蛋機' },
-    cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' }
+    cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
+    gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' }
 };
+
+const IDIOMS = [
+    "學無止境", "廢寢忘食", "勤能補拙", "半途而廢", "名落孫山",
+    "手不釋卷", "溫故知新", "持之以恆", "日積月累", "聚沙成塔",
+    "捨己為人", "大公無私", "光明正大", "助人為樂", "飲水思源",
+    "誠實守信", "謙虛好學", "見義勇為", "以身作則", "知錯能改",
+    "眉開眼笑", "目瞪口呆", "垂頭喪氣", "文質彬彬", "一表人才",
+    "心驚肉跳", "怒氣沖沖", "小心翼翼", "胸有成竹", "自高自大",
+    "垂涎三尺", "昂首闊步", "神采奕奕", "悠然自得", "驚慌失措",
+    "專心致志", "樂不可支", "悶悶不樂", "忘恩負義", "虛懷若谷",
+    "春色滿園", "鳥語花香", "山明水秀", "世外桃源", "烈日當空",
+    "冰天雪地", "依山傍水", "萬紫千紅", "風平浪靜", "綠意盎然",
+    "煙霧繚繞", "傾盆大雨", "漫山遍野", "豁然開朗", "烏雲密佈",
+    "氣象萬千", "斷垣殘壁", "人山人海", "門庭若市", "荒無人煙",
+    "狐假虎威", "井底之蛙", "畫蛇添足", "亡羊補牢", "掩耳盜鈴",
+    "守株待兔", "拔苗助長", "刻舟求劍", "驚弓之鳥", "畫龍點睛",
+    "班門弄斧", "志同道合", "患難與共", "情同手足", "同心協力",
+    "對牛彈琴", "塞翁失馬", "愚公移山", "望梅止渴", "自相矛盾",
+    "一日千里", "突飛猛進", "數不勝數", "千軍萬馬", "瞬息萬變",
+    "光明磊落", "滔滔不絕", "出類拔萃", "一鳴驚人", "博學多才",
+    "光陰似箭", "日月如梭", "爭分奪秒", "千載難逢", "迫不及待",
+    "萬無一失", "勇往直前", "再接再厲", "百折不撓", "欣欣向榮"
+];
 
 const SHOP_ITEMS = ['potion_s', 'potion_l', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat'];
 const LEVEL_EXP_TABLE = [0, 50, 80, 120, 130, 150, 170, 400, 800, 1500];
@@ -81,7 +101,7 @@ const ZONES = {
     south_harbor: { id: 'south_harbor', name: '元素港灣 (自)', bg: '#E8F5E9', type: 'custom_csv', questionBank: 'science_csv', dropItem: 'frag_south', monsters: [{ name: '水元素', icon: '💧', hp: 25, exp: 15, gold: 20 }, { name: '火焰靈', icon: '🔥', hp: 45, exp: 35, gold: 40 }, { name: '雷電球', icon: '⚡', hp: 55, exp: 45, gold: 55 }] },
     north_tundra: { id: 'north_tundra', name: '單字凍原 (英)', bg: '#E3F2FD', type: 'custom_csv', questionBank: 'english_csv', dropItem: 'frag_north', monsters: [{ name: '雪狼', icon: '🐺', hp: 30, exp: 20, gold: 25 }, { name: '冰巨人', icon: '⛄', hp: 60, exp: 50, gold: 50 }, { name: '極地熊', icon: '🐻❄️', hp: 80, exp: 70, gold: 80 }] },
     outer_ruins: { id: 'outer_ruins', name: '編年廢墟 (社)', bg: '#F3E5F5', type: 'custom_csv', questionBank: 'social_csv', dropItem: 'frag_outer', monsters: [{ name: '石像鬼', icon: '🗿', hp: 40, exp: 30, gold: 35 }, { name: '考古幽靈', icon: '👻', hp: 50, exp: 40, gold: 45 }, { name: '時光守護者', icon: '⏳', hp: 75, exp: 65, gold: 75 }] },
-    final_castle: { id: 'final_castle', name: '魔王城', bg: '#FFEBEE', type: 'mixed_all', monsters: [{ name: '全科魔王', icon: '👿', hp: 300, exp: 1000, gold: 1000 }] }
+    magic_library: { id: 'magic_library', name: '魔法圖書館', bg: '#EFEBE9', type: 'minigame', dropItem: 'gem_red', monsters: [] }
 };
 
 // ==========================================
@@ -108,8 +128,19 @@ export default function App() {
     const [damageFloats, setDamageTexts] = useState([]);
 
     // NPC 對話狀態
-    const [npcHistories, setNpcHistories] = useState({ shopkeeper: [], merchant: [] });
+    const [npcHistories, setNpcHistories] = useState({ shopkeeper: [], merchant: [], librarian: [] });
     const [currentNpc, setCurrentNpc] = useState('shopkeeper');
+
+    // --- 魔法圖書館成語小遊戲狀態 ---
+    const [idiomGame, setIdiomGame] = useState({
+        active: false,
+        score: 0,
+        maxScore: 10,
+        currentIdiom: null,
+        options: [],
+        slots: [null, null, null, null],
+        blanks: []
+    });
 
     // --- 衍生數值計算 (Derived State) ---
     const stats = useMemo(() => {
@@ -440,8 +471,18 @@ export default function App() {
         }
     };
 
-    const startBattle = (zoneKey) => {
-        if (zoneKey === 'final_castle' && !hasItem('key_strange')) {
+    const startBattle = async (zoneId) => {
+        const zone = ZONES[zoneId];
+        if (!zone) return;
+
+        if (zone.type === 'minigame') {
+            if (zone.id === 'magic_library') {
+                startIdiomGame();
+            }
+            return;
+        }
+
+        if (zoneId === 'final_castle' && !hasItem('key_strange')) {
             showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒');
             return;
         }
@@ -449,8 +490,6 @@ export default function App() {
             showMessage('體力不足', '請先使用藥水恢復 HP！', '🚑');
             return;
         }
-
-        const zone = ZONES[zoneKey];
         let pool = [];
         if (zone.type === 'custom_csv' || zone.type === 'mixed_all') {
             const bankKey = zone.type === 'mixed_all' ? 'mixed' : zone.questionBank;
@@ -600,15 +639,7 @@ export default function App() {
         }
 
         // Final Boss logic
-        if (battle.zone.id === 'final_castle') {
-            showMessage('擊敗全科魔王！', '魔王掉落了一個巨大的寶箱...\n但是上了鎖。', '🧰', () => {
-                if (hasItem('key_chest')) {
-                    if (!hasItem('cert_clear')) addItem('cert_clear', 1);
-                    showMessage('恭喜通關！', '你使用了鑰匙打開寶箱！\n獲得了「全科通關證明」！', '📜', () => setScene('map'));
-                } else {
-                    showMessage('無法開啟', '寶箱鎖住了，你需要「魔王寶箱鑰匙」！', '🔒', () => setScene('map'));
-                }
-            });
+        if (battle.zone.id === 'magic_library') {
             return;
         }
 
@@ -631,6 +662,147 @@ export default function App() {
         if (dropMsgParts.length > 0) msg += "\n\n" + dropMsgParts.join("\n");
         
         showMessage('戰鬥勝利！', msg, icon, () => setScene('map'));
+    };
+
+    const startIdiomGame = () => {
+        const initRound = (currentScore) => {
+            const idiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+            const chars = idiom.split('');
+            
+            let b1 = Math.floor(Math.random() * 4);
+            let b2 = Math.floor(Math.random() * 4);
+            while (b1 === b2) { b2 = Math.floor(Math.random() * 4); }
+            
+            const blanks = [b1, b2].sort();
+            const correctAnswers = [chars[b1], chars[b2]];
+            
+            let distractors = [];
+            while (distractors.length < 8) {
+                const randomIdiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+                const randomChar = randomIdiom.split('')[Math.floor(Math.random() * 4)];
+                if (!correctAnswers.includes(randomChar) && !distractors.includes(randomChar)) {
+                    distractors.push(randomChar);
+                }
+            }
+            
+            const allOptions = [...correctAnswers, ...distractors];
+            for (let i = allOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+            }
+            
+            const initialSlots = [null, null, null, null];
+            for (let i = 0; i < 4; i++) {
+                if (!blanks.includes(i)) initialSlots[i] = chars[i];
+            }
+
+            setIdiomGame({
+                active: true,
+                score: currentScore,
+                maxScore: 10,
+                currentIdiom: chars,
+                options: allOptions,
+                slots: initialSlots,
+                blanks: blanks
+            });
+        };
+
+        setCurrentNpc('librarian');
+        setScene('magic_library');
+        
+        let introText = "歡迎來到魔法圖書館，勇者！\n這裡是知識的殿堂，只要你能連續答對 10 題成語，就能獲得管理員的認可！";
+        setNpcHistories(prev => ({...prev, librarian: [{ role: 'model', text: introText }]}));
+        
+        initRound(0);
+    };
+
+    const handleIdiomSelect = (optChar, optIndex) => {
+        setIdiomGame(prev => {
+            const newSlots = [...prev.slots];
+            const gameBlanks = prev.blanks;
+            
+            let filledAny = false;
+            for (let bIdx of gameBlanks) {
+                if (newSlots[bIdx] === null) {
+                    newSlots[bIdx] = optChar;
+                    filledAny = true;
+                    break;
+                }
+            }
+            
+            if (!filledAny) return prev;
+
+            const newOptions = [...prev.options];
+            newOptions.splice(optIndex, 1);
+            
+            let isFull = true;
+            for (let bIdx of gameBlanks) {
+                if (newSlots[bIdx] === null) isFull = false;
+            }
+
+            if (isFull) {
+                setTimeout(() => verifyIdiomResult(newSlots, prev), 300);
+            }
+
+            return { ...prev, slots: newSlots, options: newOptions };
+        });
+    };
+
+    const verifyIdiomResult = (currentSlots, stateRef) => {
+        const answerStr = stateRef.currentIdiom.join('');
+        const userStr = currentSlots.join('');
+        
+        if (answerStr === userStr) {
+            const newScore = stateRef.score + 1;
+            if (newScore >= stateRef.maxScore) {
+                setIdiomGame(prev => ({ ...prev, active: false }));
+                showMessage('恭喜通關！', '你成功通過了魔法圖書館的考驗！\n(獲得「圖書管理員寶石」)', '💎', () => {
+                    if (!hasItem('gem_red')) addItem('gem_red', 1);
+                    setScene('map');
+                });
+            } else {
+                showDamage("正確！", "player");
+                setTimeout(() => {
+                    startIdiomGame_nextRound(newScore);
+                }, 800);
+            }
+        } else {
+            showMessage('答錯囉！', `正確的成語是「${answerStr}」！\n請再試一次吧。`, '❌', () => {
+                const resetSlots = [...currentSlots];
+                for (let bIdx of stateRef.blanks) resetSlots[bIdx] = null;
+                
+                let recoverOptions = [...stateRef.options];
+                for (let bIdx of stateRef.blanks) {
+                     if (currentSlots[bIdx] !== null) recoverOptions.push(currentSlots[bIdx]);
+                }
+                
+                setIdiomGame(prev => ({ ...prev, slots: resetSlots, options: recoverOptions }));
+            });
+        }
+    };
+    
+    const startIdiomGame_nextRound = (currentScore) => {
+        const idiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+        const chars = idiom.split('');
+        let b1 = Math.floor(Math.random() * 4);
+        let b2 = Math.floor(Math.random() * 4);
+        while (b1 === b2) { b2 = Math.floor(Math.random() * 4); }
+        const blanks = [b1, b2].sort();
+        const correctAnswers = [chars[b1], chars[b2]];
+        let distractors = [];
+        while (distractors.length < 8) {
+            const randomIdiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+            const randomChar = randomIdiom.split('')[Math.floor(Math.random() * 4)];
+            if (!correctAnswers.includes(randomChar) && !distractors.includes(randomChar)) distractors.push(randomChar);
+        }
+        const allOptions = [...correctAnswers, ...distractors];
+        for (let i = allOptions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+        }
+        const initialSlots = [null, null, null, null];
+        for (let i = 0; i < 4; i++) { if (!blanks.includes(i)) initialSlots[i] = chars[i]; }
+        setIdiomGame(prev => ({ ...prev, active: true, score: currentScore, currentIdiom: chars, options: allOptions, slots: initialSlots, blanks: blanks }));
     };
 
     const handleLose = () => {
@@ -832,9 +1004,74 @@ export default function App() {
                             <div className="absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}></div>
                             <div className="absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}></div>
                             <div className="absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}></div>
-                            <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('final_castle')}></div>
+                            <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('magic_library')}></div>
 
                             <div className="absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}></div>
+                        </div>
+                    )}
+
+                    {scene === 'magic_library' && (
+                        <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center">
+                            <h2 className="text-2xl font-bold text-[#5D4037] mb-2 tracking-widest text-shadow-title text-white">魔法圖書館</h2>
+                            <div className="text-[#8D6E63] font-bold mb-4 bg-white/50 px-4 py-1 rounded-full shadow-sm">
+                                圖書管理員的考驗 ({idiomGame.score}/{idiomGame.maxScore})
+                            </div>
+
+                            {/* 遊戲區塊 */}
+                            <div className="flex w-full max-w-[800px] h-[350px] gap-6 px-4">
+                                {/* 左側：字庫選項 */}
+                                <div className="flex-1 bg-white/80 rounded-2xl p-4 shadow-inner flex flex-wrap content-start gap-3 justify-center border-2 border-[#D7CCC8]">
+                                    <div className="w-full text-center text-sm font-bold text-[#8D6E63] mb-2 border-b-2 border-dashed border-[#D7CCC8] pb-1">備選字庫</div>
+                                    {idiomGame.options.map((optChar, idx) => (
+                                        <div 
+                                            key={`opt-${idx}`} 
+                                            className="w-14 h-14 bg-[#FFF8E1] border-2 border-[#FFB74D] rounded-xl flex items-center justify-center text-2xl font-bold text-[#5D4037] cursor-pointer hover:bg-[#FFE082] hover:scale-105 transition-all shadow-sm"
+                                            onClick={() => handleIdiomSelect(optChar, idx)}
+                                        >
+                                            {optChar}
+                                        </div>
+                                    ))}
+                                    {idiomGame.options.length === 0 && (
+                                        <div className="w-full text-center text-[#BCAAA4] mt-10">已無可用字元</div>
+                                    )}
+                                </div>
+
+                                {/* 右側：作答區 */}
+                                <div className="flex-1 bg-white/80 rounded-2xl p-4 shadow-inner flex flex-col items-center justify-center border-2 border-[#D7CCC8]">
+                                    <div className="text-sm font-bold text-[#8D6E63] mb-6">請依序填入正確成語</div>
+                                    <div className="flex gap-4">
+                                        {idiomGame.slots.map((char, index) => {
+                                            const isBlank = idiomGame.blanks.includes(index);
+                                            return (
+                                                <div 
+                                                    key={`slot-${index}`} 
+                                                    className={`w-20 h-24 rounded-lg flex items-center justify-center text-4xl font-bold shadow-md border-b-4 
+                                                        ${!isBlank 
+                                                            ? 'bg-[#E0E0E0] text-[#757575] border-[#BDBDBD]' 
+                                                            : char === null 
+                                                                ? 'bg-[#FFF3E0] border-[#FFCC80] text-transparent border-dashed' 
+                                                                : 'bg-[#C8E6C9] border-[#81C784] text-[#2E7D32]'}`}
+                                                >
+                                                    {char || '?'}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <button className="mt-8 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
+                                        逃跑
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* 底部 NPC 對話區 */}
+                            <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#D7CCC8] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                <div className="min-w-[70px] h-[70px] bg-[#EFEBE9] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#D7CCC8] pb-1 shadow-inner shrink-0">
+                                    🦉
+                                </div>
+                                <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#5D4037] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                    {npcHistories.librarian && npcHistories.librarian[npcHistories.librarian.length - 1]?.text}
+                                </div>
+                            </div>
                         </div>
                     )}
 
