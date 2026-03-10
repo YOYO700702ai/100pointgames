@@ -497,7 +497,7 @@ export default function App() {
 
         setBattle({
             active: true, zone, wave: 1, questionPool: pool,
-            monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false
+            monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false, isProcessing: false
         });
         setScene('battle');
     };
@@ -558,12 +558,14 @@ export default function App() {
             questionPool: newPool,
             question: qObj.q,
             answer: qObj.a,
-            options: opts
+            options: opts,
+            isProcessing: false
         }));
     };
 
     const handleAnswer = (selectedVal, btnEvent) => {
-        if (!battle.active || !battle.monster) return;
+        if (!battle.active || !battle.monster || battle.isProcessing) return;
+        setBattle(prev => ({ ...prev, isProcessing: true }));
 
         if (String(selectedVal) === String(battle.answer)) {
             // Correct Answer
@@ -584,6 +586,7 @@ export default function App() {
             triggerMonsterShake();
 
             if (newHp <= 0) {
+                setBattle(prev => ({ ...prev, isProcessing: false }));
                 handleWinWave(battle.monster);
             } else {
                 setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } }));
@@ -600,6 +603,7 @@ export default function App() {
 
             const isDead = takeDamage(dmg);
             if (isDead) {
+                setBattle(prev => ({ ...prev, isProcessing: false }));
                 handleLose();
             } else {
                 setTimeout(() => { 

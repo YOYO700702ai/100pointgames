@@ -417,7 +417,7 @@
                 if (player.hp <= 0) { showMessage('體力不足', '請先使用藥水恢復 HP！', '🚑'); return; }
                 let pool = [];
                 if (zone.type === 'custom_csv' || zone.type === 'mixed_all') { const bankKey = zone.type === 'mixed_all' ? 'mixed' : zone.questionBank; pool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); }
-                setBattle({ active: true, zone, wave: 1, questionPool: pool, monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false });
+                setBattle({ active: true, zone, wave: 1, questionPool: pool, monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false, isProcessing: false });
                 setScene('battle');
             };
 
@@ -439,18 +439,19 @@
                 let opts = [qObj.a];
                 if (qObj.wrong && qObj.wrong.length > 0) { opts = opts.concat(qObj.wrong.slice(0, 3)); while(opts.length < 4) opts.push("???"); } else { while(opts.length < 4) opts.push(Math.floor(Math.random()*100).toString()); }
                 opts.sort(() => Math.random() - 0.5);
-                setBattle(prev => ({ ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: opts }));
+                setBattle(prev => ({ ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: opts, isProcessing: false }));
             };
 
             const handleAnswer = (selectedVal, btnEvent) => {
-                if (!battle.active || !battle.monster) return;
+                if (!battle.active || !battle.monster || battle.isProcessing) return;
+                setBattle(prev => ({ ...prev, isProcessing: true }));
                 if (String(selectedVal) === String(battle.answer)) {
                     const currentStreak = player.streak + 1; let dmg = stats.atk; let isCrit = false;
                     if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 4) { dmg += 15; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
                     const newHp = battle.monster.hp - dmg;
                     showDamage(isCrit ? `蓄力一擊! -${dmg}` : dmg, isCrit ? 'monster-crit' : 'monster'); triggerMonsterShake();
                     if (newHp <= 0) {
-                        setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 } }));
+                        setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 }, isProcessing: false }));
                         setTimeout(() => handleWinWave(battle.monster, battle.wave), 800);
                     } else { 
                         setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } })); 
@@ -460,7 +461,12 @@
                     updatePlayer({ streak: 0 }); const dmg = battle.monster.atk;
                     const btns = btnEvent.target.parentElement.children; for(let b of btns) { if(b.textContent === String(battle.answer)) b.classList.add('bg-green-400'); }
                     const isDead = takeDamage(dmg);
-                    if (isDead) handleLose(); else setTimeout(() => { for(let b of btns) b.classList.remove('bg-green-400'); if (battle.active) setupNextQuestion(battle.questionPool, null); }, 1000);
+                    if (isDead) {
+                        setBattle(prev => ({ ...prev, isProcessing: false }));
+                        handleLose(); 
+                    } else {
+                        setTimeout(() => { for(let b of btns) b.classList.remove('bg-green-400'); if (battle.active) setupNextQuestion(battle.questionPool, null); }, 1000);
+                    }
                 }
             };
 
