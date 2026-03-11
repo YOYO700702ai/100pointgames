@@ -329,11 +329,11 @@ export default function App() {
             addItem(gotEgg, 1);
             showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
         } else if (roll < (eggProbability + normalProbability)) { 
-            // 調高營養劑機率，調低藥水機率
+            // 營養劑 85%, 小紅 7.5%, 大紅 7.5%
             const normalRoll = Math.random();
-            let gotItem = 'potion_nutri'; // default ~70% chance
-            if (normalRoll < 0.15) gotItem = 'potion_s';
-            else if (normalRoll < 0.30) gotItem = 'potion_l';
+            let gotItem = 'potion_nutri';
+            if (normalRoll < 0.075) gotItem = 'potion_s';
+            else if (normalRoll < 0.15) gotItem = 'potion_l';
             
             addItem(gotItem, 1);
             showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
@@ -371,7 +371,7 @@ export default function App() {
                 level: newLevel, 
                 maxExp: newMaxExp, 
                 gold: prev.gold + goldAmt,
-                hp: leveledUp ? newMaxHp : prev.hp // 升級補滿血
+                hp: prev.hp // 升等不補血
             };
         });
     };
@@ -947,7 +947,8 @@ export default function App() {
         });
         setScene('minigame_memory');
         if (player.equipped.pet === 'pet_jellyfish') {
-            showMessage('🪜 幻變時空水母發動技能！', '「緩慢時間流速」\n時間在此刻凝滞... 你有30 秒來記憶牌的位置！', '🪜', () => {
+            setMemoryGame(prev => ({ ...prev, countdown: 30 }));
+            showMessage('🪼 幻變時空水母發動技能！', '「緩慢時間流速」\n時間在此刻凝滞... 你有30 秒來記憶牌的位置！', '🪼', () => {
                 setTimeout(() => {
                     setMemoryGame(prev => ({
                         ...prev,
@@ -1258,7 +1259,7 @@ export default function App() {
                                     className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#8D6E63]"
                                     onClick={() => startIdiomGame()}
                                 >
-                                    <div className="text-[6rem]">🦉</div>
+                                    <div className="text-[6rem]">📚</div>
                                     <div className="text-xl font-bold text-[#5D4037]">圖書管理員的考驗</div>
                                     <div className="text-sm font-bold text-[#EF5350] bg-[#FFCDD2] px-3 py-1 rounded-full">紅寶石挑戰</div>
                                 </div>
@@ -1336,7 +1337,7 @@ export default function App() {
                         <div className="absolute inset-0 bg-[#FFFDE7] p-4 flex flex-col items-center">
                             <h2 className="text-2xl font-bold text-[#F57F17] mb-2 tracking-widest text-shadow-title text-white">紙牌大師的記憶考驗</h2>
                             <div className="absolute top-4 right-4 bg-white/70 text-[#F57F17] font-bold px-4 py-2 rounded-xl shadow-sm border-2 border-[#FBC02D] text-lg">
-                                {memoryGame.phase === 'peek' ? '👀 倒數 0.3 秒' : `進度: ${memoryGame.matchedPairs}/8`}
+                                {memoryGame.phase === 'peek' ? `👀 倒數 ${memoryGame.countdown} 秒` : `進度: ${memoryGame.matchedPairs}/8`}
                             </div>
 
                             <div className="grid grid-cols-4 gap-2 mt-6">

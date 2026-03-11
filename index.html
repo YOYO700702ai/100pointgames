@@ -349,7 +349,7 @@
                     let newMaxHp = prev.baseMaxHp + (newLevel - 1) * 10;
                     if (prev.equipped.weapon && ITEMS[prev.equipped.weapon]) newMaxHp += (ITEMS[prev.equipped.weapon].hp || 0);
                     if (prev.equipped.pet && ITEMS[prev.equipped.pet]) newMaxHp += (ITEMS[prev.equipped.pet].hp || 0);
-                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt, hp: leveledUp ? newMaxHp : prev.hp };
+                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt };
                 });
                 return { leveledUp: didLevelUp, newLevel: newLvl };
             };
@@ -1084,7 +1084,7 @@
                                             className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#8D6E63]"
                                             onClick={() => startIdiomGame()}
                                         >
-                                            <div className="text-[6rem]">🦉</div>
+                                            <div className="text-[6rem]">📚</div>
                                             <div className="text-xl font-bold text-[#5D4037]">圖書管理員的考驗</div>
                                             <div className="text-sm font-bold text-[#EF5350] bg-[#FFCDD2] px-3 py-1 rounded-full">紅寶石挑戰</div>
                                         </div>
@@ -1204,7 +1204,7 @@
                                 <div className="absolute inset-0 bg-[#FFFDE7] p-4 flex flex-col items-center">
                                     <h2 className="text-2xl font-bold text-[#F57F17] mb-2 tracking-widest text-shadow-title text-white">紙牌大師的記憶考驗</h2>
                                     <div className="absolute top-4 right-4 bg-white/70 text-[#F57F17] font-bold px-4 py-2 rounded-xl shadow-sm border-2 border-[#FBC02D] text-lg">
-                                        {memoryGame.phase === 'peek' ? '👀 倒數 0.3 秒' : `進度: ${memoryGame.matchedPairs}/8`}
+                                        {memoryGame.phase === 'peek' ? `👀 倒數 ${memoryGame.countdown} 秒` : `進度: ${memoryGame.matchedPairs}/8`}
                                     </div>
 
                                     <div className="grid grid-cols-4 gap-2 mt-6">
