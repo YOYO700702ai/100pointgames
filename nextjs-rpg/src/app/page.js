@@ -316,7 +316,8 @@ export default function App() {
         removeItemById('coin_gacha', 1);
         
         const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
-        const unownedEggs = allEggs.filter(eggId => !hasItem(eggId));
+        // 層除已有蛋或已孵化出寺物的蛋（孵化後蛋被消耗了）
+        const unownedEggs = allEggs.filter(eggId => !hasItem(eggId) && !hasItem(EGG_TO_PET[eggId]));
         
         const eggProbability = unownedEggs.length * 5; 
         const jokeProbability = 5; 
