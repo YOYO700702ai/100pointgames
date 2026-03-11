@@ -1349,51 +1349,51 @@ export default function App() {
 
                     {scene === 'library_lobby' && (
                         <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center justify-center">
-                            <h2 className="text-4xl font-bold text-[#5D4037] mb-8 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
+                            <h2 className="text-2xl font-bold text-[#5D4037] mb-4 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
                             
-                            <div className="flex flex-wrap gap-6 justify-center max-w-[1200px]">
+                            <div className="grid grid-cols-2 gap-3 w-full max-w-[380px]">
                                 {/* 進入成語遊戲 */}
                                 <div 
-                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#8D6E63]"
+                                    className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#8D6E63] p-3"
                                     onClick={() => startIdiomGame()}
                                 >
-                                    <div className="text-[6rem]">📚</div>
-                                    <div className="text-xl font-bold text-[#5D4037]">圖書管理員的考驗</div>
-                                    <div className="text-sm font-bold text-[#EF5350] bg-[#FFCDD2] px-3 py-1 rounded-full">紅寶石挑戰</div>
+                                    <div className="text-[3.5rem]">📚</div>
+                                    <div className="text-sm font-bold text-[#5D4037]">圖書管理員的考驗</div>
+                                    <div className="text-xs font-bold text-[#EF5350] bg-[#FFCDD2] px-2 py-0.5 rounded-full">紅寶石挑戰</div>
                                 </div>
 
                                 {/* 進入尋寶遊戲 */}
                                 <div 
-                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#42A5F5]"
+                                    className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#42A5F5] p-3"
                                     onClick={() => startClownGame()}
                                 >
-                                    <div className="text-[6rem]">🤡</div>
-                                    <div className="text-xl font-bold text-[#1565C0]">小丑的尋寶遊戲</div>
-                                    <div className="text-sm font-bold text-[#1E88E5] bg-[#BBDEFB] px-3 py-1 rounded-full">藍寶石挑戰</div>
+                                    <div className="text-[3.5rem]">🤡</div>
+                                    <div className="text-sm font-bold text-[#1565C0]">小丑的尋寶遊戲</div>
+                                    <div className="text-xs font-bold text-[#1E88E5] bg-[#BBDEFB] px-2 py-0.5 rounded-full">藍寶石挑戰</div>
                                 </div>
 
                                 {/* 進入紙牌記憶遊戲 */}
                                 <div 
-                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#FBC02D]"
+                                    className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#FBC02D] p-3"
                                     onClick={() => startMemoryGame()}
                                 >
-                                    <div className="text-[6rem]">🃏</div>
-                                    <div className="text-xl font-bold text-[#F57F17]">紙牌大師的記憶</div>
-                                    <div className="text-sm font-bold text-[#FBC02D] bg-[#FFF9C4] px-3 py-1 rounded-full">黃寶石挑戰</div>
+                                    <div className="text-[3.5rem]">🃏</div>
+                                    <div className="text-sm font-bold text-[#F57F17]">紙牌大師的記憶</div>
+                                    <div className="text-xs font-bold text-[#FBC02D] bg-[#FFF9C4] px-2 py-0.5 rounded-full">黃寶石挑戰</div>
                                 </div>
 
                                 {/* 進入打地精遊戲 */}
                                 <div 
-                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#2E7D32]"
+                                    className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#2E7D32] p-3"
                                     onClick={() => startMoleGame()}
                                 >
-                                    <div className="text-[6rem]">👺</div>
-                                    <div className="text-xl font-bold text-[#2E7D32]">暴走地精的翡翠礦坑</div>
-                                    <div className="text-sm font-bold text-[#388E3C] bg-[#C8E6C9] px-3 py-1 rounded-full">綠寶石挑戰</div>
+                                    <div className="text-[3.5rem]">👺</div>
+                                    <div className="text-sm font-bold text-[#2E7D32]">暴走地精的翡翠礦坑</div>
+                                    <div className="text-xs font-bold text-[#388E3C] bg-[#C8E6C9] px-2 py-0.5 rounded-full">綠寶石挑戰</div>
                                 </div>
                             </div>
 
-                            <button className="mt-12 px-8 py-3 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-xl" onClick={() => setScene('map')}>
+                            <button className="mt-6 px-6 py-2 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-lg" onClick={() => setScene('map')}>
                                 離開圖書館
                             </button>
                         </div>
