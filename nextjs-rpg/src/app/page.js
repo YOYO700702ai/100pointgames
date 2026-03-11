@@ -65,22 +65,22 @@ const ITEMS = {
     frag_south: { id: 'frag_south', name: '元素之心', type: 'material', icon: '🔥', desc: '南方港灣的通關證明' },
     frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
     frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
-    frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🎺', desc: '編年廢墟的通關證明' },
+    frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '編年廢墟的通關證明' },
     key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
     key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
     coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 100, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
     cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
-    sword_god: { id: 'sword_god', name: '一擊必殺的神劍', price: 99999, type: 'weapon', icon: '🗡️', atk: 99999, desc: '神明賡予的武器，無視一切直接秒殺。' },
-    potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'consumable_hatch', icon: '🌿', desc: '孵蛋場餅食用，每顓增加 10~30% 孵化進度' },
+    sword_god: { id: 'sword_god', name: '一擊必殺的神劍', price: 99999, type: 'weapon', icon: '🗡️', atk: 99999, desc: '神明賜予的武器，無視一切直接秒殺。' },
+    potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'consumable_hatch', icon: '🌿', desc: '孵蛋場餵食用，每顆增加 10~30% 孵化進度' },
     egg_1: { id: 'egg_1', name: '紫晶符文蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(1).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【真理之眼貓頭鷹】' },
     egg_2: { id: 'egg_2', name: '蔚藍星塵蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【幻變時空水母】' },
-    egg_3: { id: 'egg_3', name: '翡翠藤蘋蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【翡翠藤龍】' },
-    egg_4: { id: 'egg_4', name: '琥珀金沙蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(3).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【貲婪尋寶鼠】' },
+    egg_3: { id: 'egg_3', name: '翡翠藤蔓蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【翡翠藤龍】' },
+    egg_4: { id: 'egg_4', name: '琥珀金沙蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(3).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【貪婪尋寶鼠】' },
     egg_5: { id: 'egg_5', name: '虛空黑曜蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【虛空獵犬】' },
     pet_owl: { id: 'pet_owl', name: '真理之眼貓頭鷹', type: 'pet', atk: 0, hp: 0, icon: '🦉', desc: '【技能：迷霧破除】成語關卡的亂碼符號變回中文！' },
-    pet_jellyfish: { id: 'pet_jellyfish', name: '幻變時空水母', type: 'pet', atk: 0, hp: 0, icon: '🪜', desc: '【技能：緩慢時間流速】進入紙牌關卡時，翻牌展示時間延長至 30 秒！' },
+    pet_jellyfish: { id: 'pet_jellyfish', name: '幻變時空水母', type: 'pet', atk: 0, hp: 0, icon: '🪼', desc: '【技能：緩慢時間流速】進入紙牌關卡時，翻牌展示時間延長至 30 秒！' },
     pet_dragon: { id: 'pet_dragon', name: '翡翠藤龍', type: 'pet', atk: 6, hp: 0, icon: '🐉', desc: '攻擊力 +6' },
-    pet_rat: { id: 'pet_rat', name: '貲婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶笱位置！' },
+    pet_rat: { id: 'pet_rat', name: '貪婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶箱位置！' },
     pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
     gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' }
 };
@@ -329,10 +329,14 @@ export default function App() {
             addItem(gotEgg, 1);
             showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
         } else if (roll < (eggProbability + normalProbability)) { 
-            const normalItems = ['potion_s', 'potion_l', 'potion_nutri'];
-            const gotItem = normalItems[Math.floor(Math.random() * normalItems.length)];
+            // 調高營養劑機率，調低藥水機率
+            const normalRoll = Math.random();
+            let gotItem = 'potion_nutri'; // default ~70% chance
+            if (normalRoll < 0.15) gotItem = 'potion_s';
+            else if (normalRoll < 0.30) gotItem = 'potion_l';
+            
             addItem(gotItem, 1);
-            showMessage('轉蛋結果', `咕...轉出了一件普通道具：\\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
+            showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
         } else { 
             showMessage('轉蛋結果', '什麼也沒獲得...\\n轉蛋雞：咕咕！再接再厲！', '💩');
         }
@@ -907,7 +911,7 @@ export default function App() {
                         }));
                         if (player.equipped.pet === 'pet_rat') {
                             setTimeout(() => {
-                                showMessage('🐭 貲婪尋寶鼠發動技能！', `「尋寶」\n我聞到了...鑰匙藏在第 ${nextTarget + 1} 個寶笱裡！\n（由左到右數）`, '🐭');
+                                showMessage('🐭 貪婪尋寶鼠發動技能！', `「尋寶」\n我聞到了...鑰匙藏在第 ${nextTarget + 1} 個寶箱裡！\n（由左到右數）`, '🐭');
                             }, 200);
                         }
                     }, 800);
