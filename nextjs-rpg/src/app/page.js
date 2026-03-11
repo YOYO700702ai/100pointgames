@@ -1154,7 +1154,7 @@ export default function App() {
                             <div className="absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}></div>
                             <div className="absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}></div>
                             <div className="absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}></div>
-                            <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('library_lobby')}></div>
+                            <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒'); return; } setScene('library_lobby'); }}></div>
 
                             <div className="absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}></div>
                         </div>
@@ -1251,17 +1251,16 @@ export default function App() {
                                 {memoryGame.phase === 'peek' ? '👀 倒數 0.3 秒' : `進度: ${memoryGame.matchedPairs}/8`}
                             </div>
 
-                            <div className="grid grid-cols-4 gap-4 mt-8">
+                            <div className="grid grid-cols-4 gap-2 mt-6">
                                 {memoryGame.cards.map((card, idx) => {
                                     const isCardFlipped = card.isFlipped || memoryGame.phase === 'peek';
                                     return (
                                         <div 
                                             key={card.id}
-                                            className={`w-[100px] h-[140px] rounded-xl flex items-center justify-center text-[3.5rem] cursor-pointer transition-all duration-300 transform perspective-1000 origin-center
-                                                ${card.isMatched ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 shadow-[0_4px_8px_rgba(0,0,0,0.2)] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.2)]'}
-                                                ${isCardFlipped ? 'bg-white border-2 border-[#FFE082] rotate-y-180' : 'bg-[#1A237E] border-4 border-[#FBC02D] bg-[url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23c2185b\' fill-opacity=\'0.4\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M10 0l10 10-10 10L0 10z\'/%3E%3C/g%3E%3C/svg%3E")] rotate-y-0'}`}
+                                            className={`w-[65px] h-[65px] rounded-xl flex items-center justify-center text-[2rem] cursor-pointer transition-all duration-300
+                                                ${card.isMatched ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 shadow-[0_2px_6px_rgba(0,0,0,0.2)] hover:-translate-y-0.5'}
+                                                ${isCardFlipped ? 'bg-white border-2 border-[#FFE082]' : 'bg-[#1A237E] border-4 border-[#FBC02D]'}`}
                                             onClick={() => handleCardClick(idx)}
-                                            style={{ transformStyle: 'preserve-3d', transition: 'transform 0.3s, opacity 0.5s' }}
                                         >
                                             <div className={`transition-opacity duration-200 ${isCardFlipped ? 'opacity-100' : 'opacity-0'}`}>
                                                 {card.emoji}
@@ -1271,7 +1270,7 @@ export default function App() {
                                 })}
                             </div>
 
-                            <button className="mt-16 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
+                            <button className="mt-4 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
                                 逃跑
                             </button>
 
