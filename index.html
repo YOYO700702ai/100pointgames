@@ -225,6 +225,16 @@
                 revealed: null // 記錄玩家翻開的內容，如果是青蛙就記下選錯的 index 以便顯示動畫
             });
 
+            // --- 魔法圖書館紙牌遊戲狀態 ---
+            const [memoryGame, setMemoryGame] = useState({
+                active: false,
+                cards: [],
+                flippedIndices: [],
+                matchedPairs: 0,
+                phase: 'peek', // peek, play, win
+                countdown: 0.5
+            });
+
             useEffect(() => {
                 if (!auth) return;
                 const initAuth = async () => {
@@ -714,6 +724,94 @@
                 }, 1000);
             };
 
+            const startMemoryGame = () => {
+                const emojis = ['🍄', '🍓', '🍀', '🍎', '🥕', '🍉', '🍇', '🍌'];
+                let deck = [];
+                for (let i = 0; i < emojis.length; i++) {
+                    deck.push({ id: i * 2, emoji: emojis[i], isFlipped: true, isMatched: false });
+                    deck.push({ id: i * 2 + 1, emoji: emojis[i], isFlipped: true, isMatched: false });
+                }
+                // Shuffle
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+
+                setMemoryGame({
+                    active: true,
+                    cards: deck,
+                    flippedIndices: [],
+                    matchedPairs: 0,
+                    phase: 'peek',
+                    countdown: 0.3
+                });
+                setScene('minigame_memory');
+
+                // 0.3秒後蓋牌開始
+                setTimeout(() => {
+                    setMemoryGame(prev => ({
+                        ...prev,
+                        phase: 'play',
+                        cards: prev.cards.map(c => ({ ...c, isFlipped: false }))
+                    }));
+                }, 300);
+            };
+
+            const handleCardClick = (index) => {
+                if (memoryGame.phase !== 'play') return;
+                const card = memoryGame.cards[index];
+                if (card.isFlipped || card.isMatched) return;
+                if (memoryGame.flippedIndices.length >= 2) return;
+
+                const newFlipped = [...memoryGame.flippedIndices, index];
+                setMemoryGame(prev => ({
+                    ...prev,
+                    flippedIndices: newFlipped,
+                    cards: prev.cards.map((c, i) => i === index ? { ...c, isFlipped: true } : c)
+                }));
+
+                if (newFlipped.length === 2) {
+                    const c1 = memoryGame.cards[newFlipped[0]];
+                    const c2 = memoryGame.cards[newFlipped[1]]; // c2 hasn't updated in this closure yet, we use emoji direct check
+
+                    if (c1.emoji === memoryGame.cards[index].emoji) {
+                        // Match!
+                        setTimeout(() => {
+                            setMemoryGame(prev => {
+                                const newMatchedPairs = prev.matchedPairs + 1;
+                                const isWin = newMatchedPairs === 8;
+                                
+                                if (isWin) {
+                                    setTimeout(() => {
+                                        setMemoryGame(p => ({ ...p, active: false }));
+                                        showMessage('恭喜過關！', '紙牌大師點頭稱讚：\n「好久沒見過這等驚人的記憶力了...這顆寶石你實至名歸！」\n(獲得「紙牌大師的黃寶石」)', '💎', () => {
+                                            if (!hasItem('gem_yellow')) addItem('gem_yellow', 1);
+                                            setScene('library_lobby');
+                                        });
+                                    }, 300);
+                                }
+                                
+                                return {
+                                    ...prev,
+                                    flippedIndices: [],
+                                    matchedPairs: newMatchedPairs,
+                                    cards: prev.cards.map((c, i) => newFlipped.includes(i) ? { ...c, isMatched: true } : c)
+                                };
+                            });
+                        }, 400);
+                    } else {
+                        // Mismatch!
+                        setMemoryGame(prev => ({ ...prev, phase: 'fail' }));
+                        setTimeout(() => {
+                            setMemoryGame(p => ({ ...p, active: false }));
+                            showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🃏', () => {
+                                setScene('map');
+                            });
+                        }, 600);
+                    }
+                }
+            };
+
             const handleLose = () => { setBattle(prev => ({ ...prev, active: false })); showMessage('戰鬥失敗', '勇者倒下了...\n但是女神眷顧了你！\n(HP 恢復為 1，趕快去喝藥水吧)', '👼', () => { setPlayer(prev => ({ ...prev, hp: 1 })); setScene('map'); }); };
             const fleeBattle = () => { setBattle(prev => ({ ...prev, active: false })); setScene('map'); };
 
@@ -893,7 +991,7 @@
                                     <div className="absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}></div>
                                     <div className="absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}></div>
                                     <div className="absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}></div>
-                                    <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('magic_library')}></div>
+                                    <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('library_lobby')}></div>
                                     <div className="absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}></div>
                                 </div>
                             )}
@@ -921,6 +1019,16 @@
                                             <div className="text-[6rem]">🤡</div>
                                             <div className="text-xl font-bold text-[#1565C0]">小丑的尋寶遊戲</div>
                                             <div className="text-sm font-bold text-[#1E88E5] bg-[#BBDEFB] px-3 py-1 rounded-full">藍寶石挑戰</div>
+                                        </div>
+
+                                        {/* 進入紙牌記憶遊戲 */}
+                                        <div 
+                                            className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#FBC02D]"
+                                            onClick={() => startMemoryGame()}
+                                        >
+                                            <div className="text-[6rem]">🃏</div>
+                                            <div className="text-xl font-bold text-[#F57F17]">紙牌大師的記憶</div>
+                                            <div className="text-sm font-bold text-[#FBC02D] bg-[#FFF9C4] px-3 py-1 rounded-full">黃寶石挑戰</div>
                                         </div>
                                     </div>
 
@@ -996,11 +1104,64 @@
                                             <div className="text-xl font-bold text-[#1565C0]">小丑的尋寶遊戲</div>
                                             <div className="text-sm font-bold text-[#1E88E5] bg-[#BBDEFB] px-3 py-1 rounded-full">藍寶石挑戰</div>
                                         </div>
+
+                                        {/* 進入紙牌記憶遊戲 */}
+                                        <div 
+                                            className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#FBC02D]"
+                                            onClick={() => startMemoryGame()}
+                                        >
+                                            <div className="text-[6rem]">🃏</div>
+                                            <div className="text-xl font-bold text-[#F57F17]">紙牌大師的記憶</div>
+                                            <div className="text-sm font-bold text-[#FBC02D] bg-[#FFF9C4] px-3 py-1 rounded-full">黃寶石挑戰</div>
+                                        </div>
                                     </div>
 
                                     <button className="mt-12 px-8 py-3 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-xl" onClick={() => setScene('map')}>
                                         離開圖書館
                                     </button>
+                                </div>
+                            )}
+
+                            {scene === 'minigame_memory' && (
+                                <div className="absolute inset-0 bg-[#FFFDE7] p-4 flex flex-col items-center">
+                                    <h2 className="text-2xl font-bold text-[#F57F17] mb-2 tracking-widest text-shadow-title text-white">紙牌大師的記憶考驗</h2>
+                                    <div className="absolute top-4 right-4 bg-white/70 text-[#F57F17] font-bold px-4 py-2 rounded-xl shadow-sm border-2 border-[#FBC02D] text-lg">
+                                        {memoryGame.phase === 'peek' ? '👀 倒數 0.5 秒' : `進度: ${memoryGame.matchedPairs}/5`}
+                                    </div>
+
+                                    <div className="grid grid-cols-5 gap-4 mt-8">
+                                        {memoryGame.cards.map((card, idx) => {
+                                            const isCardFlipped = card.isFlipped || memoryGame.phase === 'peek';
+                                            return (
+                                                <div 
+                                                    key={card.id}
+                                                    className={`w-[100px] h-[140px] rounded-xl flex items-center justify-center text-[3.5rem] cursor-pointer transition-all duration-300 transform perspective-1000 origin-center
+                                                        ${card.isMatched ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 shadow-[0_4px_8px_rgba(0,0,0,0.2)] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.2)]'}
+                                                        ${isCardFlipped ? 'bg-white border-2 border-[#FFE082] rotate-y-180' : 'bg-[#1A237E] border-4 border-[#FBC02D] bg-[url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23c2185b\' fill-opacity=\'0.4\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M10 0l10 10-10 10L0 10z\'/%3E%3C/g%3E%3C/svg%3E")] rotate-y-0'}`}
+                                                    onClick={() => handleCardClick(idx)}
+                                                    style={{ transformStyle: 'preserve-3d', transition: 'transform 0.3s, opacity 0.5s' }}
+                                                >
+                                                    <div className={`transition-opacity duration-200 ${isCardFlipped ? 'opacity-100' : 'opacity-0'}`}>
+                                                        {card.emoji}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button className="mt-16 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
+                                        逃跑
+                                    </button>
+
+                                    {/* NPC 對話 */}
+                                    <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#FBC02D] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                        <div className="min-w-[70px] h-[70px] bg-[#FFF9C4] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#FBC02D] pb-1 shadow-inner shrink-0">
+                                            🃏
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#F57F17] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            用你銳利的雙眼記下牌的位置吧！只要翻錯一次，測驗就立刻結束！
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
