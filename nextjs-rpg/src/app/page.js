@@ -62,9 +62,26 @@ const ITEMS = {
     pet_bat: { id: 'pet_bat', name: '小蝙蝠', price: 250, type: 'pet', atk: 3, icon: '🦇', desc: '攻擊力 +3' },
     pet_wolf: { id: 'pet_wolf', name: '戰狼', price: 600, type: 'pet', atk: 8, icon: '🐺', desc: '攻擊力 +8' },
     frag_north: { id: 'frag_north', name: '冰霜之語', type: 'material', icon: '❄️', desc: '北方凍原的通關證明' },
+    frag_south: { id: 'frag_south', name: '元素之心', type: 'material', icon: '🔥', desc: '南方港灣的通關證明' },
+    frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
+    frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
+    frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🎺', desc: '編年廢墟的通關證明' },
     key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
-    coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 0, type: 'material', icon: '<img src="https://i.ibb.co/Jj633tHd/1.png" style="width:32px; height:32px; object-fit:contain;" alt="轉蛋幣">', desc: '可用於轉蛋機' },
+    key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
+    coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 100, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
     cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
+    sword_god: { id: 'sword_god', name: '一擊必殺的神劍', price: 99999, type: 'weapon', icon: '🗡️', atk: 99999, desc: '神明賡予的武器，無視一切直接秒殺。' },
+    potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'consumable_hatch', icon: '🌿', desc: '孵蛋場餅食用，每顓增加 10~30% 孵化進度' },
+    egg_1: { id: 'egg_1', name: '紫晶符文蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(1).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【真理之眼貓頭鷹】' },
+    egg_2: { id: 'egg_2', name: '蔚藍星塵蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【幻變時空水母】' },
+    egg_3: { id: 'egg_3', name: '翡翠藤蘋蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【翡翠藤龍】' },
+    egg_4: { id: 'egg_4', name: '琥珀金沙蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(3).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【貲婪尋寶鼠】' },
+    egg_5: { id: 'egg_5', name: '虛空黑曜蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【虛空獵犬】' },
+    pet_owl: { id: 'pet_owl', name: '真理之眼貓頭鷹', type: 'pet', atk: 0, hp: 0, icon: '🦉', desc: '【技能：迷霧破除】成語關卡的亂碼符號變回中文！' },
+    pet_jellyfish: { id: 'pet_jellyfish', name: '幻變時空水母', type: 'pet', atk: 0, hp: 0, icon: '🪜', desc: '【技能：緩慢時間流速】進入紙牌關卡時，翻牌展示時間延長至 30 秒！' },
+    pet_dragon: { id: 'pet_dragon', name: '翡翠藤龍', type: 'pet', atk: 6, hp: 0, icon: '🐉', desc: '攻擊力 +6' },
+    pet_rat: { id: 'pet_rat', name: '貲婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶笱位置！' },
+    pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
     gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' }
 };
 
@@ -91,7 +108,17 @@ const IDIOMS = [
     "萬無一失", "勇往直前", "再接再厲", "百折不撓", "欣欣向榮"
 ];
 
-const SHOP_ITEMS = ['potion_s', 'potion_l', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat'];
+const GLYPHS = ['🔠', '🔡', '🔢', '🔣', '🔤', '🆎', '🈁', '🈂️', '🈳', '🈴', '🈵', '🈶', '🈯', '㊗️', '㊙️', '🈲', '🅰️', '🅱️', '©️', '®️', '™️', '▪️', '▫️', '◻️', '◼️', '◽', '◾', '⚫', '⚪', '🔴', '🔵', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '⭐', '🌟', '✨', '⚡', '🔥', '💥', '💯', '💢', '❕', '❔', '❓', '‼️', '⁉️', '©', '®', '™', '€', '£', '¥', '₩', '₹', '₽', '§', '¶', '†', '‡', '•', '…', '‰', '℃', '℉', '№', '℗', '℠', '℡', '™', 'Ω', 'µ', '∂', '∆', '∏', '∑', '√', '∞', '∫', '≈', '≠', '≡', '≤', '≥', '⊂', '⊃', '⊆', '⊇', '¬', '∧', '∨', '∀', '∃', '∅', '∈', '∉', '∋', '∎', '★', '☆', '♠', '♣', '♥', '♦', '♪', '♫', '♬', '♭', '♮', '♯', '✁', '✂', '✃', '✄', '✅', '☑', '❎', '❌', '✖', '✗', '✘', '✙', '✚', '✛', '✜', '✝', '✞', '✟', '✠', '✡', '✢', '✣', '✤', '✥', '✦', '✧', '✨', '✩', '✪', '✫', '✬', '✭', '✮', '✯', '✰', '✱', '✲', '✳', '✴', '✵', '✶', '✷', '✸', '✹', '✺', '✻', '✼', '✽', '✾', '✿', '❀', '❁', '❂', '❃', '❄', '❅', '❆', '❇', '❈', '❉', '❊', '❋', '❌', '⭕', '❗', '❓', '❕', '❔', '‼️', '⁉️', '〰', '➰', '➿', '➕', '➖', '➗', '✖', '💲', '💱', '⬆', '⬇', '⬅', '➡', '↖', '↗', '↙', '↘', '↕', '↔', '↩', '↪', '⤴', '⤵', '🔃', '🔄', '🔙', '🔚', '🔛', '🔜', '🔝', '🛐', '⚛', '🕉', '☸', '☯', '✝', '☦', '☪', '☮', '🕎', '🔯', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '⛎', '♀', '♂', '⚧', '🚹', '🚺', '🚻', '🚮', '🚯', '🚰', '🚱', '🚳', '🚴', '🚵', '🚶', '🚷', '🚸', '🚹', '🚺', '🚻', '♿', '🚭', '🚯', '🚰', '🚱', '🚳', '📵', '🔞', '⬆', '↗', '➡', '↘', '⬇', '↙', '⬅', '↖', '↕', '↔', '↩', '↪', '⤴', '⤵', '🔃', '🔄', '🔙', '🔚', '🔛', '🔜', '🔝', '🔀', '🔁', '🔂', '▶', '◀', '🔼', '🔽', '⏫', '⏬', '⏩', '⏪', '⏭', '⏮', '⏯', '⏰', '⏱', '⏲', '⏳', '⌛', '⌚', '💡', '🔆', '🔅', '📣', '📢', '🔈', '🔉', '🔊', '🔋', '🔌', '💻', '🖥', '🖨', '⌨', '🖱', '🖲', '💽', '💾', '💿', '📀', '🧮', '📱', '🤳', '📞', '☎', '📟', '📠', '📡', '📺', '📻', '🎙', '🎚', '🎛', '🧭', '🗺', '🌍', '🌎', '🌏', '🌐', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🌙', '🌚', '🌛', '🌜', '🌡', '☀️', '🌝', '🌞', '⭐', '🌟', '🌠', '☁', '⛅', '⛈', '🌤', '🌥', '🌦', '🌧', '🌨', '🌩', '🌪', '🌫', '🌬', '🌀', '🌈', '☂', '☔', '💧', '💦', '🌊'];
+
+const EGG_TO_PET = {
+    egg_1: 'pet_owl',
+    egg_2: 'pet_jellyfish',
+    egg_3: 'pet_dragon',
+    egg_4: 'pet_rat',
+    egg_5: 'pet_hound'
+};
+
+const SHOP_ITEMS = ['potion_s', 'potion_l', 'potion_nutri', 'coin_gacha', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat', 'key_gacha'];
 const LEVEL_EXP_TABLE = [0, 50, 80, 120, 130, 150, 170, 400, 800, 1500];
 const MAX_LEVEL = 10;
 
@@ -102,6 +129,13 @@ const ZONES = {
     north_tundra: { id: 'north_tundra', name: '單字凍原 (英)', bg: '#E3F2FD', type: 'custom_csv', questionBank: 'english_csv', dropItem: 'frag_north', monsters: [{ name: '雪狼', icon: '🐺', hp: 30, exp: 20, gold: 25 }, { name: '冰巨人', icon: '⛄', hp: 60, exp: 50, gold: 50 }, { name: '極地熊', icon: '🐻❄️', hp: 80, exp: 70, gold: 80 }] },
     outer_ruins: { id: 'outer_ruins', name: '編年廢墟 (社)', bg: '#F3E5F5', type: 'custom_csv', questionBank: 'social_csv', dropItem: 'frag_outer', monsters: [{ name: '石像鬼', icon: '🗿', hp: 40, exp: 30, gold: 35 }, { name: '考古幽靈', icon: '👻', hp: 50, exp: 40, gold: 45 }, { name: '時光守護者', icon: '⏳', hp: 75, exp: 65, gold: 75 }] },
     magic_library: { id: 'magic_library', name: '魔法圖書館', bg: '#EFEBE9', type: 'minigame', dropItem: 'gem_red', monsters: [] }
+};
+
+// 亂碼符號轉換（用於成語關卡）
+const charToGlyph = (char) => {
+    if (!char) return '?';
+    const code = char.charCodeAt(0);
+    return GLYPHS[code % GLYPHS.length];
 };
 
 // ==========================================
@@ -828,15 +862,21 @@ export default function App() {
     };
 
     const startClownGame = () => {
+        const newTarget = Math.floor(Math.random() * 5);
         setClownGame({
             active: true,
             round: 1,
             maxRound: 5,
-            targetChest: Math.floor(Math.random() * 5),
+            targetChest: newTarget,
             chests: [0, 1, 2, 3, 4],
             revealed: null
         });
         setScene('minigame_clown');
+        if (player.equipped.pet === 'pet_rat') {
+            setTimeout(() => {
+                showMessage('🐭 貲婪尋寶鼠發動技能！', `「尋寶」\n我聞到了...鑰匙藏在第 ${newTarget + 1} 個寶笱裡！\n（由左到右數）`, '🐭');
+            }, 200);
+        }
     };
 
     const handleChestSelect = (chestIndex) => {
@@ -896,13 +936,51 @@ export default function App() {
             countdown: 0.3
         });
         setScene('minigame_memory');
-        setTimeout(() => {
-            setMemoryGame(prev => ({
-                ...prev,
-                phase: 'play',
-                cards: prev.cards.map(c => ({ ...c, isFlipped: false }))
-            }));
-        }, 300);
+        if (player.equipped.pet === 'pet_jellyfish') {
+            showMessage('🪜 幻變時空水母發動技能！', '「緩慢時間流速」\n時間在此刻凝滞... 你有30 秒來記憶牌的位置！', '🪜', () => {
+                setTimeout(() => {
+                    setMemoryGame(prev => ({
+                        ...prev,
+                        phase: 'play',
+                        cards: prev.cards.map(c => ({ ...c, isFlipped: false }))
+                    }));
+                }, 30000);
+            });
+        } else {
+            setTimeout(() => {
+                setMemoryGame(prev => ({
+                    ...prev,
+                    phase: 'play',
+                    cards: prev.cards.map(c => ({ ...c, isFlipped: false }))
+                }));
+            }, 300);
+        }
+    };
+
+    const placeEgg = (eggId) => {
+        if (hatchSlot.eggId) { showMessage('孵蛋槽已有蛋', '請先把現有的蛋孵化完畢！', '🥚'); return; }
+        if (!hasItem(eggId)) return;
+        removeItemById(eggId, 1);
+        setHatchSlot({ eggId, progress: 0 });
+        showMessage('放入孵蛋槽', `${ITEMS[eggId].name} 已放入孵化槽！\n請餅食「營養劑」來提升孵化進度。`, '🥚');
+    };
+
+    const feedEgg = () => {
+        if (!hatchSlot.eggId) { showMessage('沒有蛋', '請先把一顓蛋放進孵化槽！', '🥚'); return; }
+        if (!hasItem('potion_nutri')) { showMessage('沒有營養劑', '背包裡沒有營養劑了！\n可以去商店購買（30G/顓）。', '🌿'); return; }
+        removeItemById('potion_nutri', 1);
+        const gain = Math.floor(Math.random() * 21) + 10;
+        const newProgress = Math.min(100, hatchSlot.progress + gain);
+        if (newProgress >= 100) {
+            const petId = EGG_TO_PET[hatchSlot.eggId];
+            const eggName = ITEMS[hatchSlot.eggId]?.name || '';
+            setHatchSlot({ eggId: null, progress: 0 });
+            addItem(petId, 1);
+            showMessage('✨ 孵化成功！', `${eggName} 孵化出了\n《${ITEMS[petId].name}》${ITEMS[petId].icon}！\n快去裝備牠吧！`, '✨');
+        } else {
+            setHatchSlot(prev => ({ ...prev, progress: newProgress }));
+            showDamage(`+${gain}%`, 'player');
+        }
     };
 
     const handleCardClick = (index) => {
@@ -1297,14 +1375,16 @@ export default function App() {
                             <div className="flex w-full max-w-[800px] h-[350px] gap-6 px-4">
                                 {/* 左側：字庫選項 */}
                                 <div className="flex-1 bg-white/80 rounded-2xl p-4 shadow-inner flex flex-wrap content-start gap-3 justify-center border-2 border-[#D7CCC8]">
-                                    <div className="w-full text-center text-sm font-bold text-[#8D6E63] mb-2 border-b-2 border-dashed border-[#D7CCC8] pb-1">備選字庫</div>
+                                    <div className="w-full text-center text-sm font-bold text-[#8D6E63] mb-2 border-b-2 border-dashed border-[#D7CCC8] pb-1">
+                                        {player.equipped.pet === 'pet_owl' ? '備選字庫 🦉' : '備選字庫 （亂碼中…）'}
+                                    </div>
                                     {idiomGame.options.map((optChar, idx) => (
                                         <div 
                                             key={`opt-${idx}`} 
                                             className="w-14 h-14 bg-[#FFF8E1] border-2 border-[#FFB74D] rounded-xl flex items-center justify-center text-2xl font-bold text-[#5D4037] cursor-pointer hover:bg-[#FFE082] hover:scale-105 transition-all shadow-sm"
                                             onClick={() => handleIdiomSelect(optChar, idx)}
                                         >
-                                            {optChar}
+                                            {player.equipped.pet === 'pet_owl' ? optChar : charToGlyph(optChar)}
                                         </div>
                                     ))}
                                     {idiomGame.options.length === 0 && (
@@ -1318,6 +1398,8 @@ export default function App() {
                                     <div className="flex gap-4">
                                         {idiomGame.slots.map((char, index) => {
                                             const isBlank = idiomGame.blanks.includes(index);
+                                            const rawChar = !isBlank ? idiomGame.currentIdiom?.[index] : char;
+                                            const displayChar = rawChar ? (player.equipped.pet === 'pet_owl' ? rawChar : charToGlyph(rawChar)) : null;
                                             return (
                                                 <div 
                                                     key={`slot-${index}`} 
@@ -1328,7 +1410,7 @@ export default function App() {
                                                                 ? 'bg-[#FFF3E0] border-[#FFCC80] text-transparent border-dashed' 
                                                                 : 'bg-[#C8E6C9] border-[#81C784] text-[#2E7D32]'}`}
                                                 >
-                                                    {char || '?'}
+                                                    {displayChar || '?'}
                                                 </div>
                                             );
                                         })}
