@@ -1552,7 +1552,7 @@ export default function App() {
                                                     <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">
                                                         {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}
                                                     </div>
-                                                    <div className="text-[0.7rem] text-center font-bold leading-tight w-full line-clamp-2">{item.name}</div>
+                                                    <div className="text-[0.8rem] text-center font-bold shrink-0 w-full mb-1">{item.name}</div>
                                                     {slot.qty > 1 && <div className="absolute bottom-0.5 right-1 text-[#5D4037] text-xs font-bold bg-white/80 rounded px-1">x{slot.qty}</div>}
                                                 </div>
                                             );
@@ -1572,7 +1572,7 @@ export default function App() {
                                         {player.equipped.weapon ? (
                                             <>
                                                 <div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.weapon].icon}</div>
-                                                <div className="text-[0.7rem] font-bold text-center w-full line-clamp-2 px-1">{ITEMS[player.equipped.weapon].name}</div>
+                                                <div className="text-[0.8rem] font-bold text-center w-full shrink-0 px-1">{ITEMS[player.equipped.weapon].name}</div>
                                             </>
                                         ) : <div className="text-3xl text-[#ccc]">⚔️</div>}
                                     </div>
@@ -1584,7 +1584,7 @@ export default function App() {
                                         {player.equipped.pet ? (
                                             <>
                                                 <div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.pet].icon}</div>
-                                                <div className="text-[0.7rem] font-bold text-center w-full line-clamp-2 px-1">{ITEMS[player.equipped.pet].name}</div>
+                                                <div className="text-[0.8rem] font-bold text-center w-full shrink-0 px-1">{ITEMS[player.equipped.pet].name}</div>
                                             </>
                                         ) : <div className="text-3xl text-[#ccc]">🐾</div>}
                                     </div>
@@ -1642,7 +1642,7 @@ export default function App() {
                                                 <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">
                                                     {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}
                                                 </div>
-                                                <div className="text-[0.7rem] font-bold leading-tight w-full line-clamp-2">{item.name}</div>
+                                                <div className="text-[0.8rem] font-bold shrink-0 w-full mb-1">{item.name}</div>
                                                 <div className="bg-[#FF9F1C] text-white rounded-full px-2 py-0.5 text-[0.8rem] my-1.5 font-bold">
                                                     💰 {itemId === 'key_strange' ? '1000 + 5碎片' : item.price}
                                                 </div>

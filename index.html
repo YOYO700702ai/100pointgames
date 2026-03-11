@@ -1475,7 +1475,7 @@
                                                     return (
                                                         <div key={idx} className="border-2 border-[#eee] rounded-xl p-1.5 flex flex-col items-center justify-start cursor-pointer relative bg-white w-[70px] h-[90px] hover:border-[#4361EE] hover:-translate-y-0.5 shadow-sm transition-all" onClick={() => (!isSpecial || item.id === 'coin_gacha') ? useItem(idx) : showMessage('物品資訊', item.desc, item.icon)} title={item.desc}>
                                                             <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">{item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}</div>
-                                                            <div className="text-[0.7rem] text-center font-bold leading-tight w-full line-clamp-2">{item.name}</div>
+                                                            <div className="text-[0.8rem] text-center font-bold shrink-0 w-full mb-1">{item.name}</div>
                                                             {slot.qty > 1 && <div className="absolute bottom-0.5 right-1 text-[#5D4037] text-xs font-bold bg-white/80 rounded px-1">x{slot.qty}</div>}
                                                         </div>
                                                     );
@@ -1487,11 +1487,11 @@
                                             <div className="font-bold text-[#5D4037] mb-2">⚔️ 目前裝備</div>
                                             <div className={`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.weapon ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}`} onClick={() => unequipItem('weapon')} title={player.equipped.weapon ? "點擊脫下" : "武器欄"}>
                                                 <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">武器</div>
-                                                {player.equipped.weapon ? (<><div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.weapon].icon}</div><div className="text-[0.7rem] font-bold text-center w-full line-clamp-2 px-1">{ITEMS[player.equipped.weapon].name}</div></>) : <div className="text-3xl text-[#ccc]">⚔️</div>}
+                                                {player.equipped.weapon ? (<><div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.weapon].icon}</div><div className="text-[0.8rem] font-bold text-center w-full shrink-0 px-1">{ITEMS[player.equipped.weapon].name}</div></>) : <div className="text-3xl text-[#ccc]">⚔️</div>}
                                             </div>
                                             <div className={`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.pet ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}`} onClick={() => unequipItem('pet')} title={player.equipped.pet ? "點擊脫下" : "寵物欄"}>
                                                 <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">寵物</div>
-                                                {player.equipped.pet ? (<><div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.pet].icon}</div><div className="text-[0.7rem] font-bold text-center w-full line-clamp-2 px-1">{ITEMS[player.equipped.pet].name}</div></>) : <div className="text-3xl text-[#ccc]">🐾</div>}
+                                                {player.equipped.pet ? (<><div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.pet].icon}</div><div className="text-[0.8rem] font-bold text-center w-full shrink-0 px-1">{ITEMS[player.equipped.pet].name}</div></>) : <div className="text-3xl text-[#ccc]">🐾</div>}
                                             </div>
                                         </div>
                                     </div>
@@ -1523,7 +1523,7 @@
                                                 return (
                                                     <div key={itemId} className={`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}`}>
                                                         <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">{item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}</div>
-                                                        <div className="text-[0.7rem] font-bold leading-tight w-full line-clamp-2">{item.name}</div>
+                                                        <div className="text-[0.8rem] font-bold shrink-0 w-full mb-1">{item.name}</div>
                                                         <div className="bg-[#FF9F1C] text-white rounded-full px-2 py-0.5 text-[0.8rem] my-1.5 font-bold">💰 {itemId === 'key_strange' ? '1000 + 5碎片' : item.price}</div>
                                                         <p className="text-[0.7rem] text-[#666] m-0 mb-2">{item.desc}</p>
                                                         <button className="mt-auto bg-[#4361EE] text-white text-sm font-bold px-4 py-1.5 rounded-lg shadow-[0_2px_0_#2841ac] active:translate-y-0.5 active:shadow-none" onClick={() => buyItem(itemId)}>購買</button>
