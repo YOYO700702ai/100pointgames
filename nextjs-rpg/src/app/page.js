@@ -142,6 +142,16 @@ export default function App() {
         blanks: []
     });
 
+    // --- 魔法圖書館小醜寶箱遊戲狀態 ---
+    const [clownGame, setClownGame] = useState({
+        active: false,
+        round: 1,
+        maxRound: 5,
+        targetChest: 0,
+        chests: [0, 1, 2, 3, 4],
+        revealed: null
+    });
+
     // --- 衍生數值計算 (Derived State) ---
     const stats = useMemo(() => {
         let atk = player.baseAtk + (player.level - 1) * 2;
@@ -481,7 +491,7 @@ export default function App() {
                     showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒');
                     return;
                 }
-                startIdiomGame();
+                setScene('library_lobby');
             }
             return;
         }
@@ -724,16 +734,27 @@ export default function App() {
             const newSlots = [...prev.slots];
             const gameBlanks = prev.blanks;
             
-            let filledAny = false;
+            let targetBlankIndex = -1;
             for (let bIdx of gameBlanks) {
                 if (newSlots[bIdx] === null) {
                     newSlots[bIdx] = optChar;
-                    filledAny = true;
+                    targetBlankIndex = bIdx;
                     break;
                 }
             }
             
-            if (!filledAny) return prev;
+            if (targetBlankIndex === -1) return prev; // 沒空位了不要理他
+
+            // 檢查是否答錯
+            if (optChar !== prev.currentIdiom[targetBlankIndex]) {
+                setTimeout(() => {
+                    setIdiomGame(p => ({ ...p, active: false }));
+                    showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '😤', () => {
+                        setScene('map');
+                    });
+                }, 500);
+                return { ...prev, slots: newSlots };
+            }
 
             const newOptions = [...prev.options];
             newOptions.splice(optIndex, 1);
@@ -759,9 +780,9 @@ export default function App() {
             const newScore = stateRef.score + 1;
             if (newScore >= stateRef.maxScore) {
                 setIdiomGame(prev => ({ ...prev, active: false }));
-                showMessage('恭喜通關！', '你成功通過了魔法圖書館的考驗！\n(獲得「圖書管理員寶石」)', '💎', () => {
+                showMessage('恭喜通關！', '圖書管理員對你刮目相看！\n(獲得「圖書管理員寶石」)', '💎', () => {
                     if (!hasItem('gem_red')) addItem('gem_red', 1);
-                    setScene('map');
+                    setScene('library_lobby');
                 });
             } else {
                 showDamage("正確！", "player");
@@ -769,18 +790,6 @@ export default function App() {
                     startIdiomGame_nextRound(newScore);
                 }, 800);
             }
-        } else {
-            showMessage('答錯囉！', `正確的成語是「${answerStr}」！\n請再試一次吧。`, '❌', () => {
-                const resetSlots = [...currentSlots];
-                for (let bIdx of stateRef.blanks) resetSlots[bIdx] = null;
-                
-                let recoverOptions = [...stateRef.options];
-                for (let bIdx of stateRef.blanks) {
-                     if (currentSlots[bIdx] !== null) recoverOptions.push(currentSlots[bIdx]);
-                }
-                
-                setIdiomGame(prev => ({ ...prev, slots: resetSlots, options: recoverOptions }));
-            });
         }
     };
     
@@ -806,6 +815,55 @@ export default function App() {
         const initialSlots = [null, null, null, null];
         for (let i = 0; i < 4; i++) { if (!blanks.includes(i)) initialSlots[i] = chars[i]; }
         setIdiomGame(prev => ({ ...prev, active: true, score: currentScore, currentIdiom: chars, options: allOptions, slots: initialSlots, blanks: blanks }));
+    };
+
+    const startClownGame = () => {
+        setClownGame({
+            active: true,
+            round: 1,
+            maxRound: 5,
+            targetChest: Math.floor(Math.random() * 5),
+            chests: [0, 1, 2, 3, 4],
+            revealed: null
+        });
+        setScene('minigame_clown');
+    };
+
+    const handleChestSelect = (chestIndex) => {
+        if (!clownGame.active || clownGame.revealed !== null) return;
+        
+        setClownGame(prev => ({ ...prev, revealed: chestIndex }));
+        
+        setTimeout(() => {
+            if (chestIndex === clownGame.targetChest) {
+                // 猜對了
+                if (clownGame.round >= clownGame.maxRound) {
+                    // 贏得遊戲
+                    setClownGame(prev => ({ ...prev, active: false }));
+                    showMessage('恭喜過關！', '小丑不可置信的看著你：\n「這...這不可能！你居然全猜對了！」\n(獲得「小丑的藍寶石」)', '💎', () => {
+                        if (!hasItem('gem_blue')) addItem('gem_blue', 1);
+                        setScene('library_lobby');
+                    });
+                } else {
+                    // 下一回合
+                    showDamage("運氣不錯嘛！", "player");
+                    setTimeout(() => {
+                        setClownGame(prev => ({
+                            ...prev,
+                            round: prev.round + 1,
+                            targetChest: Math.floor(Math.random() * 5),
+                            revealed: null
+                        }));
+                    }, 800);
+                }
+            } else {
+                // 猜錯了
+                setClownGame(prev => ({ ...prev, active: false }));
+                showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🐸', () => {
+                    setScene('map');
+                });
+            }
+        }, 1000);
     };
 
     const handleLose = () => {
@@ -1013,11 +1071,85 @@ export default function App() {
                         </div>
                     )}
 
+                    {scene === 'library_lobby' && (
+                        <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center justify-center">
+                            <h2 className="text-4xl font-bold text-[#5D4037] mb-8 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
+                            
+                            <div className="flex gap-10">
+                                {/* 進入成語遊戲 */}
+                                <div 
+                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#8D6E63]"
+                                    onClick={() => startIdiomGame()}
+                                >
+                                    <div className="text-[6rem]">🦉</div>
+                                    <div className="text-xl font-bold text-[#5D4037]">圖書管理員的考驗</div>
+                                    <div className="text-sm font-bold text-[#EF5350] bg-[#FFCDD2] px-3 py-1 rounded-full">紅寶石挑戰</div>
+                                </div>
+
+                                {/* 進入尋寶遊戲 */}
+                                <div 
+                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#42A5F5]"
+                                    onClick={() => startClownGame()}
+                                >
+                                    <div className="text-[6rem]">🤡</div>
+                                    <div className="text-xl font-bold text-[#1565C0]">小丑的尋寶遊戲</div>
+                                    <div className="text-sm font-bold text-[#1E88E5] bg-[#BBDEFB] px-3 py-1 rounded-full">藍寶石挑戰</div>
+                                </div>
+                            </div>
+
+                            <button className="mt-12 px-8 py-3 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-xl" onClick={() => setScene('map')}>
+                                離開圖書館
+                            </button>
+                        </div>
+                    )}
+
+                    {scene === 'minigame_clown' && (
+                        <div className="absolute inset-0 bg-[#FFF3E0] p-4 flex flex-col items-center">
+                            <h2 className="text-2xl font-bold text-[#E65100] mb-2 tracking-widest text-shadow-title text-white">小丑的尋寶遊戲</h2>
+                            <div className="text-[#EF6C00] font-bold mb-8 bg-white/70 px-4 py-1 rounded-full shadow-sm">
+                                選對 5 個寶箱拿到鑰匙！ ({clownGame.round - 1}/5)
+                            </div>
+
+                            <div className="flex gap-6 mt-10">
+                                {clownGame.chests.map((chestIndex) => {
+                                    const isRevealed = clownGame.revealed === chestIndex;
+                                    const isTarget = chestIndex === clownGame.targetChest;
+                                    return (
+                                        <div 
+                                            key={`chest-${chestIndex}`}
+                                            className={`w-[120px] h-[120px] rounded-2xl shadow-lg border-4 flex items-center justify-center text-[4rem] cursor-pointer transition-all duration-300
+                                                ${isRevealed 
+                                                    ? (isTarget ? 'bg-[#C8E6C9] border-[#4CAF50]' : 'bg-[#FFCDD2] border-[#F44336]') 
+                                                    : 'bg-[#FFE082] border-[#FF9800] hover:-translate-y-2 hover:shadow-xl hover:bg-[#FFCA28]'}`}
+                                            onClick={() => handleChestSelect(chestIndex)}
+                                        >
+                                            {isRevealed ? (isTarget ? '🔑' : '🐸') : '🎁'}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <button className="mt-16 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
+                                逃跑
+                            </button>
+
+                            {/* NPC 對話 */}
+                            <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#FF9800] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                <div className="min-w-[70px] h-[70px] bg-[#FFF3E0] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#FF9800] pb-1 shadow-inner shrink-0">
+                                    🤡
+                                </div>
+                                <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#E65100] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                    嘻嘻嘻...來找找看鑰匙在哪個寶箱裡吧！選錯的話就會被青蛙吃掉喔！
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {scene === 'magic_library' && (
                         <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center">
-                            <h2 className="text-2xl font-bold text-[#5D4037] mb-2 tracking-widest text-shadow-title text-white">魔法圖書館</h2>
+                            <h2 className="text-2xl font-bold text-[#5D4037] mb-2 tracking-widest text-shadow-title text-white">圖書管理員的考驗</h2>
                             <div className="text-[#8D6E63] font-bold mb-4 bg-white/50 px-4 py-1 rounded-full shadow-sm">
-                                圖書管理員的考驗 ({idiomGame.score}/{idiomGame.maxScore})
+                                挑戰進度 ({idiomGame.score}/{idiomGame.maxScore})
                             </div>
 
                             {/* 遊戲區塊 */}
