@@ -74,15 +74,16 @@ const ITEMS = {
     potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'consumable_hatch', icon: '🌿', desc: '孵蛋場餵食用，每顆增加 10~30% 孵化進度' },
     egg_1: { id: 'egg_1', name: '紫晶符文蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(1).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【真理之眼貓頭鷹】' },
     egg_2: { id: 'egg_2', name: '蔚藍星塵蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【幻變時空水母】' },
-    egg_3: { id: 'egg_3', name: '翡翠藤蔓蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【翡翠藤龍】' },
+    egg_3: { id: 'egg_3', name: '翡翠藤蔓蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【撼地藤蔓甲龍】' },
     egg_4: { id: 'egg_4', name: '琥珀金沙蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(3).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【貪婪尋寶鼠】' },
     egg_5: { id: 'egg_5', name: '虛空黑曜蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【虛空獵犬】' },
     pet_owl: { id: 'pet_owl', name: '真理之眼貓頭鷹', type: 'pet', atk: 0, hp: 0, icon: '🦉', desc: '【技能：迷霧破除】成語關卡的亂碼符號變回中文！' },
     pet_jellyfish: { id: 'pet_jellyfish', name: '幻變時空水母', type: 'pet', atk: 0, hp: 0, icon: '🪼', desc: '【技能：緩慢時間流速】進入紙牌關卡時，翻牌展示時間延長至 30 秒！' },
-    pet_dragon: { id: 'pet_dragon', name: '翡翠藤龍', type: 'pet', atk: 6, hp: 0, icon: '🐉', desc: '攻擊力 +6' },
+    pet_ankylo: { id: 'pet_ankylo', name: '撼地藤蔓甲龍', type: 'pet', atk: 0, hp: 0, icon: '🦕', desc: '【技能：藤蔓變身】打地精關卡槌子變成 2×2 範圍攻擊！' },
     pet_rat: { id: 'pet_rat', name: '貪婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶箱位置！' },
     pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
-    gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' }
+    gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' },
+    gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' }
 };
 
 const IDIOMS = [
@@ -113,7 +114,7 @@ const GLYPHS = ['🔠', '🔡', '🔢', '🔣', '🔤', '🆎', '🈁', '🈂️
 const EGG_TO_PET = {
     egg_1: 'pet_owl',
     egg_2: 'pet_jellyfish',
-    egg_3: 'pet_dragon',
+    egg_3: 'pet_ankylo',
     egg_4: 'pet_rat',
     egg_5: 'pet_hound'
 };
@@ -194,6 +195,12 @@ export default function App() {
         matchedPairs: 0,
         phase: 'peek',
         countdown: 0.5
+    });
+
+    // --- 打地精小遊戲狀態 ---
+    const [moleGame, setMoleGame] = useState({
+        active: false, score: 0, targetScore: 60, timeLeft: 15,
+        holes: Array(9).fill(false), is2x2: false
     });
 
     // --- 衍生數值計算 (Derived State) ---
@@ -969,6 +976,96 @@ export default function App() {
         }
     };
 
+    // --- 打地精小遊戲 ---
+    const moleTimerRef = useRef(null);
+    const moleSpawnRef = useRef(null);
+
+    const startMoleGame = () => {
+        const use2x2 = player.equipped.pet === 'pet_ankylo';
+        if (use2x2) {
+            showMessage('🦕 撼地藤蔓甲龍變身了!!', '藤蔓甲龍變成巨大的 2×2 槌子！\n現在每次攻擊可以砍中一片區域！', '🦕', () => { actualStartMole(true); });
+        } else {
+            actualStartMole(false);
+        }
+    };
+
+    const actualStartMole = (is2x2) => {
+        setMoleGame({ active: true, score: 0, targetScore: 60, timeLeft: 15, holes: Array(9).fill(false), is2x2 });
+        setScene('minigame_mole');
+
+        moleSpawnRef.current = setInterval(() => {
+            setMoleGame(prev => {
+                if (!prev.active) return prev;
+                const newHoles = Array(9).fill(false);
+                const indices = [];
+                while (indices.length < 5) {
+                    const r = Math.floor(Math.random() * 9);
+                    if (!indices.includes(r)) indices.push(r);
+                }
+                indices.forEach(i => newHoles[i] = true);
+                return { ...prev, holes: newHoles };
+            });
+        }, 500);
+
+        moleTimerRef.current = setInterval(() => {
+            setMoleGame(prev => {
+                const newTime = prev.timeLeft - 1;
+                if (newTime <= 0) {
+                    clearInterval(moleTimerRef.current);
+                    clearInterval(moleSpawnRef.current);
+                    setTimeout(() => {
+                        setMoleGame(p => ({ ...p, active: false, holes: Array(9).fill(false) }));
+                        if (prev.score >= prev.targetScore) {
+                            showMessage('過關！', `貪婪地精工頭不敢置信：\n「竟然有人能打這麼快！」\n(獲得「地精工頭的翡翠」)`, '💚', () => {
+                                if (!hasItem('gem_green')) addItem('gem_green', 1);
+                                setScene('library_lobby');
+                            });
+                        } else {
+                            showMessage('挑戰失敗', `只打到 ${prev.score} 隻，需要 60 隻才能過關！\n帶著能過關的小夥伴再來吧！`, '👺', () => {
+                                setScene('library_lobby');
+                            });
+                        }
+                    }, 100);
+                    return { ...prev, timeLeft: 0 };
+                }
+                return { ...prev, timeLeft: newTime };
+            });
+        }, 1000);
+    };
+
+    const handleMoleWhack = (index) => {
+        if (!moleGame.active) return;
+        const row = Math.floor(index / 3);
+        const col = index % 3;
+        setMoleGame(prev => {
+            const newHoles = [...prev.holes];
+            let hits = 0;
+            if (prev.is2x2) {
+                for (let r = row; r <= Math.min(row + 1, 2); r++) {
+                    for (let c = col; c <= Math.min(col + 1, 2); c++) {
+                        const idx = r * 3 + c;
+                        if (newHoles[idx]) { newHoles[idx] = false; hits++; }
+                    }
+                }
+            } else {
+                if (newHoles[index]) { newHoles[index] = false; hits++; }
+            }
+            const newScore = prev.score + hits;
+            if (newScore >= prev.targetScore) {
+                clearInterval(moleTimerRef.current);
+                clearInterval(moleSpawnRef.current);
+                setTimeout(() => {
+                    setMoleGame(p => ({ ...p, active: false, holes: Array(9).fill(false) }));
+                    showMessage('過關！', `貪婪地精工頭不敢置信：\n「竟然有人能打這麼快！」\n(獲得「地精工頭的翡翠」)`, '💚', () => {
+                        if (!hasItem('gem_green')) addItem('gem_green', 1);
+                        setScene('library_lobby');
+                    });
+                }, 100);
+            }
+            return { ...prev, holes: newHoles, score: newScore };
+        });
+    };
+
     const placeEgg = (eggId) => {
         if (hatchSlot.eggId) { showMessage('孵蛋槽已有蛋', '請先把現有的蛋孵化完畢！', '🥚'); return; }
         if (!hasItem(eggId)) return;
@@ -1254,7 +1351,7 @@ export default function App() {
                         <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center justify-center">
                             <h2 className="text-4xl font-bold text-[#5D4037] mb-8 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
                             
-                            <div className="flex gap-10">
+                            <div className="flex flex-wrap gap-6 justify-center max-w-[1200px]">
                                 {/* 進入成語遊戲 */}
                                 <div 
                                     className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#8D6E63]"
@@ -1284,11 +1381,64 @@ export default function App() {
                                     <div className="text-xl font-bold text-[#F57F17]">紙牌大師的記憶</div>
                                     <div className="text-sm font-bold text-[#FBC02D] bg-[#FFF9C4] px-3 py-1 rounded-full">黃寶石挑戰</div>
                                 </div>
+
+                                {/* 進入打地精遊戲 */}
+                                <div 
+                                    className="w-[250px] h-[300px] bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:-translate-y-2 hover:shadow-2xl transition-all border-4 border-[#2E7D32]"
+                                    onClick={() => startMoleGame()}
+                                >
+                                    <div className="text-[6rem]">👺</div>
+                                    <div className="text-xl font-bold text-[#2E7D32]">暴走地精的翡翠礦坑</div>
+                                    <div className="text-sm font-bold text-[#388E3C] bg-[#C8E6C9] px-3 py-1 rounded-full">綠寶石挑戰</div>
+                                </div>
                             </div>
 
                             <button className="mt-12 px-8 py-3 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-xl" onClick={() => setScene('map')}>
                                 離開圖書館
                             </button>
+                        </div>
+                    )}
+
+                    {scene === 'minigame_mole' && (
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#1B5E20] to-[#2E7D32] p-4 flex flex-col items-center">
+                            <h2 className="text-2xl font-bold text-white mb-2 tracking-widest" style={{textShadow:'2px 2px 4px rgba(0,0,0,0.5)'}}>暴走地精的翡翠礦坑</h2>
+                            
+                            <div className="flex gap-8 mb-3">
+                                <div className="bg-white/20 text-white font-bold px-5 py-2 rounded-xl text-lg shadow-inner">
+                                    👺 {moleGame.score}/{moleGame.targetScore}
+                                </div>
+                                <div className={`bg-white/20 font-bold px-5 py-2 rounded-xl text-lg shadow-inner ${moleGame.timeLeft <= 5 ? 'text-red-300 animate-pulse' : 'text-white'}`}>
+                                    ⏱ {moleGame.timeLeft}秒
+                                </div>
+                                {moleGame.is2x2 && <div className="bg-yellow-400/80 text-[#1B5E20] font-bold px-4 py-2 rounded-xl text-sm shadow">🦕 2×2 範圍攻擊！</div>}
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-3 mt-2" style={{width:'300px'}}>
+                                {moleGame.holes.map((isUp, i) => (
+                                    <div key={i} className="relative w-[90px] h-[90px] rounded-full bg-[#3E2723] border-4 border-[#5D4037] shadow-[inset_0_6px_12px_rgba(0,0,0,0.5)] cursor-pointer overflow-hidden select-none"
+                                         onClick={() => handleMoleWhack(i)}
+                                    >
+                                        <div className={`absolute left-1/2 -translate-x-1/2 w-[70%] h-[70%] transition-all duration-150 ${isUp ? 'top-[15%]' : 'top-[100%]'}`}
+                                             style={{fontSize:'3rem', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                            👺
+                                        </div>
+                                        {isUp && <div className="absolute inset-0 rounded-full hover:bg-white/20 transition-colors"></div>}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button className="mt-4 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => { clearInterval(moleTimerRef.current); clearInterval(moleSpawnRef.current); setMoleGame(p => ({...p, active: false})); setScene('library_lobby'); }}>
+                                逃跑
+                            </button>
+
+                            <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#2E7D32] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                <div className="min-w-[70px] h-[70px] bg-[#C8E6C9] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#2E7D32] pb-1 shadow-inner shrink-0">
+                                    👺
+                                </div>
+                                <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#2E7D32] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                    貪婪地精工頭：「哼！你能在 15 秒內打到 60 隻地精嗎？」
+                                </div>
+                            </div>
                         </div>
                     )}
 
