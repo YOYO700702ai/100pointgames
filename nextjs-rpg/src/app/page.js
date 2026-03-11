@@ -898,12 +898,18 @@ export default function App() {
                     // 下一回合
                     showDamage("運氣不錯嘛！", "player");
                     setTimeout(() => {
+                        const nextTarget = Math.floor(Math.random() * 5);
                         setClownGame(prev => ({
                             ...prev,
                             round: prev.round + 1,
-                            targetChest: Math.floor(Math.random() * 5),
+                            targetChest: nextTarget,
                             revealed: null
                         }));
+                        if (player.equipped.pet === 'pet_rat') {
+                            setTimeout(() => {
+                                showMessage('🐭 貲婪尋寶鼠發動技能！', `「尋寶」\n我聞到了...鑰匙藏在第 ${nextTarget + 1} 個寶笱裡！\n（由左到右數）`, '🐭');
+                            }, 200);
+                        }
                     }, 800);
                 }
             } else {
