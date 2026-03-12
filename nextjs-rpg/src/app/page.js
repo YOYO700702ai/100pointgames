@@ -83,7 +83,11 @@ const ITEMS = {
     pet_rat: { id: 'pet_rat', name: '貪婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶箱位置！' },
     pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
     gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' },
-    gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' }
+    gem_blue: { id: 'gem_blue', name: '小丑的藍寶石', type: 'material', icon: '💙', desc: '尋寶遊戲的通關證明，閃耀著藍色的光芒。' },
+    gem_yellow: { id: 'gem_yellow', name: '紙牌大師的黃寶石', type: 'material', icon: '💛', desc: '記憶遊戲的通關證明，閃耀著黃色的光芒。' },
+    gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' },
+    sword_dual: { id: 'sword_dual', name: '影舞雙刀', price: 1500, type: 'weapon', atk: 20, icon: '🗡️', desc: '攻擊力 +20' },
+    pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！' }
 };
 
 const IDIOMS = [
@@ -119,7 +123,7 @@ const EGG_TO_PET = {
     egg_5: 'pet_hound'
 };
 
-const SHOP_ITEMS = ['potion_s', 'potion_l', 'potion_nutri', 'coin_gacha', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat', 'key_gacha'];
+const SHOP_ITEMS = ['potion_s', 'potion_l', 'potion_nutri', 'coin_gacha', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat', 'key_gacha', 'sword_dual', 'pet_monkey'];
 const LEVEL_EXP_TABLE = [0, 50, 80, 120, 130, 150, 170, 400, 800, 1500];
 const MAX_LEVEL = 10;
 
@@ -373,12 +377,13 @@ export default function App() {
                 setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\nHP 全滿！`, '🎉'), 100);
             }
 
+            const monkeyMult = prev.equipped.pet === 'pet_monkey' ? 2 : 1;
             return { 
                 ...prev, 
                 exp: newExp, 
                 level: newLevel, 
                 maxExp: newMaxExp, 
-                gold: prev.gold + goldAmt,
+                gold: prev.gold + goldAmt * monkeyMult,
                 hp: prev.hp // 升等不補血
             };
         });
