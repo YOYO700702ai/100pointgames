@@ -153,7 +153,11 @@
             gem_yellow: { id: 'gem_yellow', name: '紙牌大師的黃寶石', type: 'material', icon: '💛', desc: '記憶遊戲的通關證明，閃耀著黃色的光芒。' },
             gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' },
             sword_dual: { id: 'sword_dual', name: '影舞雙刀', price: 1500, type: 'weapon', atk: 20, icon: '🗡️', desc: '攻擊力 +20' },
-            pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！' }
+            pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！' },
+            potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
+            potion_exp: { id: 'potion_exp', name: '經驗藥水', type: 'consumable_special', icon: '🍵', desc: '立即獲得經驗值 +200！一次性效果。' },
+            sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
+            sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×4。打死 3 隻怪後消失。' }
         };
 
         const IDIOMS = [
@@ -365,7 +369,9 @@
                     if (prev.equipped.weapon && ITEMS[prev.equipped.weapon]) newMaxHp += (ITEMS[prev.equipped.weapon].hp || 0);
                     if (prev.equipped.pet && ITEMS[prev.equipped.pet]) newMaxHp += (ITEMS[prev.equipped.pet].hp || 0);
                     const monkeyMult = prev.equipped.pet === 'pet_monkey' ? 2 : 1;
-                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt * monkeyMult };
+                    const swordGoldMult = prev.equipped.weapon === 'sword_paper_gold' ? 2 : 1;
+                    const goldDoubleMult = (prev.equipped.pet === 'pet_monkey' && prev.equipped.weapon === 'sword_paper_gold') ? 4 : monkeyMult * swordGoldMult;
+                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt * goldDoubleMult };
                 });
                 return { leveledUp: didLevelUp, newLevel: newLvl };
             };
@@ -375,7 +381,18 @@
 
             const useItem = (index) => {
                 const slot = player.inventory[index]; const item = ITEMS[slot.id];
-                if (item.type === 'consumable') {
+                if (item.type === 'consumable_special') {
+                    if (item.id === 'potion_rainbow') {
+                        removeItemAt(index, 1);
+                        setPlayer(prev => ({ ...prev, baseAtk: prev.baseAtk + 3 }));
+                        showMessage('💉 藍波藥劑！', '永久攻擊力 +3！這股力量已刻入靈魂...！', '💉');
+                    } else if (item.id === 'potion_exp') {
+                        removeItemAt(index, 1);
+                        gainExpAndGold(200, 0);
+                        showMessage('🍵 經驗藥水！', '立即獲得 +200 經驗值！', '🍵');
+                    }
+                    return;
+                } else if (item.type === 'consumable') {
                     if (player.hp >= stats.maxHp) { showMessage('提示', 'HP 已經滿了！', '⚠️'); return; }
                     heal(item.value); removeItemAt(index, 1); showMessage('使用物品', `恢復了 ${item.value} 點 HP`, item.icon);
                 } else if (item.type === 'weapon' || item.type === 'pet') {
@@ -511,7 +528,11 @@
                     if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 4) { dmg += 15; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
                     const newHp = battle.monster.hp - dmg;
                     showDamage(isCrit ? `蓄力一擊! -${dmg}` : dmg, isCrit ? 'monster-crit' : 'monster'); triggerMonsterShake();
-                    if (newHp <= 0) {
+                    if (player.equipped.weapon === 'sword_paper_kill') {
+                        // 一擊必殺：直接擊殺這波怪物
+                        setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 }, isProcessing: false }));
+                        setTimeout(() => handleWinWave(battle.monster, battle.wave), 800);
+                    } else if (newHp <= 0) {
                         setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 }, isProcessing: false }));
                         setTimeout(() => handleWinWave(battle.monster, battle.wave), 800);
                     } else { 
@@ -532,6 +553,28 @@
             };
 
             const handleWinWave = (monsterDef, currentWave) => { 
+                // 紙劍耐久度機制：每次打死一隻波次怪計數
+                const papersToCheck = ['sword_paper_kill', 'sword_paper_gold'];
+                papersToCheck.forEach(swordId => {
+                    if (player.equipped.weapon === swordId) {
+                        const swordItem = player.inventory.find(i => i.id === swordId);
+                        const currentKills = (swordItem && swordItem.kills) || 0;
+                        const newKills = currentKills + 1;
+                        if (newKills >= 3) {
+                            setPlayer(prev => ({
+                                ...prev,
+                                equipped: { ...prev.equipped, weapon: null },
+                                inventory: prev.inventory.filter(i => i.id !== swordId)
+                            }));
+                            showMessage('📜 紙劍毀了！', `「${ITEMS[swordId].name}」已經打死 3 隻怪物而消失了！`, '📜');
+                        } else {
+                            setPlayer(prev => ({
+                                ...prev,
+                                inventory: prev.inventory.map(i => i.id === swordId ? { ...i, kills: newKills } : i)
+                            }));
+                        }
+                    }
+                });
                 const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold); 
                 if (currentWave < 3) { 
                     showDamage("下一隻怪物出現！", "monster-crit"); 
@@ -1085,11 +1128,15 @@
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
                 } else if (roll < (eggProbability + normalProbability)) { 
-                    // 營養劑 85%, 小紅 7.5%, 大紅 7.5%
+                    // 機率：小紅/大紅各7.5%, 一擊紙劍2%, 金幣紙劍1%, 藍波藥劑1%, 經驗藥水1%, 其餘80%營養劑
                     const normalRoll = Math.random();
                     let gotItem = 'potion_nutri';
                     if (normalRoll < 0.075) gotItem = 'potion_s';
                     else if (normalRoll < 0.15) gotItem = 'potion_l';
+                    else if (normalRoll < 0.17) gotItem = 'sword_paper_kill';
+                    else if (normalRoll < 0.18) gotItem = 'sword_paper_gold';
+                    else if (normalRoll < 0.19) gotItem = 'potion_rainbow';
+                    else if (normalRoll < 0.20) gotItem = 'potion_exp';
                     addItem(gotItem, 1);
                     showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
                 } else { 
