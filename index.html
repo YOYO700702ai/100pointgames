@@ -279,6 +279,7 @@
             const [overlay, setOverlay] = useState(null);
             const [loadingMsg, setLoadingMsg] = useState('');
             const [user, setUser] = useState(null);
+            const [prevScene, setPrevScene] = useState('map');
             
             const [player, setPlayer] = useState({
                 name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
@@ -1084,16 +1085,21 @@
             // ==========================================
             // ★ 動物大逃亡（華容道）函式 ★
             // ==========================================
-            const loadSlidingLevel = (levelIndex) => {
+            const loadSlidingLevel = (levelIndex, withPetDialog = false) => {
                 const levelPieces = JSON.parse(JSON.stringify(SLIDING_LEVELS[levelIndex].pieces));
                 setSlidingGame({ active: true, currentLevel: levelIndex, pieces: levelPieces, moves: 0, isWon: false });
                 setSlidingDragState(null);
                 setSlidingPetUsed(false);
+                if (withPetDialog && player.equipped.pet === 'pet_stompy') {
+                    setTimeout(() => {
+                        showMessage('🐘 踏踏要出手嗎？', `偵測到【踏踏（虛空小象）】！\n要發動【踏破虛空】嗎？\n大岩石碎裂 + 一塊隨機障礙物消除！\n（點確定發動，關閉則跳過）`, '🐘', () => useSlidingPetAbility());
+                    }, 250);
+                }
             };
 
             const startSlidingGame = () => {
                 setScene('minigame_sliding');
-                loadSlidingLevel(0);
+                loadSlidingLevel(0, true);
             };
 
             const useSlidingPetAbility = () => {
@@ -1377,7 +1383,7 @@
                                     <span className="text-base font-black font-mono">⚔️ {stats.atk}</span>
                                 </div>
 
-                                <button className="mt-auto w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => setScene('equipment')}>
+                                <button className="mt-auto w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => { setPrevScene(scene); setScene('equipment'); }}>
                                     🎒 背包
                                 </button>
                                 <button className="mt-1.5 w-full p-1.5 mb-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform" onClick={saveToCloud}>
@@ -1656,7 +1662,7 @@
                                                         再試一次
                                                     </button>
                                                     {slidingGame.currentLevel < SLIDING_LEVELS.length - 1 ? (
-                                                        <button onClick={() => loadSlidingLevel(slidingGame.currentLevel + 1)}
+                                                        <button onClick={() => loadSlidingLevel(slidingGame.currentLevel + 1, true)}
                                                             className="flex-1 py-2.5 bg-[#42A5F5] text-white font-black rounded-2xl hover:bg-[#1E88E5] shadow-md text-sm">
                                                             下一關 ▶
                                                         </button>
@@ -1794,7 +1800,7 @@
                                     <img src="https://github.com/YOYO700702ai/100pointgames/blob/main/11.jpg?raw=true" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="村莊" />
                                     <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
                                     <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
-                                    <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('村長', '歡迎來到初心村，勇者！', '👴')}></div>
+                                    <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); }}></div>
                                     <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}></div>
                                     <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
@@ -1981,7 +1987,7 @@
 
                             {scene === 'equipment' && (
                                 <div className="absolute inset-0 bg-[#FFFDE7] p-6 flex flex-col">
-                                    <div className="flex justify-between items-center mb-4"><h2 className="m-0 text-2xl font-bold text-[#5D4037]">🎒 冒險背包</h2><button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene('map')}>關閉</button></div>
+                                    <div className="flex justify-between items-center mb-4"><h2 className="m-0 text-2xl font-bold text-[#5D4037]">🎒 冒險背包</h2><button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene(prevScene)}>關閉</button></div>
                                     <div className="flex gap-6 flex-1 overflow-hidden">
                                         <div className="flex-[2] bg-white border-2 border-[#D7CCC8] rounded-2xl p-4 flex flex-col">
                                             <div className="font-bold text-[#5D4037] border-b border-[#ddd] pb-2 mb-2">🎒 背包物品</div>
