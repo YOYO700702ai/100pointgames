@@ -511,8 +511,13 @@
                         const docRef = doc(db, 'saves', player.accountId);
                         const docSnap = await getDoc(docRef);
                         if (docSnap.exists()) {
-                            const cloudData = docSnap.data(); setPlayer(prev => ({ ...prev, ...cloudData }));
-                            setTimeout(() => showMessage('讀取成功', `歡迎回來，${cloudData.name}！\n(目前等級 ${cloudData.level})`, '🎉'), 500);
+                            const cloudData = docSnap.data();
+                            if (cloudData.name !== player.name) {
+                                setTimeout(() => showMessage('驗證失敗', '名字或帳號不正確，無法讀取存檔。\n請確認名字與帳號完全相符。', '🔒'), 500);
+                            } else {
+                                setPlayer(prev => ({ ...prev, ...cloudData }));
+                                setTimeout(() => showMessage('讀取成功', `歡迎回來，${cloudData.name}！\n(目前等級 ${cloudData.level})`, '🎉'), 500);
+                            }
                         } else {
                             setTimeout(() => showMessage('建立新檔', `帳號 ${player.accountId} 不存在，已為您建立全新進度。`, '📝'), 500);
                         }
