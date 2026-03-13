@@ -142,12 +142,13 @@
             egg_2: { id: 'egg_2', name: '蔚藍星塵蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【幻變時空水母】' },
             egg_3: { id: 'egg_3', name: '翡翠藤蔓蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(2).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【撼地藤蔓甲龍】' },
             egg_4: { id: 'egg_4', name: '琥珀金沙蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed%20(3).png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【貪婪尋寶鼠】' },
-            egg_5: { id: 'egg_5', name: '虛空黑曜蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【虛空獵犬】' },
+            egg_5: { id: 'egg_5', name: '虛空黑曜蛋', type: 'egg', icon: '<img src="https://github.com/YOYO700702ai/100pointgames/blob/main/unname.png?raw=true" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【踏踏（虛空小象）】' },
             pet_owl: { id: 'pet_owl', name: '真理之眼貓頭鷹', type: 'pet', atk: 0, hp: 0, icon: '🦉', desc: '【技能：迷霧破除】成語關卡的亂碼符號變回中文！' },
             pet_jellyfish: { id: 'pet_jellyfish', name: '幻變時空水母', type: 'pet', atk: 0, hp: 0, icon: '🪼', desc: '【技能：緩慢時間流速】進入紙牌關卡時，翻牌展示時間延長至 30 秒！' },
             pet_ankylo: { id: 'pet_ankylo', name: '撼地藤蔓甲龍', type: 'pet', atk: 0, hp: 0, icon: '🦕', desc: '【技能：藤蔓變身】打地精關卡槌子變成 2×2 範圍攻擊！' },
             pet_rat: { id: 'pet_rat', name: '貪婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶箱位置！' },
             pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
+            pet_stompy: { id: 'pet_stompy', name: '踏踏（虛空小象）', type: 'pet', atk: 0, hp: 0, icon: '🐘', desc: '【技能：踏破虛空】動物大逃亡關卡中，踩碎入口大岩石與一塊隨機障礙物，讓關卡更容易過！' },
             gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' },
             gem_blue: { id: 'gem_blue', name: '小丑的藍寶石', type: 'material', icon: '💙', desc: '尋寶遊戲的通關證明，閃耀著藍色的光芒。' },
             gem_yellow: { id: 'gem_yellow', name: '紙牌大師的黃寶石', type: 'material', icon: '💛', desc: '記憶遊戲的通關證明，閃耀著黃色的光芒。' },
@@ -210,15 +211,14 @@
                     { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 0, y: 0, name: '🦒' },
                     { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
                     { id: 'zebra',     type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦓' },
-                    { id: 'p4',        type: 'p', w: 1, h: 1, x: 4, y: 0, name: '🐶' },
                     { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 0, y: 2, name: '🦘' },
                     { id: 'crocodile', type: 'h', w: 2, h: 1, x: 1, y: 2, name: '🐊' },
                     { id: 'alpaca',    type: 'v', w: 1, h: 2, x: 3, y: 2, name: '🦙' },
                     { id: 'p1',        type: 'p', w: 1, h: 1, x: 1, y: 3, name: '🐥' },
                     { id: 'p2',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐣' },
-                    { id: 'p3',        type: 'p', w: 1, h: 1, x: 4, y: 3, name: '🐱' },
+                    { id: 'rock',      type: 'rock', w: 1, h: 2, x: 4, y: 1, name: '大岩石', immovable: true },
                 ]
-                // 空格: (4,1)(4,2)｜解法: p4↓, p4↓, 斑馬→右, 大象→右×2
+                // 空格: (4,0)(4,3)｜岩石封住出口(4,1)(4,2)｜踏踏能力後: 岩石消失→斑馬→右, 大象→右×2
             },
             {
                 name: '排隊出發',
@@ -227,15 +227,14 @@
                     { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 0, y: 0, name: '🦒' },
                     { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
                     { id: 'zebra',     type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦓' },
-                    { id: 'p4',        type: 'p', w: 1, h: 1, x: 4, y: 0, name: '🐶' },
                     { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 0, y: 2, name: '🦘' },
                     { id: 'alpaca',    type: 'v', w: 1, h: 2, x: 1, y: 2, name: '🦙' },
                     { id: 'crocodile', type: 'h', w: 2, h: 1, x: 2, y: 2, name: '🐊' },
                     { id: 'p1',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐥' },
                     { id: 'p2',        type: 'p', w: 1, h: 1, x: 3, y: 3, name: '🐣' },
-                    { id: 'p3',        type: 'p', w: 1, h: 1, x: 4, y: 3, name: '🐱' },
+                    { id: 'rock',      type: 'rock', w: 1, h: 2, x: 4, y: 1, name: '大岩石', immovable: true },
                 ]
-                // 空格: (4,1)(4,2)｜解法: p4↓×2, 斑馬→右, 大象→右×2
+                // 空格: (4,0)(4,3)｜岩石封住出口(4,1)(4,2)
             },
             {
                 name: '迷路危機',
@@ -244,15 +243,14 @@
                     { id: 'p1',        type: 'p', w: 1, h: 1, x: 0, y: 0, name: '🐥' },
                     { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
                     { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦒' },
-                    { id: 'p2',        type: 'p', w: 1, h: 1, x: 4, y: 0, name: '🐣' },
                     { id: 'zebra',     type: 'v', w: 1, h: 2, x: 0, y: 1, name: '🦓' },
                     { id: 'crocodile', type: 'h', w: 2, h: 1, x: 1, y: 2, name: '🐊' },
                     { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 3, y: 2, name: '🦘' },
                     { id: 'alpaca',    type: 'h', w: 2, h: 1, x: 0, y: 3, name: '🦙' },
                     { id: 'p3',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐱' },
-                    { id: 'p4',        type: 'p', w: 1, h: 1, x: 4, y: 3, name: '🐶' },
+                    { id: 'rock',      type: 'rock', w: 1, h: 2, x: 4, y: 1, name: '大岩石', immovable: true },
                 ]
-                // 空格: (4,1)(4,2)｜解法: p2↓×2, 長頸鹿→右, 大象→右×2
+                // 空格: (4,0)(4,3)｜岩石封住出口(4,1)(4,2)
             }
         ];
 
@@ -271,7 +269,7 @@
             }
         };
         
-        const EGG_TO_PET = { egg_1: 'pet_owl', egg_2: 'pet_jellyfish', egg_3: 'pet_ankylo', egg_4: 'pet_rat', egg_5: 'pet_hound' };
+        const EGG_TO_PET = { egg_1: 'pet_owl', egg_2: 'pet_jellyfish', egg_3: 'pet_ankylo', egg_4: 'pet_rat', egg_5: 'pet_stompy' };
 
         // ==========================================
         // ★ 核心組件 (App) ★
@@ -348,6 +346,7 @@
                 isWon: false
             });
             const [slidingDragState, setSlidingDragState] = useState(null);
+            const [slidingPetUsed, setSlidingPetUsed] = useState(false);
             const slidingPiecesRef = useRef([]);
 
             useEffect(() => {
@@ -1084,6 +1083,7 @@
                 const levelPieces = JSON.parse(JSON.stringify(SLIDING_LEVELS[levelIndex].pieces));
                 setSlidingGame({ active: true, currentLevel: levelIndex, pieces: levelPieces, moves: 0, isWon: false });
                 setSlidingDragState(null);
+                setSlidingPetUsed(false);
             };
 
             const startSlidingGame = () => {
@@ -1091,9 +1091,25 @@
                 loadSlidingLevel(0);
             };
 
+            const useSlidingPetAbility = () => {
+                setSlidingGame(prev => {
+                    // 移除大岩石
+                    let newPieces = prev.pieces.filter(p => p.id !== 'rock');
+                    // 隨機踩碎一塊非大象的障礙物
+                    const removable = newPieces.filter(p => p.id !== 'elephant');
+                    if (removable.length > 0) {
+                        const target = removable[Math.floor(Math.random() * removable.length)];
+                        newPieces = newPieces.filter(p => p.id !== target.id);
+                    }
+                    return { ...prev, pieces: newPieces };
+                });
+                setSlidingPetUsed(true);
+            };
+
             const canSlidingMove = (pieceId, dx, dy, currentPieces) => {
                 const piece = currentPieces.find(p => p.id === pieceId);
                 if (!piece) return false;
+                if (piece.immovable) return false;
                 const nx = piece.x + dx;
                 const ny = piece.y + dy;
                 if (nx < 0 || nx + piece.w > 5 || ny < 0 || ny + piece.h > 4) return false;
@@ -1571,6 +1587,7 @@
                                                     v:        'bg-[#FFCC80] border-[#FFA726] border-b-[5px] border-r-[3px] z-10',
                                                     h:        'bg-[#A5D6A7] border-[#66BB6A] border-b-[5px] border-r-[3px] z-10',
                                                     p:        'bg-[#FFF9C4] border-[#FFD54F] border-b-[4px] border-r-[2px] z-10',
+                                                    rock:     'bg-[#607D8B] border-[#37474F] border-b-[6px] border-r-[3px] z-25 cursor-not-allowed',
                                                 };
                                                 return (
                                                     <div key={piece.id}
@@ -1585,16 +1602,28 @@
                                                             width: `${piece.w * 20}%`,
                                                             height: `${piece.h * 25}%`,
                                                         }}>
-                                                        <div className={`w-full h-full rounded-xl shadow-sm flex items-center justify-center cursor-pointer hover:brightness-105 active:scale-[0.96] transition-all border-2 ${pieceStyles[piece.type] || pieceStyles.p}`}>
-                                                            <span className={piece.type === 'elephant' ? 'text-4xl' : 'text-2xl'}>
-                                                                {piece.name}
+                                                        <div className={`w-full h-full rounded-xl shadow-sm flex flex-col items-center justify-center transition-all border-2 ${pieceStyles[piece.type] || pieceStyles.p} ${piece.type !== 'rock' ? 'cursor-pointer hover:brightness-105 active:scale-[0.96]' : ''}`}>
+                                                            <span className={piece.type === 'elephant' ? 'text-4xl' : piece.type === 'rock' ? 'text-xl' : 'text-2xl'}>
+                                                                {piece.type === 'rock' ? '🪨' : piece.name}
                                                             </span>
+                                                            {piece.type === 'rock' && <span className="text-[9px] font-black text-white leading-none mt-0.5">{piece.name}</span>}
                                                         </div>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
+
+                                    {/* 踏踏寵物能力按鈕 */}
+                                    {player.equipped.pet === 'pet_stompy' && !slidingPetUsed && !slidingGame.isWon && (
+                                        <button className="mt-2 px-5 py-2 bg-[#7B1FA2] text-white font-black rounded-xl shadow-[0_3px_0_#4A148C] active:translate-y-1 active:shadow-none text-sm flex items-center gap-1.5"
+                                            onClick={useSlidingPetAbility}>
+                                            🐘 踏踏出擊！踏破虛空
+                                        </button>
+                                    )}
+                                    {player.equipped.pet === 'pet_stompy' && slidingPetUsed && !slidingGame.isWon && (
+                                        <div className="mt-2 px-5 py-2 bg-[#9E9E9E] text-white font-bold rounded-xl text-xs opacity-60">🐘 踏踏已出手（本關限一次）</div>
+                                    )}
 
                                     {/* 勝利 Overlay */}
                                     {slidingGame.isWon && (
@@ -1638,7 +1667,7 @@
                                             🎩
                                         </div>
                                         <div className="flex-1 h-full overflow-y-auto text-sm text-[#1B5E20] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
-                                            動物園長：「哼！這隻大象又在搗蛋了！你能幫牠從右邊出口逃出去嗎？完成全三關就送你紫寶石！」
+                                            動物園長：「哼！這隻大象又在搗蛋了！你能幫牠從右邊出口逃出去嗎？完成全三關就送你紫寶石！哼哼！我把入口堵起來了！都別想走！」
                                         </div>
                                     </div>
                                 </div>
