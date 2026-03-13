@@ -1812,46 +1812,62 @@
 
                             {scene === 'chicken_farm' && (
                                 <div className="absolute inset-0 bg-[#E8F5E9]">
-                                    {/* Placeholder Background */}
-                                    <div className="w-full h-full flex flex-col items-center justify-center relative">
-                                        <div className="absolute top-10 text-3xl font-bold text-[#388E3C] bg-white/80 px-4 py-2 rounded-xl shadow-sm border-2 border-[#81C784]">咕咕雞舍</div>
-                                        
-                                        <div className="flex gap-8 mt-6 items-start w-full max-w-[700px]">
-                                            {/* NPC */}
-                                            <div className="flex flex-col items-center cursor-pointer hover:-translate-y-2 transition-transform shrink-0" onClick={() => showMessage('養雞人', '把蛋放進孵化機，然後用「營養劑」餵食，進度到100%就能孵化了！', '🧑‍🌾')}>
-                                                <div className="text-[5rem] drop-shadow-md">🧑‍🌾</div>
-                                                <div className="bg-white px-3 py-1 font-bold rounded-lg mt-2 shadow-sm border-2 border-[#A5D6A7] text-sm">養雞人</div>
+                                    <div className="w-full h-full flex flex-col items-center justify-center relative px-4">
+                                        <div className="absolute top-4 text-2xl font-bold text-[#388E3C] bg-white/80 px-4 py-1.5 rounded-xl shadow-sm border-2 border-[#81C784]">咕咕雞舍</div>
+
+                                        {/* 主排：養雞人 + 孵化機 + 奇怪機器 */}
+                                        <div className="flex gap-3 mt-2 items-stretch w-full max-w-[700px]">
+                                            {/* NPC 養雞人 */}
+                                            <div className="flex flex-col items-center justify-end cursor-pointer hover:-translate-y-1 transition-transform shrink-0 pb-2" onClick={() => showMessage('養雞人', '把蛋放進孵化機，然後用「營養劑」餵食，進度到100%就能孵化了！', '🧑‍🌾')}>
+                                                <div className="text-[4rem] drop-shadow-md">🧑‍🌾</div>
+                                                <div className="bg-white px-2 py-0.5 font-bold rounded-lg mt-1 shadow-sm border-2 border-[#A5D6A7] text-xs">養雞人</div>
                                             </div>
 
-                                            {/* 孵化機 */}
-                                            <div className="flex-1 bg-white/80 rounded-2xl p-5 shadow-xl border-2 border-[#A5D6A7]">
-                                                <div className="text-center font-bold text-[#388E3C] mb-4 text-lg">🥚 孵化槽</div>
-                                                
+                                            {/* 孵化機（縮小） */}
+                                            <div className="flex-1 bg-white/80 rounded-2xl p-3 shadow-xl border-2 border-[#A5D6A7]">
+                                                <div className="text-center font-bold text-[#388E3C] mb-2 text-sm">🥚 孵化槽</div>
                                                 {hatchSlot.eggId ? (
-                                                    <div className="flex flex-col items-center gap-3">
-                                                        <div className="text-5xl animate-bounce">🥚</div>
-                                                        <div className="font-bold text-[#5D4037]">{ITEMS[hatchSlot.eggId]?.name}</div>
-                                                        {/* 進度條 */}
-                                                        <div className="w-full bg-gray-200 rounded-full h-6 shadow-inner relative">
-                                                            <div 
-                                                                className="bg-gradient-to-r from-[#81C784] to-[#4CAF50] h-6 rounded-full transition-all duration-500 flex items-center justify-center"
-                                                                style={{width: `${hatchSlot.progress}%`}}
-                                                            ></div>
-                                                            <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-white drop-shadow">{hatchSlot.progress}%</div>
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="text-4xl animate-bounce">🥚</div>
+                                                        <div className="font-bold text-[#5D4037] text-xs text-center">{ITEMS[hatchSlot.eggId]?.name}</div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
+                                                            <div className="bg-gradient-to-r from-[#81C784] to-[#4CAF50] h-4 rounded-full transition-all duration-500" style={{width:`${hatchSlot.progress}%`}}></div>
+                                                            <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow">{hatchSlot.progress}%</div>
                                                         </div>
-                                                        <button 
-                                                            className="mt-2 px-6 py-2 bg-[#4CAF50] text-white font-bold rounded-xl shadow-[0_4px_0_#388E3C] active:translate-y-1 active:shadow-none hover:bg-[#43A047]"
-                                                            onClick={feedEgg}
-                                                        >
-                                                            🌿 餵食營養劑（x{player.inventory.find(i=>i.id==='potion_nutri')?.qty || 0}）
+                                                        <button className="px-3 py-1.5 bg-[#4CAF50] text-white font-bold rounded-lg shadow-[0_3px_0_#388E3C] active:translate-y-0.5 active:shadow-none text-xs" onClick={feedEgg}>
+                                                            🌿 餵食（x{player.inventory.find(i=>i.id==='potion_nutri')?.qty || 0}）
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col items-center gap-3">
-                                                        <div className="w-24 h-24 border-4 border-dashed border-[#A5D6A7] rounded-full flex items-center justify-center text-4xl text-[#A5D6A7] cursor-pointer hover:bg-[#E8F5E9] transition-all">+</div>
-                                                        <div className="text-sm text-[#9E9E9E] font-bold">請從下方選擇一顆蛋放入</div>
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="w-16 h-16 border-4 border-dashed border-[#A5D6A7] rounded-full flex items-center justify-center text-3xl text-[#A5D6A7] cursor-pointer hover:bg-[#E8F5E9] transition-all">+</div>
+                                                        <div className="text-xs text-[#9E9E9E] font-bold text-center">從下方選蛋放入</div>
                                                     </div>
                                                 )}
+                                            </div>
+
+                                            {/* 壞掉的奇怪機器（直立長方形） */}
+                                            <div className="w-[110px] shrink-0 cursor-pointer hover:-translate-y-1 transition-all" onClick={() => setScene('time_machine')}>
+                                                <div className="h-full bg-[#0D0D1A] rounded-2xl border-2 border-[#6A1B9A] shadow-[0_0_16px_#4A148C] flex flex-col items-center justify-between py-3 px-2">
+                                                    {/* 頂部 LED 燈排 */}
+                                                    <div className="flex gap-1.5">
+                                                        <div className="w-2 h-2 rounded-full bg-[#E040FB] shadow-[0_0_6px_#E040FB]"></div>
+                                                        <div className="w-2 h-2 rounded-full bg-[#7B1FA2] animate-pulse"></div>
+                                                        <div className="w-2 h-2 rounded-full bg-[#E040FB] shadow-[0_0_6px_#E040FB]"></div>
+                                                    </div>
+                                                    {/* 中央齒輪 */}
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="text-4xl animate-[spin_4s_linear_infinite]">⚙️</div>
+                                                        <div className="w-12 h-0.5 bg-[#6A1B9A] rounded"></div>
+                                                        <div className="text-[10px] font-black text-[#E040FB] tracking-widest text-center leading-tight">壞掉的<br/>奇怪機器</div>
+                                                    </div>
+                                                    {/* 底部面板 */}
+                                                    <div className="flex flex-col items-center gap-1 w-full">
+                                                        <div className="w-full h-0.5 bg-[#6A1B9A]"></div>
+                                                        <div className="text-[9px] text-[#9E9E9E] text-center leading-snug">投入五顆<br/>魔王寶石</div>
+                                                        <div className="text-[#E040FB] text-lg">▶</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1860,20 +1876,14 @@
                                             const eggs = player.inventory.filter(slot => ITEMS[slot.id]?.type === 'egg');
                                             if (eggs.length === 0) return null;
                                             return (
-                                                <div className="w-full max-w-[700px] mt-4 bg-white/70 rounded-2xl p-4 border-2 border-[#C8E6C9]">
-                                                    <div className="text-sm font-bold text-[#388E3C] mb-3">背包中的蛋（點擊放入孵化槽）：</div>
-                                                    <div className="flex gap-3 flex-wrap">
+                                                <div className="w-full max-w-[700px] mt-3 bg-white/70 rounded-2xl p-3 border-2 border-[#C8E6C9]">
+                                                    <div className="text-xs font-bold text-[#388E3C] mb-2">背包中的蛋（點擊放入孵化槽）：</div>
+                                                    <div className="flex gap-2 flex-wrap">
                                                         {eggs.map(slot => {
                                                             const item = ITEMS[slot.id];
                                                             return (
-                                                                <div 
-                                                                    key={slot.id}
-                                                                    className="flex flex-col items-center cursor-pointer hover:-translate-y-1 transition-transform bg-[#F1F8E9] rounded-xl p-2 border-2 border-[#A5D6A7] shadow-sm"
-                                                                    onClick={() => placeEgg(slot.id)}
-                                                                >
-                                                                    {item.icon.startsWith('<') 
-                                                                        ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="w-10 h-10 flex justify-center items-center" />
-                                                                        : <div className="text-3xl">{item.icon}</div>}
+                                                                <div key={slot.id} className="flex flex-col items-center cursor-pointer hover:-translate-y-1 transition-transform bg-[#F1F8E9] rounded-xl p-2 border-2 border-[#A5D6A7] shadow-sm" onClick={() => placeEgg(slot.id)}>
+                                                                    {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="w-10 h-10 flex justify-center items-center" /> : <div className="text-3xl">{item.icon}</div>}
                                                                     <div className="text-xs font-bold text-[#5D4037] mt-1 text-center max-w-[70px]">{item.name}</div>
                                                                 </div>
                                                             );
@@ -1882,19 +1892,6 @@
                                                 </div>
                                             );
                                         })()}
-
-                                        {/* 壞掉的奇怪機器 */}
-                                        <div className="w-full max-w-[700px] mt-4 cursor-pointer hover:-translate-y-1 transition-all"
-                                            onClick={() => setScene('time_machine')}>
-                                            <div className="bg-[#0D0D1A] rounded-2xl p-4 border-2 border-[#6A1B9A] shadow-[0_0_20px_#4A148C] flex items-center gap-4">
-                                                <div className="text-5xl animate-[spin_4s_linear_infinite]">⚙️</div>
-                                                <div>
-                                                    <div className="font-black text-[#E040FB] text-lg tracking-wide">壞掉的奇怪機器</div>
-                                                    <div className="text-[#9E9E9E] text-xs mt-0.5">投入五顆魔王寶石，能做什麼呢...？</div>
-                                                </div>
-                                                <div className="ml-auto text-[#6A1B9A] text-2xl">▶</div>
-                                            </div>
-                                        </div>
 
                                     </div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('village')}>⬅ 回村莊</button>
