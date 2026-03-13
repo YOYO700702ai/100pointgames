@@ -73,7 +73,6 @@
         // ==========================================
         // ★ 遊戲設定與資料庫 (常數) ★
         // ==========================================
-        const AI_MODEL = "gemini-2.5-flash-preview-09-2025";
 
         const CHINESE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkJiMnZSApC9QGpRkUajkGpB4zu3_vlRRJUnnYqQUT8mwpVC9p5feKEqv0c24OjdnWyW9BBaCv_AEp/pub?output=csv";
         const ENGLISH_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYawqE63-aJdaU9HGx3R2hZ3gXHvQpCTXOMqW9uordFM944NwST6a06u30rj-CSTGT8JpYhynbx-Py/pub?output=csv";
@@ -291,8 +290,9 @@
             });
 
             const [damageFloats, setDamageTexts] = useState([]);
-            const [npcHistories, setNpcHistories] = useState({ shopkeeper: [], merchant: [], librarian: [] });
+            const [npcMessage, setNpcMessage] = useState('');
             const [currentNpc, setCurrentNpc] = useState('shopkeeper');
+            const [isSaving, setIsSaving] = useState(false);
 
             // --- 魔法圖書館成語小遊戲狀態 ---
             const [idiomGame, setIdiomGame] = useState({
@@ -384,11 +384,13 @@
             const saveToCloud = async () => {
                 if (!player.accountId) { showMessage("存檔失敗", "您目前是訪客模式，無法存檔。\n請重新登入並輸入「冒險帳號」！", "⚠️"); return; }
                 if (!user || !db) { showMessage("存檔失敗", "網路未連線或尚未設定 Firebase。", "⚠️"); return; }
+                setIsSaving(true);
                 try {
-                    const saveRef = doc(db, 'saves', player.accountId); // 簡化路徑
+                    const saveRef = doc(db, 'saves', player.accountId);
                     await setDoc(saveRef, player);
                     showMessage("存檔成功", "您的冒險進度已安全保存在雲端！", "💾");
                 } catch (e) { console.error(e); showMessage("存檔失敗", "雲端存檔發生錯誤：" + e.message, "⚠️"); }
+                finally { setIsSaving(false); }
             };
 
             const updatePlayer = (updates) => setPlayer(prev => ({ ...prev, ...updates }));
@@ -733,7 +735,7 @@
                 
                 // 初次對話
                 let introText = "歡迎來到魔法圖書館，勇者！\n這裡是知識的殿堂，只要你能連續答對 10 題成語，就能獲得管理員的認可！";
-                setNpcHistories(prev => ({...prev, librarian: [{ role: 'model', text: introText }]}));
+                setNpcMessage(introText);
                 
                 initRound(0);
             };
@@ -1242,11 +1244,10 @@
                 if (npcId === 'merchant') {
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
                     let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
-                    setNpcHistories(prev => ({...prev, merchant: [{ role: 'model', text: introText }]}));
-                } else { 
+                    setNpcMessage(introText);
+                } else {
                     const profile = NPC_PROFILES[npcId];
-                    const randomLine = profile.defaultLines[Math.floor(Math.random() * profile.defaultLines.length)];
-                    setNpcHistories(prev => ({...prev, shopkeeper: [{ role: 'model', text: randomLine }]}));
+                    setNpcMessage(profile.defaultLines[Math.floor(Math.random() * profile.defaultLines.length)]);
                 }
                 setScene('shop');
             };
@@ -1254,20 +1255,13 @@
             const buyItem = (itemId) => {
                 const item = ITEMS[itemId];
                 if (itemId === 'key_strange') {
-                    if (player.gold < 1000) { triggerNpcResponse("CHAT", currentNpc, "錢不夠啊...(需要1000G)"); return; }
-                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000 })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); triggerNpcResponse("CHAT", currentNpc, "成交！這把鑰匙交給你了！"); return;
+                    if (player.gold < 1000) { setNpcMessage("金幣不足...需要 1000G 才能換鑰匙。"); return; }
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000 })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); setNpcMessage("成交！這把鑰匙交給你了！"); return;
                 }
-                if (player.gold < item.price) { triggerNpcResponse("NO_MONEY", currentNpc); return; }
-                setPlayer(prev => ({ ...prev, gold: prev.gold - item.price })); addItem(itemId, 1); triggerNpcResponse("BUY", currentNpc, item.name); 
+                if (player.gold < item.price) { setNpcMessage("錢不夠喔，再去賺多一點吧！"); return; }
+                setPlayer(prev => ({ ...prev, gold: prev.gold - item.price })); addItem(itemId, 1); const _pl = NPC_PROFILES[currentNpc].purchaseLines; setNpcMessage(_pl[Math.floor(Math.random() * _pl.length)]);
             };
 
-            const chatWithNpc = (msg) => { if (!msg) return; setNpcHistories(prev => ({ ...prev, [currentNpc]: [...prev[currentNpc], { role: 'user', text: msg }] })); triggerNpcResponse("CHAT", currentNpc, msg); };
-
-            const triggerNpcResponse = async (action, npcId, payload = "") => {
-                const profile = NPC_PROFILES[npcId]; const addSystemMsg = (txt) => setNpcHistories(prev => ({...prev, [npcId]: [...prev[npcId], { role: 'model', text: txt }]}));
-                let lines = action === "BUY" ? profile.purchaseLines : profile.defaultLines; 
-                addSystemMsg(lines[Math.floor(Math.random() * lines.length)]);
-            };
 
             const rollGacha = () => {
                 if (!player.gachaUnlocked) {
@@ -1342,6 +1336,7 @@
                         @keyframes shake { 10%, 90% {transform: translate3d(-2px, 0, 0);} 20%, 80% {transform: translate3d(4px, 0, 0);} 30%, 50%, 70% {transform: translate3d(-6px, 0, 0);} 40%, 60% {transform: translate3d(6px, 0, 0);} }
                         @keyframes flashRed { 0%, 100% {background-color: transparent;} 50% {background-color: rgba(255, 0, 0, 0.3);} }
                         @keyframes glow { from { box-shadow: 0 0 5px #FFD700; } to { box-shadow: 0 0 15px #FFD700, 0 0 5px #FFA000; } }
+                        @keyframes savebar { 0% {transform:translateX(-100%);} 100% {transform:translateX(350%);} }
                         .anim-float { animation: float 3s ease-in-out infinite; }
                         .anim-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
                         .anim-flash-red { animation: flashRed 0.4s; }
@@ -1386,8 +1381,15 @@
                                 <button className="mt-auto w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => { setPrevScene(scene); setScene('equipment'); }}>
                                     🎒 背包
                                 </button>
-                                <button className="mt-1.5 w-full p-1.5 mb-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform" onClick={saveToCloud}>
-                                    💾 存檔
+                                <button className="mt-1.5 w-full mb-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform overflow-hidden relative disabled:opacity-60" onClick={saveToCloud} disabled={isSaving} style={{minHeight:'2rem'}}>
+                                    {isSaving ? (
+                                        <div className="flex flex-col items-center justify-center px-2 py-1 gap-0.5">
+                                            <span className="text-xs">存檔中...</span>
+                                            <div className="w-full bg-green-200 rounded-full h-1.5 overflow-hidden">
+                                                <div className="h-full bg-white rounded-full animate-[savebar_1.2s_ease-in-out_infinite]" style={{width:'40%',animation:'savebar 1.2s ease-in-out infinite'}}></div>
+                                            </div>
+                                        </div>
+                                    ) : '💾 存檔'}
                                 </button>
                             </div>
                         )}
@@ -1791,7 +1793,7 @@
                                             🦉
                                         </div>
                                         <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#5D4037] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
-                                            {npcHistories.librarian && npcHistories.librarian[npcHistories.librarian.length - 1]?.text}
+                                            {npcMessage}
                                         </div>
                                     </div>
                                 </div>
@@ -2101,13 +2103,9 @@
                                 <div className="absolute inset-0 bg-[#FFF8F0] p-4 flex flex-row gap-4">
                                     <div className="w-[240px] flex flex-col items-center bg-[#fdf5e6] rounded-2xl p-3 border-2 border-[#e0c097]">
                                         <div className="text-[6rem] mb-2 drop-shadow-[2px_4px_6px_rgba(0,0,0,0.2)]">{NPC_PROFILES[currentNpc].img}</div>
-                                        <div className="bg-white border-[3px] border-[#333] rounded-xl p-3 w-full h-[150px] text-[0.95rem] text-[#333] relative shadow-[4px_4px_0_rgba(0,0,0,0.1)] overflow-y-auto custom-scroll mb-3 flex flex-col gap-2">
+                                        <div className="bg-white border-[3px] border-[#333] rounded-xl p-3 w-full h-[150px] text-[0.95rem] text-[#333] relative shadow-[4px_4px_0_rgba(0,0,0,0.1)] overflow-y-auto custom-scroll mb-3 flex items-center">
                                             <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-[#333]"></div>
-                                            {npcHistories[currentNpc].map((msg, idx) => (
-                                                <div key={idx} className={`p-2 rounded-xl text-[0.9rem] leading-[1.4] max-w-[90%] border ${msg.role === 'user' ? 'bg-[#E3F2FD] rounded-br-sm self-end border-[#BBDEFB]' : 'bg-white rounded-bl-sm self-start border-[#eee]'}`}>
-                                                    {msg.text.split('\n').map((line, i) => <React.Fragment key={i}>{line}<br/></React.Fragment>)}
-                                                </div>
-                                            ))}
+                                            <p className="m-0 leading-relaxed whitespace-pre-wrap text-[0.9rem]">{npcMessage}</p>
                                         </div>
                                     </div>
                                     <div className="flex-1 flex flex-col">
