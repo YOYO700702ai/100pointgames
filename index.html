@@ -149,7 +149,7 @@
             pet_rat: { id: 'pet_rat', name: '貪婪尋寶鼠', type: 'pet', atk: 0, hp: 0, icon: '🐭', desc: '【技能：尋寶】小丑關卡能聞到正確的寶箱位置！' },
             pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
             pet_stompy: { id: 'pet_stompy', name: '踏踏（虛空小象）', type: 'pet', atk: 0, hp: 0, icon: '🐘', desc: '【技能：踏破虛空】動物大逃亡關卡中，踩碎入口大岩石與一塊隨機障礙物，讓關卡更容易過！' },
-            gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '💎', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' },
+            gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '❤️', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' },
             gem_blue: { id: 'gem_blue', name: '小丑的藍寶石', type: 'material', icon: '💙', desc: '尋寶遊戲的通關證明，閃耀著藍色的光芒。' },
             gem_yellow: { id: 'gem_yellow', name: '紙牌大師的黃寶石', type: 'material', icon: '💛', desc: '記憶遊戲的通關證明，閃耀著黃色的光芒。' },
             gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' },
@@ -1901,7 +1901,7 @@
 
                             {scene === 'time_machine' && (() => {
                                 const SLOT_GEMS = [
-                                    { id: 'gem_red',    label: '紅寶石', emoji: '💎', color: '#F44336', bg: '#FFCDD2' },
+                                    { id: 'gem_red',    label: '紅寶石', emoji: '❤️', color: '#F44336', bg: '#FFCDD2' },
                                     { id: 'gem_blue',   label: '藍寶石', emoji: '💙', color: '#2196F3', bg: '#BBDEFB' },
                                     { id: 'gem_yellow', label: '黃寶石', emoji: '💛', color: '#FFC107', bg: '#FFF9C4' },
                                     { id: 'gem_green',  label: '翡翠',   emoji: '💚', color: '#4CAF50', bg: '#C8E6C9' },
@@ -1949,7 +1949,7 @@
                                             style={allReady ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
                                             onClick={() => {
                                                 if (!allReady) return;
-                                                showMessage('🌌 時空機啟動！🌌', '恭喜你！！成功脫離亞德雷大陸，回到了現實世界，但別忘記現實世界的考試也都要考好唷！免得不小心又被抓回來啦！', '🌟');
+                                                setScene('game_clear');
                                             }}
                                         >
                                             ⚡ 啟動時空機 ⚡
@@ -1962,6 +1962,82 @@
                                     </div>
                                 );
                             })()}
+
+                            {scene === 'game_clear' && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
+                                    style={{background:'radial-gradient(ellipse at 50% 40%, #0a1628 0%, #000008 70%)'}}>
+
+                                    {/* 掃描線效果 */}
+                                    <div className="absolute inset-0 pointer-events-none z-0"
+                                        style={{backgroundImage:'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.015) 2px, rgba(0,255,255,0.015) 4px)'}}/>
+
+                                    {/* 光暈圓圈裝飾 */}
+                                    <div className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
+                                        style={{background:'radial-gradient(circle, rgba(0,180,255,0.07) 0%, transparent 70%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)'}}/>
+
+                                    <div className="relative z-10 flex flex-col items-center gap-4 px-8 text-center">
+
+                                        {/* 副標題（英文） */}
+                                        <div className="text-[0.6rem] tracking-[0.6em] font-mono uppercase"
+                                            style={{color:'#00e5ff', textShadow:'0 0 8px #00e5ff'}}>
+                                            ── MISSION COMPLETE ──
+                                        </div>
+
+                                        {/* 主標題 */}
+                                        <h1 className="text-5xl font-black tracking-[0.2em] leading-tight"
+                                            style={{fontFamily:'monospace', color:'#ffffff',
+                                                textShadow:'0 0 10px #00e5ff, 0 0 30px #0088ff, 0 0 60px #0044aa'}}>
+                                            成功歸家
+                                        </h1>
+
+                                        {/* 英文副標 */}
+                                        <div className="text-[0.6rem] tracking-[0.6em] font-mono uppercase"
+                                            style={{color:'#00e5ff', textShadow:'0 0 8px #00e5ff'}}>
+                                            ── REALITY RESTORED ──
+                                        </div>
+
+                                        {/* 橫線分隔 */}
+                                        <div className="w-56 mt-1" style={{height:'1px', background:'linear-gradient(90deg,transparent,#00e5ff,transparent)'}}/>
+
+                                        {/* 主訊息 */}
+                                        <p className="text-sm leading-loose max-w-[300px]"
+                                            style={{color:'#a0d4ff', fontFamily:'monospace'}}>
+                                            恭喜你成功脫離亞德雷大陸，<br/>
+                                            回到了<span style={{color:'#00e5ff', textShadow:'0 0 6px #00e5ff'}}>現實世界</span>！<br/>
+                                            <br/>
+                                            <span style={{color:'#ffaacc', fontSize:'0.75rem'}}>
+                                                但別忘記現實世界的考試也都要考好唷！<br/>
+                                                免得不小心又被抓回來啦！
+                                            </span>
+                                        </p>
+
+                                        {/* 橫線分隔 */}
+                                        <div className="w-56 mb-1" style={{height:'1px', background:'linear-gradient(90deg,transparent,#00e5ff,transparent)'}}/>
+
+                                        {/* 重啟按鈕 */}
+                                        <button
+                                            className="px-10 py-3 font-black text-base tracking-[0.4em] uppercase font-mono transition-all hover:scale-105 active:scale-95"
+                                            style={{
+                                                background:'linear-gradient(135deg, #00e5ff 0%, #0055ff 100%)',
+                                                color:'#000010',
+                                                boxShadow:'0 0 20px rgba(0,229,255,0.5), 0 0 40px rgba(0,100,255,0.3)',
+                                                clipPath:'polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%)',
+                                            }}
+                                            onClick={() => {
+                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:20, baseMaxHp:20, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false });
+                                                setHatchSlot({ eggId: null, progress: 0 });
+                                                setScene('start');
+                                            }}>
+                                            ⟳ 重啟冒險
+                                        </button>
+
+                                        <div className="text-[0.55rem] tracking-widest font-mono mt-1"
+                                            style={{color:'rgba(0,229,255,0.35)'}}>
+                                            SYSTEM RESET · NEW ADVENTURE LOADING...
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {scene === 'battle' && battle.zone && (
                                 <div className="absolute inset-0 flex flex-row p-6 gap-6 items-center transition-colors duration-500" style={{backgroundColor: battle.zone.bg}}>
