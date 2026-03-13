@@ -1278,41 +1278,43 @@
                 if (!hasItem('coin_gacha')) { showMessage('轉蛋幣不足', `轉蛋一次需要 1 枚轉蛋幣！可以去商店購買哦。`, '🐔'); return; }
                 
                 removeItemById('coin_gacha', 1);
-                
+
+                // 篩除已擁有或已裝備的蛋
                 const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
                 const unownedEggs = allEggs.filter(eggId => {
                     const petId = EGG_TO_PET[eggId];
                     return !hasItem(eggId) && !hasItem(petId) && player.equipped.pet !== petId;
                 });
 
-                // 每顆未擁有的蛋佔 6%（總機率提高5%，由 5% → 6%/顆）
-                const eggProbability = unownedEggs.length * 6;
-                // 吐槽固定佔 5%
-                const jokeProbability = 5; 
-                // 剩下的機率全部分給補給品 (70% + 被抽走的蛋的機率)
-                const normalProbability = 100 - eggProbability - jokeProbability;
-
+                // 機率表（總計100%）
+                // 蛋8% | 大紅7% | 一擊紙劍8% | 金幣紙劍6% | 藍波6% | 經驗藥水5% | 營養劑55% | 吐槽5%
+                // 若無蛋可抽，那8%併入營養劑（變63%）
                 const roll = Math.random() * 100;
-                
-                if (roll < eggProbability && unownedEggs.length > 0) { 
-                    // 抽中蛋
+
+                if (roll < 8 && unownedEggs.length > 0) {
                     const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
-                } else if (roll < (eggProbability + normalProbability)) { 
-                    // 機率：小紅14%, 大紅14%, 一擊紙劍15%, 金幣紙劍10%, 藍波藥劑8%, 經驗藥水7%, 營養劑32%（較舊版-60%）
-                    const normalRoll = Math.random();
-                    let gotItem = 'potion_nutri';
-                    if (normalRoll < 0.14) gotItem = 'potion_s';
-                    else if (normalRoll < 0.28) gotItem = 'potion_l';
-                    else if (normalRoll < 0.43) gotItem = 'sword_paper_kill';
-                    else if (normalRoll < 0.53) gotItem = 'sword_paper_gold';
-                    else if (normalRoll < 0.61) gotItem = 'potion_rainbow';
-                    else if (normalRoll < 0.68) gotItem = 'potion_exp';
-                    addItem(gotItem, 1);
-                    showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
-                } else { 
-                    // 抽中動畫吐槽 (最後的 5%)
+                } else if (roll < 15) {
+                    addItem('potion_l', 1);
+                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_l'].name}`, ITEMS['potion_l'].icon);
+                } else if (roll < 23) {
+                    addItem('sword_paper_kill', 1);
+                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_kill'].name}`, ITEMS['sword_paper_kill'].icon);
+                } else if (roll < 29) {
+                    addItem('sword_paper_gold', 1);
+                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_gold'].name}`, ITEMS['sword_paper_gold'].icon);
+                } else if (roll < 35) {
+                    addItem('potion_rainbow', 1);
+                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_rainbow'].name}`, ITEMS['potion_rainbow'].icon);
+                } else if (roll < 40) {
+                    addItem('potion_exp', 1);
+                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_exp'].name}`, ITEMS['potion_exp'].icon);
+                } else if (roll < 95) {
+                    addItem('potion_nutri', 1);
+                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_nutri'].name}`, ITEMS['potion_nutri'].icon);
+                } else {
+                    // 吐槽 5%（95~100）
                     const jokes = [
                         "老闆：這轉蛋機裡的獎品，簡直就像是沒經費的動畫第二季一樣慘不忍睹...",
                         "老闆：你以為會出SSR嗎？不，這只是一場沒有盡頭的「漫步」的開始...",
