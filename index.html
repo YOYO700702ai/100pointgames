@@ -867,8 +867,13 @@
                     const petId = EGG_TO_PET[hatchSlot.eggId];
                     const eggName = ITEMS[hatchSlot.eggId].name;
                     setHatchSlot({ eggId: null, progress: 0 });
-                    addItem(petId, 1);
-                    showMessage('✨ 孵化成功！', `${eggName} 孵化出了\n【${ITEMS[petId].name}】${ITEMS[petId].icon}！\n快去裝備牠吧！`, '✨');
+                    if (hasItem(petId) || player.equipped.pet === petId) {
+                        addItem('coin_gacha', 1);
+                        showMessage('孵化失敗...', `你已經擁有【${ITEMS[petId].name}】了！\n${eggName} 無法再孵出一隻。\n獲得轉蛋幣 ×1 作為補償。`, '🥚');
+                    } else {
+                        addItem(petId, 1);
+                        showMessage('✨ 孵化成功！', `${eggName} 孵化出了\n【${ITEMS[petId].name}】${ITEMS[petId].icon}！\n快去裝備牠吧！`, '✨');
+                    }
                 } else {
                     setHatchSlot(prev => ({ ...prev, progress: newProgress }));
                     showDamage(`+${gain}%`, 'player');
@@ -1275,10 +1280,13 @@
                 removeItemById('coin_gacha', 1);
                 
                 const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
-                const unownedEggs = allEggs.filter(eggId => !hasItem(eggId) && !hasItem(EGG_TO_PET[eggId]));
-                
-                // 每顆未擁有的蛋佔 5%
-                const eggProbability = unownedEggs.length * 5; 
+                const unownedEggs = allEggs.filter(eggId => {
+                    const petId = EGG_TO_PET[eggId];
+                    return !hasItem(eggId) && !hasItem(petId) && player.equipped.pet !== petId;
+                });
+
+                // 每顆未擁有的蛋佔 6%（總機率提高5%，由 5% → 6%/顆）
+                const eggProbability = unownedEggs.length * 6;
                 // 吐槽固定佔 5%
                 const jokeProbability = 5; 
                 // 剩下的機率全部分給補給品 (70% + 被抽走的蛋的機率)
@@ -1292,15 +1300,15 @@
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
                 } else if (roll < (eggProbability + normalProbability)) { 
-                    // 機率：小紅/大紅各7.5%, 一擊紙劍2%, 金幣紙劍1%, 藍波藥劑1%, 經驗藥水1%, 其餘80%營養劑
+                    // 機率：小紅14%, 大紅14%, 一擊紙劍15%, 金幣紙劍10%, 藍波藥劑8%, 經驗藥水7%, 營養劑32%（較舊版-60%）
                     const normalRoll = Math.random();
                     let gotItem = 'potion_nutri';
-                    if (normalRoll < 0.075) gotItem = 'potion_s';
-                    else if (normalRoll < 0.15) gotItem = 'potion_l';
-                    else if (normalRoll < 0.17) gotItem = 'sword_paper_kill';
-                    else if (normalRoll < 0.18) gotItem = 'sword_paper_gold';
-                    else if (normalRoll < 0.19) gotItem = 'potion_rainbow';
-                    else if (normalRoll < 0.20) gotItem = 'potion_exp';
+                    if (normalRoll < 0.14) gotItem = 'potion_s';
+                    else if (normalRoll < 0.28) gotItem = 'potion_l';
+                    else if (normalRoll < 0.43) gotItem = 'sword_paper_kill';
+                    else if (normalRoll < 0.53) gotItem = 'sword_paper_gold';
+                    else if (normalRoll < 0.61) gotItem = 'potion_rainbow';
+                    else if (normalRoll < 0.68) gotItem = 'potion_exp';
                     addItem(gotItem, 1);
                     showMessage('轉蛋結果', `咕...轉出了一件普通道具：\n🎁 ${ITEMS[gotItem].name}`, ITEMS[gotItem].icon);
                 } else { 
