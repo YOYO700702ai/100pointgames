@@ -527,15 +527,38 @@
             };
 
             const applyCheat = (code) => {
-                if (code === 'YOYOLOVE') { 
+                if (code === 'YOYOLOVE') {
                     setPlayer(p => {
                         const newInventory = [...p.inventory];
                         if (!newInventory.some(item => item.id === 'sword_god')) {
                             newInventory.push({ id: 'sword_god', qty: 1 });
                         }
                         return { ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999, inventory: newInventory };
-                    }); 
-                    showMessage('秘技', '✨ 金手指生效：獲得一擊必殺的神劍、等級 MAX、10000 金幣！', '✨'); 
+                    });
+                    showMessage('秘技', '✨ 金手指生效：獲得一擊必殺的神劍、等級 MAX、10000 金幣！', '✨');
+                }
+                if (code === 'BLADESTORM') {
+                    setPlayer(p => {
+                        const newInventory = [...p.inventory];
+                        if (!newInventory.some(item => item.id === 'sword_god')) {
+                            newInventory.push({ id: 'sword_god', qty: 1 });
+                        }
+                        return { ...p, inventory: newInventory };
+                    });
+                    showMessage('秘技', '🗡️ 獲得【一擊必殺的神劍】！', '🗡️');
+                }
+                if (code === 'RICHRICH3000') {
+                    setPlayer(p => ({ ...p, gold: p.gold + 3000 }));
+                    showMessage('秘技', '💰 獲得 3000 金幣！', '💰');
+                }
+                if (code === 'RAINBOWDROP') {
+                    setPlayer(p => {
+                        const newInventory = [...p.inventory];
+                        const existing = newInventory.find(i => i.id === 'potion_rainbow');
+                        if (existing) existing.qty += 1; else newInventory.push({ id: 'potion_rainbow', qty: 1 });
+                        return { ...p, inventory: newInventory };
+                    });
+                    showMessage('秘技', '🌈 獲得【藍波藥劑】×1！', '🌈');
                 }
             };
 
