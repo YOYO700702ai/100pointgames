@@ -1865,10 +1865,87 @@
                                             );
                                         })()}
 
+                                        {/* 壞掉的奇怪機器 */}
+                                        <div className="w-full max-w-[700px] mt-4 cursor-pointer hover:-translate-y-1 transition-all"
+                                            onClick={() => setScene('time_machine')}>
+                                            <div className="bg-[#0D0D1A] rounded-2xl p-4 border-2 border-[#6A1B9A] shadow-[0_0_20px_#4A148C] flex items-center gap-4">
+                                                <div className="text-5xl animate-[spin_4s_linear_infinite]">⚙️</div>
+                                                <div>
+                                                    <div className="font-black text-[#E040FB] text-lg tracking-wide">壞掉的奇怪機器</div>
+                                                    <div className="text-[#9E9E9E] text-xs mt-0.5">投入五顆魔王寶石，能做什麼呢...？</div>
+                                                </div>
+                                                <div className="ml-auto text-[#6A1B9A] text-2xl">▶</div>
+                                            </div>
+                                        </div>
+
                                     </div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('village')}>⬅ 回村莊</button>
                                 </div>
                             )}
+
+                            {scene === 'time_machine' && (() => {
+                                const SLOT_GEMS = [
+                                    { id: 'gem_red',    label: '紅寶石', emoji: '💎', color: '#F44336', bg: '#FFCDD2' },
+                                    { id: 'gem_blue',   label: '藍寶石', emoji: '💙', color: '#2196F3', bg: '#BBDEFB' },
+                                    { id: 'gem_yellow', label: '黃寶石', emoji: '💛', color: '#FFC107', bg: '#FFF9C4' },
+                                    { id: 'gem_green',  label: '翡翠',   emoji: '💚', color: '#4CAF50', bg: '#C8E6C9' },
+                                    { id: 'gem_purple', label: '紫寶石', emoji: '💜', color: '#9C27B0', bg: '#F3E5F5' },
+                                ];
+                                const filledCount = SLOT_GEMS.filter(g => hasItem(g.id)).length;
+                                const allReady = filledCount === 5;
+                                return (
+                                    <div className="absolute inset-0 bg-[#050010] flex flex-col items-center justify-center p-4"
+                                        style={{backgroundImage:'radial-gradient(ellipse at center, #1a0033 0%, #050010 70%)'}}>
+
+                                        <div className="text-4xl mb-1 animate-[spin_6s_linear_infinite]">⚙️</div>
+                                        <h2 className="text-2xl font-black text-[#E040FB] mb-1 tracking-widest" style={{textShadow:'0 0 20px #9C27B0'}}>壞掉的奇怪機器</h2>
+                                        <p className="text-[#9575CD] text-sm mb-8 font-bold">將五顆魔王寶石放入插槽，啟動時空機</p>
+
+                                        {/* 五個愛心插槽 */}
+                                        <div className="flex gap-3 mb-6">
+                                            {SLOT_GEMS.map(gem => {
+                                                const has = hasItem(gem.id);
+                                                return (
+                                                    <div key={gem.id} className="flex flex-col items-center gap-1.5">
+                                                        <div className="relative w-16 h-16 flex items-center justify-center transition-all duration-500"
+                                                            style={{filter: has ? `drop-shadow(0 0 12px ${gem.color})` : 'none'}}>
+                                                            {/* 愛心插槽形狀 */}
+                                                            <svg viewBox="0 0 100 90" className="absolute inset-0 w-full h-full" fill={has ? gem.bg : '#1a1a2e'} stroke={has ? gem.color : '#333'} strokeWidth="4">
+                                                                <path d="M50 85 C50 85 5 55 5 28 C5 12 17 3 32 3 C40 3 47 7 50 13 C53 7 60 3 68 3 C83 3 95 12 95 28 C95 55 50 85 50 85Z"/>
+                                                            </svg>
+                                                            <span className="relative z-10 text-2xl">{has ? gem.emoji : '?'}</span>
+                                                        </div>
+                                                        <div className={`text-[10px] font-black ${has ? 'text-white' : 'text-[#444]'}`}>{gem.label}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* 進度 */}
+                                        <div className={`font-bold mb-5 text-sm tracking-wide ${allReady ? 'text-[#FFD700]' : 'text-[#9575CD]'}`}
+                                            style={allReady ? {textShadow:'0 0 10px #FFD700'} : {}}>
+                                            {allReady ? '✨ 五顆寶石全數就位！時空機準備就緒！' : `${filledCount} / 5 顆寶石已就位`}
+                                        </div>
+
+                                        {/* 啟動按鈕 */}
+                                        <button
+                                            className={`px-8 py-3 font-black rounded-2xl text-lg tracking-widest transition-all ${allReady ? 'text-white animate-pulse hover:scale-110 active:scale-95' : 'bg-[#1a1a2e] text-[#444] border-2 border-[#333] cursor-not-allowed'}`}
+                                            style={allReady ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
+                                            onClick={() => {
+                                                if (!allReady) return;
+                                                showMessage('🌌 時空機啟動！🌌', '恭喜你！！成功脫離亞德雷大陸，回到了現實世界，但別忘記現實世界的考試也都要考好唷！免得不小心又被抓回來啦！', '🌟');
+                                            }}
+                                        >
+                                            ⚡ 啟動時空機 ⚡
+                                        </button>
+
+                                        <button className="mt-6 px-5 py-2 bg-[#1a1a2e] text-[#9575CD] font-bold rounded-xl border border-[#333] text-sm hover:bg-[#222] transition-colors"
+                                            onClick={() => setScene('chicken_farm')}>
+                                            ← 回到雞舍
+                                        </button>
+                                    </div>
+                                );
+                            })()}
 
                             {scene === 'battle' && battle.zone && (
                                 <div className="absolute inset-0 flex flex-row p-6 gap-6 items-center transition-colors duration-500" style={{backgroundColor: battle.zone.bg}}>
