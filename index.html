@@ -152,6 +152,7 @@
             gem_blue: { id: 'gem_blue', name: '小丑的藍寶石', type: 'material', icon: '💙', desc: '尋寶遊戲的通關證明，閃耀著藍色的光芒。' },
             gem_yellow: { id: 'gem_yellow', name: '紙牌大師的黃寶石', type: 'material', icon: '💛', desc: '記憶遊戲的通關證明，閃耀著黃色的光芒。' },
             gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' },
+            gem_purple: { id: 'gem_purple', name: '動物園長的紫寶石', type: 'material', icon: '💜', desc: '動物大逃亡的通關證明，閃耀著紫色的光芒。' },
             sword_dual: { id: 'sword_dual', name: '影舞雙刀', price: 1500, type: 'weapon', atk: 20, icon: '🗡️', desc: '攻擊力 +20' },
             pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！' },
             potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
@@ -195,6 +196,65 @@
             outer_ruins: { id: 'outer_ruins', name: '編年廢墟 (社)', bg: '#F3E5F5', type: 'custom_csv', questionBank: 'social_csv', dropItem: 'frag_outer', monsters: [{ name: '石像鬼', icon: '🗿', hp: 40, exp: 30, gold: 35 }, { name: '考古幽靈', icon: '👻', hp: 50, exp: 40, gold: 45 }, { name: '時光守護者', icon: '⏳', hp: 75, exp: 65, gold: 75 }] },
             magic_library: { id: 'magic_library', name: '魔法圖書館', bg: '#EFEBE9', type: 'minigame', dropItem: 'gem_red', monsters: [] }
         };
+
+        // ==========================================
+        // ★ 華容道關卡資料 (橫向 5×4 棋盤) ★
+        // ==========================================
+        // 棋盤：5欄(x:0-4) × 4列(y:0-3)，出口在右側 y=1~2
+        // 勝利條件：大象(2×2) 移動到 x=3, y=1
+        const SLIDING_LEVELS = [
+            {
+                name: '動物集結',
+                difficulty: '經典',
+                pieces: [
+                    { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 0, y: 0, name: '🦒' },
+                    { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
+                    { id: 'zebra',     type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦓' },
+                    { id: 'p4',        type: 'p', w: 1, h: 1, x: 4, y: 0, name: '🐶' },
+                    { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 0, y: 2, name: '🦘' },
+                    { id: 'crocodile', type: 'h', w: 2, h: 1, x: 1, y: 2, name: '🐊' },
+                    { id: 'alpaca',    type: 'v', w: 1, h: 2, x: 3, y: 2, name: '🦙' },
+                    { id: 'p1',        type: 'p', w: 1, h: 1, x: 1, y: 3, name: '🐥' },
+                    { id: 'p2',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐣' },
+                    { id: 'p3',        type: 'p', w: 1, h: 1, x: 4, y: 3, name: '🐱' },
+                ]
+                // 空格: (4,1)(4,2)｜解法: p4↓, p4↓, 斑馬→右, 大象→右×2
+            },
+            {
+                name: '排隊出發',
+                difficulty: '進階',
+                pieces: [
+                    { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 0, y: 0, name: '🦒' },
+                    { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
+                    { id: 'zebra',     type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦓' },
+                    { id: 'p4',        type: 'p', w: 1, h: 1, x: 4, y: 0, name: '🐶' },
+                    { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 0, y: 2, name: '🦘' },
+                    { id: 'alpaca',    type: 'v', w: 1, h: 2, x: 1, y: 2, name: '🦙' },
+                    { id: 'crocodile', type: 'h', w: 2, h: 1, x: 2, y: 2, name: '🐊' },
+                    { id: 'p1',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐥' },
+                    { id: 'p2',        type: 'p', w: 1, h: 1, x: 3, y: 3, name: '🐣' },
+                    { id: 'p3',        type: 'p', w: 1, h: 1, x: 4, y: 3, name: '🐱' },
+                ]
+                // 空格: (4,1)(4,2)｜解法: p4↓×2, 斑馬→右, 大象→右×2
+            },
+            {
+                name: '迷路危機',
+                difficulty: '困難',
+                pieces: [
+                    { id: 'p1',        type: 'p', w: 1, h: 1, x: 0, y: 0, name: '🐥' },
+                    { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
+                    { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦒' },
+                    { id: 'p2',        type: 'p', w: 1, h: 1, x: 4, y: 0, name: '🐣' },
+                    { id: 'zebra',     type: 'v', w: 1, h: 2, x: 0, y: 1, name: '🦓' },
+                    { id: 'crocodile', type: 'h', w: 2, h: 1, x: 1, y: 2, name: '🐊' },
+                    { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 3, y: 2, name: '🦘' },
+                    { id: 'alpaca',    type: 'h', w: 2, h: 1, x: 0, y: 3, name: '🦙' },
+                    { id: 'p3',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐱' },
+                    { id: 'p4',        type: 'p', w: 1, h: 1, x: 4, y: 3, name: '🐶' },
+                ]
+                // 空格: (4,1)(4,2)｜解法: p2↓×2, 長頸鹿→右, 大象→右×2
+            }
+        ];
 
         // 亂碼符號池（用於成語關卡）
         const GLYPH_POOL_CHINESE = ['⦬','⊢','▦','◆','✶','▲','★','⛀','✔','▶','♥','♠','♣','♦','⋆','✕','✨','✴','❉','✿','✹','✯','✦','✣','✮','✰','✱','✲','✳','✴','✵'];
@@ -279,6 +339,17 @@
                 is2x2: false // 甲龍技能啟動
             });
 
+            // --- 動物大逃亡華容道狀態 ---
+            const [slidingGame, setSlidingGame] = useState({
+                active: false,
+                currentLevel: 0,
+                pieces: [],
+                moves: 0,
+                isWon: false
+            });
+            const [slidingDragState, setSlidingDragState] = useState(null);
+            const slidingPiecesRef = useRef([]);
+
             useEffect(() => {
                 if (!auth) return;
                 const initAuth = async () => {
@@ -288,6 +359,8 @@
                 const unsubscribe = onAuthStateChanged(auth, setUser);
                 return () => unsubscribe();
             }, []);
+
+            useEffect(() => { slidingPiecesRef.current = slidingGame.pieces; }, [slidingGame.pieces]);
 
             const stats = useMemo(() => {
                 let atk = player.baseAtk + (player.level - 1) * 2;
@@ -1004,6 +1077,81 @@
                 });
             };
 
+            // ==========================================
+            // ★ 動物大逃亡（華容道）函式 ★
+            // ==========================================
+            const loadSlidingLevel = (levelIndex) => {
+                const levelPieces = JSON.parse(JSON.stringify(SLIDING_LEVELS[levelIndex].pieces));
+                setSlidingGame({ active: true, currentLevel: levelIndex, pieces: levelPieces, moves: 0, isWon: false });
+                setSlidingDragState(null);
+            };
+
+            const startSlidingGame = () => {
+                setScene('minigame_sliding');
+                loadSlidingLevel(0);
+            };
+
+            const canSlidingMove = (pieceId, dx, dy, currentPieces) => {
+                const piece = currentPieces.find(p => p.id === pieceId);
+                if (!piece) return false;
+                const nx = piece.x + dx;
+                const ny = piece.y + dy;
+                if (nx < 0 || nx + piece.w > 5 || ny < 0 || ny + piece.h > 4) return false;
+                for (const other of currentPieces) {
+                    if (other.id === pieceId) continue;
+                    if (nx < other.x + other.w && nx + piece.w > other.x && ny < other.y + other.h && ny + piece.h > other.y) return false;
+                }
+                return true;
+            };
+
+            const moveSlidingPiece = (id, dx, dy) => {
+                setSlidingGame(prev => {
+                    const newPieces = prev.pieces.map(p => p.id === id ? { ...p, x: p.x + dx, y: p.y + dy } : p);
+                    if (id === 'elephant') {
+                        const el = newPieces.find(p => p.id === 'elephant');
+                        if (el && el.x === 3 && el.y === 1) {
+                            setTimeout(() => setSlidingGame(p => ({ ...p, isWon: true })), 300);
+                        }
+                    }
+                    return { ...prev, pieces: newPieces, moves: prev.moves + 1 };
+                });
+            };
+
+            const handleSlidingPointerDown = (e, id) => {
+                if (slidingGame.isWon) return;
+                e.target.setPointerCapture(e.pointerId);
+                setSlidingDragState({ id, startX: e.clientX, startY: e.clientY, moved: false });
+            };
+
+            const handleSlidingPointerMove = (e) => {
+                if (!slidingDragState || slidingDragState.moved || slidingGame.isWon) return;
+                const dx = e.clientX - slidingDragState.startX;
+                const dy = e.clientY - slidingDragState.startY;
+                if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                    let moveDx = 0, moveDy = 0;
+                    if (Math.abs(dx) > Math.abs(dy)) moveDx = dx > 0 ? 1 : -1;
+                    else moveDy = dy > 0 ? 1 : -1;
+                    if (canSlidingMove(slidingDragState.id, moveDx, moveDy, slidingPiecesRef.current)) {
+                        moveSlidingPiece(slidingDragState.id, moveDx, moveDy);
+                    }
+                    setSlidingDragState(prev => ({ ...prev, moved: true }));
+                }
+            };
+
+            const handleSlidingPointerUp = (e) => {
+                if (!slidingDragState || slidingGame.isWon) return;
+                if (!slidingDragState.moved) {
+                    const dx = e.clientX - slidingDragState.startX;
+                    const dy = e.clientY - slidingDragState.startY;
+                    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                        const validMoves = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }]
+                            .filter(m => canSlidingMove(slidingDragState.id, m.dx, m.dy, slidingPiecesRef.current));
+                        if (validMoves.length === 1) moveSlidingPiece(slidingDragState.id, validMoves[0].dx, validMoves[0].dy);
+                    }
+                }
+                setSlidingDragState(null);
+            };
+
             const handleCardClick = (index) => {
                 if (memoryGame.phase !== 'play') return;
                 const card = memoryGame.cards[index];
@@ -1250,52 +1398,49 @@
                             )}
 
                             {scene === 'library_lobby' && (
-                                <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center justify-center">
-                                    <h2 className="text-4xl font-bold text-[#5D4037] mb-8 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
-                                    
-                                    <div className="grid grid-cols-2 gap-3 w-full max-w-[380px]">
-                                        {/* 進入成語遊戲 */}
-                                        <div 
-                                            className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#8D6E63] p-3"
-                                            onClick={() => startIdiomGame()}
-                                        >
-                                            <div className="text-[3.5rem]">📚</div>
-                                            <div className="text-sm font-bold text-[#5D4037]">圖書管理員的考驗</div>
-                                            <div className="text-xs font-bold text-[#EF5350] bg-[#FFCDD2] px-2 py-0.5 rounded-full">紅寶石挑戰</div>
-                                        </div>
+                                <div className="absolute inset-0 bg-[#EFEBE9] p-3 flex flex-col items-center justify-center">
+                                    <h2 className="text-2xl font-bold text-[#5D4037] mb-4 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
 
-                                        {/* 進入尋寶遊戲 */}
-                                        <div 
-                                            className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#42A5F5] p-3"
-                                            onClick={() => startClownGame()}
-                                        >
-                                            <div className="text-[3.5rem]">🤡</div>
-                                            <div className="text-sm font-bold text-[#1565C0]">小丑的尋寶遊戲</div>
-                                            <div className="text-xs font-bold text-[#1E88E5] bg-[#BBDEFB] px-2 py-0.5 rounded-full">藍寶石挑戰</div>
+                                    <div className="flex flex-col gap-2.5 w-full max-w-[480px]">
+                                        {/* 上排：兩張 */}
+                                        <div className="flex gap-2.5 justify-center">
+                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#8D6E63] p-2.5 w-[145px]"
+                                                onClick={() => startIdiomGame()}>
+                                                <div className="text-[2.8rem]">📚</div>
+                                                <div className="text-xs font-bold text-[#5D4037] text-center">圖書管理員的考驗</div>
+                                                <div className="text-[0.65rem] font-bold text-[#EF5350] bg-[#FFCDD2] px-2 py-0.5 rounded-full">紅寶石挑戰</div>
+                                            </div>
+                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#42A5F5] p-2.5 w-[145px]"
+                                                onClick={() => startClownGame()}>
+                                                <div className="text-[2.8rem]">🤡</div>
+                                                <div className="text-xs font-bold text-[#1565C0] text-center">小丑的尋寶遊戲</div>
+                                                <div className="text-[0.65rem] font-bold text-[#1E88E5] bg-[#BBDEFB] px-2 py-0.5 rounded-full">藍寶石挑戰</div>
+                                            </div>
                                         </div>
-
-                                        {/* 進入紙牌記憶遊戲 */}
-                                        <div 
-                                            className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#FBC02D] p-3"
-                                            onClick={() => startMemoryGame()}
-                                        >
-                                            <div className="text-[3.5rem]">🃏</div>
-                                            <div className="text-sm font-bold text-[#F57F17]">紙牌大師的記憶</div>
-                                            <div className="text-xs font-bold text-[#FBC02D] bg-[#FFF9C4] px-2 py-0.5 rounded-full">黃寶石挑戰</div>
-                                        </div>
-
-                                        {/* 進入打地精遊戲 */}
-                                        <div 
-                                            className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-3 border-[#2E7D32] p-3"
-                                            onClick={() => startMoleGame()}
-                                        >
-                                            <div className="text-[3.5rem]">👺</div>
-                                            <div className="text-sm font-bold text-[#2E7D32]">暴走地精的翡翠礦坑</div>
-                                            <div className="text-xs font-bold text-[#388E3C] bg-[#C8E6C9] px-2 py-0.5 rounded-full">綠寶石挑戰</div>
+                                        {/* 下排：三張 */}
+                                        <div className="flex gap-2.5 justify-center">
+                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#FBC02D] p-2.5 w-[120px]"
+                                                onClick={() => startMemoryGame()}>
+                                                <div className="text-[2.3rem]">🃏</div>
+                                                <div className="text-xs font-bold text-[#F57F17] text-center">紙牌大師的記憶</div>
+                                                <div className="text-[0.65rem] font-bold text-[#FBC02D] bg-[#FFF9C4] px-2 py-0.5 rounded-full">黃寶石挑戰</div>
+                                            </div>
+                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#2E7D32] p-2.5 w-[120px]"
+                                                onClick={() => startMoleGame()}>
+                                                <div className="text-[2.3rem]">👺</div>
+                                                <div className="text-xs font-bold text-[#2E7D32] text-center">暴走地精翡翠礦坑</div>
+                                                <div className="text-[0.65rem] font-bold text-[#388E3C] bg-[#C8E6C9] px-2 py-0.5 rounded-full">綠寶石挑戰</div>
+                                            </div>
+                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#7B1FA2] p-2.5 w-[120px]"
+                                                onClick={() => startSlidingGame()}>
+                                                <div className="text-[2.3rem]">🐘</div>
+                                                <div className="text-xs font-bold text-[#7B1FA2] text-center">動物大逃亡</div>
+                                                <div className="text-[0.65rem] font-bold text-[#9C27B0] bg-[#F3E5F5] px-2 py-0.5 rounded-full">紫寶石挑戰</div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <button className="mt-6 px-6 py-2 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-lg" onClick={() => setScene('map')}>
+                                    <button className="mt-4 px-6 py-2 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-lg" onClick={() => setScene('map')}>
                                         離開圖書館
                                     </button>
                                 </div>
@@ -1382,6 +1527,128 @@
                                         </div>
                                         <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#F57F17] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
                                             用你銳利的雙眼記下牌的位置吧！只要翻錯一次，測驗就立刻結束！
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {scene === 'minigame_sliding' && (
+                                <div className="absolute inset-0 bg-[#E8F5E9] p-3 flex flex-col items-center">
+                                    <h2 className="text-xl font-bold text-[#1B5E20] mb-1 tracking-widest">動物大逃亡</h2>
+                                    {/* 關卡資訊列 */}
+                                    <div className="flex justify-between items-center w-full max-w-[500px] mb-2 px-1">
+                                        <div>
+                                            <span className="text-sm font-bold text-[#2E7D32]">
+                                                第 {slidingGame.currentLevel + 1} 關：{SLIDING_LEVELS[slidingGame.currentLevel]?.name}
+                                            </span>
+                                            <span className="block text-[0.65rem] text-[#66BB6A] border border-[#66BB6A] bg-[#E8F5E9] rounded-full px-2 py-0.5 w-max mt-0.5">
+                                                {SLIDING_LEVELS[slidingGame.currentLevel]?.difficulty}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <span className="block text-[0.65rem] text-[#2E7D32] font-bold uppercase">步數</span>
+                                                <span className="block text-xl font-black text-[#1B5E20]">{slidingGame.moves}</span>
+                                            </div>
+                                            <button onClick={() => loadSlidingLevel(slidingGame.currentLevel)}
+                                                className="w-9 h-9 bg-[#EF9A9A] text-white rounded-full hover:bg-[#EF5350] transition-colors shadow-md active:scale-95 text-base flex items-center justify-center">
+                                                🔄
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 棋盤：橫向 5×4，出口在右 */}
+                                    <div className="relative bg-[#388E3C] rounded-2xl p-1.5 shadow-xl border-[6px] border-[#1B5E20] touch-none select-none overflow-visible"
+                                         style={{width:'min(460px,94vw)', aspectRatio:'5/4'}}>
+
+                                        {/* 右側出口標示 */}
+                                        <div className="absolute -right-1 z-30 flex flex-col items-center justify-center"
+                                             style={{top:'25%', height:'50%', width:'16px'}}>
+                                            <div className="w-full h-full bg-[#FFEB3B] rounded-l-lg border-l-4 border-[#F9A825] flex flex-col items-center justify-center">
+                                                <span className="text-[7px] text-[#E65100] font-black leading-tight" style={{writingMode:'vertical-rl', textOrientation:'mixed'}}>出口</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="relative w-full h-full z-10">
+                                            {slidingGame.pieces.map((piece) => {
+                                                const pieceStyles = {
+                                                    elephant: 'bg-[#90CAF9] border-[#42A5F5] border-b-[5px] border-r-[3px] z-20',
+                                                    v:        'bg-[#FFCC80] border-[#FFA726] border-b-[5px] border-r-[3px] z-10',
+                                                    h:        'bg-[#A5D6A7] border-[#66BB6A] border-b-[5px] border-r-[3px] z-10',
+                                                    p:        'bg-[#FFF9C4] border-[#FFD54F] border-b-[4px] border-r-[2px] z-10',
+                                                };
+                                                return (
+                                                    <div key={piece.id}
+                                                        onPointerDown={(e) => handleSlidingPointerDown(e, piece.id)}
+                                                        onPointerMove={handleSlidingPointerMove}
+                                                        onPointerUp={handleSlidingPointerUp}
+                                                        onPointerCancel={handleSlidingPointerUp}
+                                                        className="absolute p-[3px] transition-all duration-150 ease-out"
+                                                        style={{
+                                                            left: `${piece.x * 20}%`,
+                                                            top: `${piece.y * 25}%`,
+                                                            width: `${piece.w * 20}%`,
+                                                            height: `${piece.h * 25}%`,
+                                                        }}>
+                                                        <div className={`w-full h-full rounded-xl shadow-sm flex items-center justify-center cursor-pointer hover:brightness-105 active:scale-[0.96] transition-all border-2 ${pieceStyles[piece.type] || pieceStyles.p}`}>
+                                                            <span className={piece.type === 'elephant' ? 'text-4xl' : 'text-2xl'}>
+                                                                {piece.name}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <button className="mt-2 px-5 py-1.5 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_3px_0_#C62828] active:translate-y-1 active:shadow-none text-sm"
+                                        onClick={() => setScene('library_lobby')}>
+                                        逃跑
+                                    </button>
+
+                                    {/* 勝利 Overlay */}
+                                    {slidingGame.isWon && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+                                            <div className="bg-white rounded-[2rem] p-6 max-w-[290px] w-full text-center shadow-2xl border-4 border-[#90CAF9] animate-[popIn_0.3s]">
+                                                <div className="text-6xl mb-2">🐘</div>
+                                                <h2 className="text-2xl font-black text-[#1565C0] mb-2">
+                                                    {slidingGame.currentLevel === SLIDING_LEVELS.length - 1 ? '全部通關！' : '過關了！'}
+                                                </h2>
+                                                <p className="text-[#42A5F5] mb-4 font-bold text-sm">
+                                                    用了 <strong className="text-[#EF5350] text-xl mx-1">{slidingGame.moves}</strong> 步<br/>
+                                                    大象成功從出口逃跑了！
+                                                    {slidingGame.currentLevel === SLIDING_LEVELS.length - 1 &&
+                                                        <><br/><span className="text-[#7B1FA2] mt-1 block">獲得「動物園長的紫寶石」！</span></>
+                                                    }
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => loadSlidingLevel(slidingGame.currentLevel)}
+                                                        className="flex-1 py-2.5 bg-[#E3F2FD] text-[#1565C0] font-black rounded-2xl hover:bg-[#BBDEFB] text-sm">
+                                                        再試一次
+                                                    </button>
+                                                    {slidingGame.currentLevel < SLIDING_LEVELS.length - 1 ? (
+                                                        <button onClick={() => loadSlidingLevel(slidingGame.currentLevel + 1)}
+                                                            className="flex-1 py-2.5 bg-[#42A5F5] text-white font-black rounded-2xl hover:bg-[#1E88E5] shadow-md text-sm">
+                                                            下一關 ▶
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={() => { if (!hasItem('gem_purple')) addItem('gem_purple', 1); setScene('library_lobby'); }}
+                                                            className="flex-1 py-2.5 bg-[#9C27B0] text-white font-black rounded-2xl hover:bg-[#7B1FA2] shadow-md text-sm">
+                                                            領獎 💜
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* NPC 對話 */}
+                                    <div className="absolute bottom-4 w-[95%] h-[90px] bg-white rounded-2xl shadow-lg border-[3px] border-[#66BB6A] p-3 flex items-center gap-3 animate-[popIn_0.3s]">
+                                        <div className="min-w-[60px] h-[60px] bg-[#E8F5E9] rounded-xl flex items-center justify-center text-[34px] border-2 border-[#66BB6A] shrink-0">
+                                            🎩
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto text-sm text-[#1B5E20] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            動物園長：「哼！這隻大象又在搗蛋了！你能幫牠從右邊出口逃出去嗎？完成全三關就送你紫寶石！」
                                         </div>
                                     </div>
                                 </div>
