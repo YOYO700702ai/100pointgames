@@ -1363,7 +1363,7 @@
                         <div className="flex-1 relative overflow-hidden flex bg-white">
                             
                             {scene === 'start' && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-cover bg-center z-[200] p-10 text-center" style={{backgroundImage: "url('https://github.com/YOYO700702ai/100pointgames/blob/main/unnamed.jpg?raw=true')"}}>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-cover bg-center z-[200] p-10 text-center" style={{backgroundImage: "url('https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/unnamed.jpg')"}}>
                                     <div className="flex flex-col items-center w-full">
                                         <div className="text-[2.5rem] text-white font-black mb-8 tracking-widest text-shadow-title">歡迎來到亞德雷大陸！</div>
                                         <div className="flex flex-col gap-4 w-full max-w-[450px]">
@@ -1448,6 +1448,7 @@
 
                             {scene === 'minigame_clown' && (
                                 <div className="absolute inset-0 bg-[#FFF3E0] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
                                     <h2 className="text-2xl font-bold text-[#E65100] mb-2 tracking-widest text-shadow-title text-white">小丑的尋寶遊戲</h2>
                                     <div className="text-[#EF6C00] font-bold mb-8 bg-white/70 px-4 py-1 rounded-full shadow-sm">
                                         選對 5 個寶箱拿到鑰匙！ ({clownGame.round - 1}/5)
@@ -1472,10 +1473,6 @@
                                         })}
                                     </div>
 
-                                    <button className="mt-16 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
-                                        逃跑
-                                    </button>
-
                                     {/* NPC 對話 */}
                                     <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#FF9800] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
                                         <div className="min-w-[70px] h-[70px] bg-[#FFF3E0] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#FF9800] pb-1 shadow-inner shrink-0">
@@ -1492,6 +1489,7 @@
 
                             {scene === 'minigame_memory' && (
                                 <div className="absolute inset-0 bg-[#FFFDE7] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
                                     <h2 className="text-2xl font-bold text-[#F57F17] mb-2 tracking-widest text-shadow-title text-white">紙牌大師的記憶考驗</h2>
                                     <div className="absolute top-4 right-4 bg-white/70 text-[#F57F17] font-bold px-4 py-2 rounded-xl shadow-sm border-2 border-[#FBC02D] text-lg">
                                         {memoryGame.phase === 'peek' ? `👀 倒數 ${memoryGame.countdown} 秒` : `進度: ${memoryGame.matchedPairs}/8`}
@@ -1516,10 +1514,6 @@
                                         })}
                                     </div>
 
-                                    <button className="mt-4 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
-                                        逃跑
-                                    </button>
-
                                     {/* NPC 對話 */}
                                     <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#FBC02D] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
                                         <div className="min-w-[70px] h-[70px] bg-[#FFF9C4] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#FBC02D] pb-1 shadow-inner shrink-0">
@@ -1534,6 +1528,7 @@
 
                             {scene === 'minigame_sliding' && (
                                 <div className="absolute inset-0 bg-[#E8F5E9] p-3 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
                                     <h2 className="text-xl font-bold text-[#1B5E20] mb-1 tracking-widest">動物大逃亡</h2>
                                     {/* 關卡資訊列 */}
                                     <div className="flex justify-between items-center w-full max-w-[500px] mb-2 px-1">
@@ -1601,11 +1596,6 @@
                                         </div>
                                     </div>
 
-                                    <button className="mt-2 px-5 py-1.5 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_3px_0_#C62828] active:translate-y-1 active:shadow-none text-sm"
-                                        onClick={() => setScene('library_lobby')}>
-                                        逃跑
-                                    </button>
-
                                     {/* 勝利 Overlay */}
                                     {slidingGame.isWon && (
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
@@ -1656,6 +1646,7 @@
 
                             {scene === 'minigame_mole' && (
                                 <div className="absolute inset-0 bg-gradient-to-b from-[#1B5E20] to-[#2E7D32] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => { clearInterval(moleTimerRef.current); clearInterval(moleSpawnRef.current); setMoleGame(p => ({...p, active: false})); setScene('library_lobby'); }}>🏳️ 逃跑</button>
                                     <h2 className="text-2xl font-bold text-white mb-2 tracking-widest" style={{textShadow:'2px 2px 4px rgba(0,0,0,0.5)'}}>暴走地精的翡翠礦坑</h2>
                                     
                                     <div className="flex gap-8 mb-3">
@@ -1682,10 +1673,6 @@
                                         ))}
                                     </div>
 
-                                    <button className="mt-4 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => { clearInterval(moleTimerRef.current); clearInterval(moleSpawnRef.current); setMoleGame(p => ({...p, active: false})); setScene('library_lobby'); }}>
-                                        逃跑
-                                    </button>
-
                                     <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#2E7D32] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
                                         <div className="min-w-[70px] h-[70px] bg-[#C8E6C9] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#2E7D32] pb-1 shadow-inner shrink-0">
                                             👺
@@ -1700,6 +1687,7 @@
 
                             {scene === 'magic_library' && (
                                 <div className="absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
                                     <h2 className="text-2xl font-bold text-[#5D4037] mb-2 tracking-widest text-shadow-title text-white">圖書管理員的考驗</h2>
                                     <div className="text-[#8D6E63] font-bold mb-4 bg-white/50 px-4 py-1 rounded-full shadow-sm">
                                         挑戰進度 ({idiomGame.score}/{idiomGame.maxScore})
@@ -1749,9 +1737,6 @@
                                                     );
                                                 })}
                                             </div>
-                                            <button className="mt-8 px-6 py-2 bg-[#EF5350] text-white font-bold rounded-xl shadow-[0_4px_0_#C62828] active:translate-y-1 active:shadow-none hover:bg-[#E53935]" onClick={() => setScene('map')}>
-                                                逃跑
-                                            </button>
                                         </div>
                                     </div>
                                     
