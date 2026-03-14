@@ -286,7 +286,7 @@
             });
 
             const [battle, setBattle] = useState({
-                active: false, zone: null, wave: 1, monster: null, question: null, options: [], answer: null, questionPool: [], isShaking: false, flashRed: false
+                active: false, zone: null, wave: 1, monster: null, question: null, options: [], answer: null, questionPool: [], isShaking: false, flashRed: false, wrongShake: false
             });
 
             const [damageFloats, setDamageTexts] = useState([]);
@@ -327,6 +327,7 @@
 
             // --- 孵蛋場狀態 ---
             const [hatchSlot, setHatchSlot] = useState({ eggId: null, progress: 0 });
+            const [showHatchUI, setShowHatchUI] = useState(false);
 
             // --- 打地精小遊戲狀態 ---
             const [moleGame, setMoleGame] = useState({
@@ -380,6 +381,8 @@
 
             const triggerFlashRed = () => { setBattle(prev => ({ ...prev, flashRed: true })); setTimeout(() => setBattle(prev => ({ ...prev, flashRed: false })), 400); };
             const triggerMonsterShake = () => { setBattle(prev => ({ ...prev, isShaking: true })); setTimeout(() => setBattle(prev => ({ ...prev, isShaking: false })), 400); };
+            const triggerWrongShake = () => { setBattle(prev => ({ ...prev, wrongShake: true })); setTimeout(() => setBattle(prev => ({ ...prev, wrongShake: false })), 500); };
+            const playCoinSound = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); [[0, 1200, 0.25], [0.12, 1500, 0.2], [0.22, 1000, 0.15]].forEach(([delay, freq, vol]) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.setValueAtTime(freq, ctx.currentTime + delay); g.gain.setValueAtTime(vol, ctx.currentTime + delay); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18); o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.18); }); } catch(e) {} };
 
             const saveToCloud = async () => {
                 if (!player.accountId) { showMessage("存檔失敗", "您目前是訪客模式，無法存檔。\n請重新登入並輸入「冒險帳號」！", "⚠️"); return; }
@@ -598,7 +601,7 @@
                 if (player.hp <= 0) { showMessage('體力不足', '請先使用藥水恢復 HP！', '🚑'); return; }
                 let pool = [];
                 if (zone.type === 'custom_csv' || zone.type === 'mixed_all') { const bankKey = zone.type === 'mixed_all' ? 'mixed' : zone.questionBank; pool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); }
-                setBattle({ active: true, zone, wave: 1, questionPool: pool, monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false, isProcessing: false });
+                setBattle({ active: true, zone, wave: 1, questionPool: pool, monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false, wrongShake: false, isProcessing: false });
                 setScene('battle');
             };
 
@@ -645,6 +648,7 @@
                 } else {
                     updatePlayer({ streak: 0 }); const dmg = battle.monster.atk;
                     const btns = btnEvent.target.parentElement.children; for(let b of btns) { if(b.textContent === String(battle.answer)) b.classList.add('bg-green-400'); }
+                    triggerWrongShake(); showDamage('❌ 答錯了！', 'wrong-answer');
                     const isDead = takeDamage(dmg);
                     if (isDead) {
                         setBattle(prev => ({ ...prev, isProcessing: false }));
@@ -678,9 +682,10 @@
                         }
                     }
                 });
-                const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold); 
-                if (currentWave < 3) { 
-                    showDamage("下一隻怪物出現！", "monster-crit"); 
+                const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold);
+                playCoinSound();
+                if (currentWave < 3) {
+                    showDamage("下一隻怪物出現！", "monster-crit");
                     if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\nHP 全滿！`, '🎉'), 100);
                     setBattle(prev => ({ ...prev, active: true, monster: null, wave: prev.wave + 1 })); 
                 } else { 
@@ -1368,6 +1373,7 @@
                         .anim-float { animation: float 3s ease-in-out infinite; }
                         .anim-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
                         .anim-flash-red { animation: flashRed 0.4s; }
+                        .anim-wrong-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; border-color: #FF4444 !important; box-shadow: 0 0 0 3px rgba(255,68,68,0.5); }
                         .text-shadow-title { text-shadow: 2px 2px 5px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
                         .custom-scroll::-webkit-scrollbar { width: 6px; } .custom-scroll::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
                         /* Fix image icon */
@@ -1384,6 +1390,11 @@
                                 <div className="text-base font-black text-white text-center mt-1 mb-1 p-1.5 bg-[#FFAB91] rounded-2xl border-2 border-white shadow-sm truncate whitespace-nowrap overflow-visible px-2" style={{textShadow: "1px 1px 0 rgba(0,0,0,0.2)"}}>
                                     {player.name || "勇者"}
                                 </div>
+                                {player.accountId && (
+                                    <div className="text-[0.65rem] text-white/80 text-center -mt-0.5 mb-1 truncate px-1" style={{textShadow: "1px 1px 0 rgba(0,0,0,0.3)"}}>
+                                        🔑 {player.accountId}
+                                    </div>
+                                )}
 
                                 <div className="flex flex-col gap-0.5 p-1 border-b border-black/5">
                                     <span className="text-[0.65rem] text-[#8D6E63] uppercase tracking-wider font-bold">等級 Level</span>
@@ -1827,7 +1838,7 @@
                                 </div>
                             )}                            {scene === 'village' && (
                                 <div className="absolute inset-0">
-                                    <img src="https://github.com/YOYO700702ai/100pointgames/blob/main/11.jpg?raw=true" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="村莊" />
+                                    <img src="11.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="村莊" onError={(e) => { e.target.src='https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/11.jpg'; }} />
                                     <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
                                     <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
                                     <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); }}></div>
@@ -1839,90 +1850,64 @@
                             )}
 
                             {scene === 'chicken_farm' && (
-                                <div className="absolute inset-0 bg-[#E8F5E9]">
-                                    <div className="w-full h-full flex flex-col items-center justify-center relative px-4">
-                                        <div className="absolute top-4 text-2xl font-bold text-[#388E3C] bg-white/80 px-4 py-1.5 rounded-xl shadow-sm border-2 border-[#81C784]">咕咕雞舍</div>
+                                <div className="absolute inset-0">
+                                    <img src="養雞場.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="雞舍" onError={(e) => { e.target.src='https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/%E9%A4%8A%E9%9B%9E%E5%A0%B4.jpg'; }} />
 
-                                        {/* 主排：養雞人 + 孵化機 + 奇怪機器 */}
-                                        <div className="flex gap-3 mt-2 items-stretch w-full max-w-[700px]">
-                                            {/* NPC 養雞人 */}
-                                            <div className="flex flex-col items-center justify-end cursor-pointer hover:-translate-y-1 transition-transform shrink-0 pb-2" onClick={() => showMessage('養雞人', '把蛋放進孵化機，然後用「營養劑」餵食，進度到100%就能孵化了！', '🧑‍🌾')}>
-                                                <div className="text-[4rem] drop-shadow-md">🧑‍🌾</div>
-                                                <div className="bg-white px-2 py-0.5 font-bold rounded-lg mt-1 shadow-sm border-2 border-[#A5D6A7] text-xs">養雞人</div>
-                                            </div>
+                                    {/* 養雞人 NPC */}
+                                    <div className="absolute top-[62%] left-[18%] w-[14%] h-[26%] cursor-pointer z-10 rounded-xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('養雞人', '把蛋放進孵化機，然後用「營養劑」餵食，進度到100%就能孵化了！', '🧑‍🌾')}></div>
 
-                                            {/* 孵化機（縮小） */}
-                                            <div className="flex-1 bg-white/80 rounded-2xl p-3 shadow-xl border-2 border-[#A5D6A7]">
-                                                <div className="text-center font-bold text-[#388E3C] mb-2 text-sm">🥚 孵化槽</div>
+                                    {/* 珍貴蛋孵化室（大鳥巢） */}
+                                    <div className="absolute top-[38%] left-[32%] w-[22%] h-[38%] cursor-pointer z-10 rounded-2xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => setShowHatchUI(true)}></div>
+
+                                    {/* 壞掉的奇怪機器（圓頂機器） */}
+                                    <div className="absolute top-[48%] left-[70%] w-[20%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('time_machine')}></div>
+
+                                    {/* 孵化室 UI Modal */}
+                                    {showHatchUI && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+                                            <div className="bg-white rounded-2xl p-5 w-[85%] max-w-[360px] shadow-2xl border-4 border-[#A5D6A7]">
+                                                <div className="text-center font-bold text-[#388E3C] mb-3 text-base">🥚 珍貴蛋孵化室</div>
                                                 {hatchSlot.eggId ? (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <div className="text-4xl animate-bounce">🥚</div>
-                                                        <div className="font-bold text-[#5D4037] text-xs text-center">{ITEMS[hatchSlot.eggId]?.name}</div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
-                                                            <div className="bg-gradient-to-r from-[#81C784] to-[#4CAF50] h-4 rounded-full transition-all duration-500" style={{width:`${hatchSlot.progress}%`}}></div>
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="text-5xl animate-bounce">🥚</div>
+                                                        <div className="font-bold text-[#5D4037] text-sm text-center">{ITEMS[hatchSlot.eggId]?.name}</div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-5 shadow-inner relative">
+                                                            <div className="bg-gradient-to-r from-[#81C784] to-[#4CAF50] h-5 rounded-full transition-all duration-500" style={{width:`${hatchSlot.progress}%`}}></div>
                                                             <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow">{hatchSlot.progress}%</div>
                                                         </div>
-                                                        <button className="px-3 py-1.5 bg-[#4CAF50] text-white font-bold rounded-lg shadow-[0_3px_0_#388E3C] active:translate-y-0.5 active:shadow-none text-xs" onClick={feedEgg}>
-                                                            🌿 餵食（x{player.inventory.find(i=>i.id==='potion_nutri')?.qty || 0}）
+                                                        <button className="px-4 py-2 bg-[#4CAF50] text-white font-bold rounded-lg shadow-[0_3px_0_#388E3C] active:translate-y-0.5 active:shadow-none text-sm w-full" onClick={feedEgg}>
+                                                            🌿 餵食營養劑（剩 x{player.inventory.find(i=>i.id==='potion_nutri')?.qty || 0}）
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <div className="w-16 h-16 border-4 border-dashed border-[#A5D6A7] rounded-full flex items-center justify-center text-3xl text-[#A5D6A7] cursor-pointer hover:bg-[#E8F5E9] transition-all">+</div>
-                                                        <div className="text-xs text-[#9E9E9E] font-bold text-center">從下方選蛋放入</div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* 壞掉的奇怪機器（直立長方形） */}
-                                            <div className="w-[110px] shrink-0 cursor-pointer hover:-translate-y-1 transition-all" onClick={() => setScene('time_machine')}>
-                                                <div className="h-full bg-[#0D0D1A] rounded-2xl border-2 border-[#6A1B9A] shadow-[0_0_16px_#4A148C] flex flex-col items-center justify-between py-3 px-2">
-                                                    {/* 頂部 LED 燈排 */}
-                                                    <div className="flex gap-1.5">
-                                                        <div className="w-2 h-2 rounded-full bg-[#E040FB] shadow-[0_0_6px_#E040FB]"></div>
-                                                        <div className="w-2 h-2 rounded-full bg-[#7B1FA2] animate-pulse"></div>
-                                                        <div className="w-2 h-2 rounded-full bg-[#E040FB] shadow-[0_0_6px_#E040FB]"></div>
-                                                    </div>
-                                                    {/* 中央齒輪 */}
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <div className="text-4xl animate-[spin_4s_linear_infinite]">⚙️</div>
-                                                        <div className="w-12 h-0.5 bg-[#6A1B9A] rounded"></div>
-                                                        <div className="text-[10px] font-black text-[#E040FB] tracking-widest text-center leading-tight">壞掉的<br/>奇怪機器</div>
-                                                    </div>
-                                                    {/* 底部面板 */}
-                                                    <div className="flex flex-col items-center gap-1 w-full">
-                                                        <div className="w-full h-0.5 bg-[#6A1B9A]"></div>
-                                                        <div className="text-[9px] text-[#9E9E9E] text-center leading-snug">投入五顆<br/>魔王寶石</div>
-                                                        <div className="text-[#E040FB] text-lg">▶</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 可孵蛋列表 */}
-                                        {(() => {
-                                            const eggs = player.inventory.filter(slot => ITEMS[slot.id]?.type === 'egg');
-                                            if (eggs.length === 0) return null;
-                                            return (
-                                                <div className="w-full max-w-[700px] mt-3 bg-white/70 rounded-2xl p-3 border-2 border-[#C8E6C9]">
-                                                    <div className="text-xs font-bold text-[#388E3C] mb-2">背包中的蛋（點擊放入孵化槽）：</div>
-                                                    <div className="flex gap-2 flex-wrap">
-                                                        {eggs.map(slot => {
-                                                            const item = ITEMS[slot.id];
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="w-20 h-20 border-4 border-dashed border-[#A5D6A7] rounded-full flex items-center justify-center text-4xl text-[#A5D6A7]">+</div>
+                                                        <div className="text-sm text-[#9E9E9E] font-bold text-center">從下方選一顆蛋放入</div>
+                                                        {(() => {
+                                                            const eggs = player.inventory.filter(slot => ITEMS[slot.id]?.type === 'egg');
+                                                            if (eggs.length === 0) return <div className="text-xs text-[#BDBDBD]">背包裡沒有蛋</div>;
                                                             return (
-                                                                <div key={slot.id} className="flex flex-col items-center cursor-pointer hover:-translate-y-1 transition-transform bg-[#F1F8E9] rounded-xl p-2 border-2 border-[#A5D6A7] shadow-sm" onClick={() => placeEgg(slot.id)}>
-                                                                    {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="w-10 h-10 flex justify-center items-center" /> : <div className="text-3xl">{item.icon}</div>}
-                                                                    <div className="text-xs font-bold text-[#5D4037] mt-1 text-center max-w-[70px]">{item.name}</div>
+                                                                <div className="flex gap-2 flex-wrap justify-center mt-1">
+                                                                    {eggs.map(slot => {
+                                                                        const item = ITEMS[slot.id];
+                                                                        return (
+                                                                            <div key={slot.id} className="flex flex-col items-center cursor-pointer hover:-translate-y-1 transition-transform bg-[#F1F8E9] rounded-xl p-2 border-2 border-[#A5D6A7] shadow-sm" onClick={() => { placeEgg(slot.id); }}>
+                                                                                {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="w-10 h-10 flex justify-center items-center" /> : <div className="text-3xl">{item.icon}</div>}
+                                                                                <div className="text-xs font-bold text-[#5D4037] mt-1 text-center max-w-[70px]">{item.name}</div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             );
-                                                        })}
+                                                        })()}
                                                     </div>
-                                                </div>
-                                            );
-                                        })()}
+                                                )}
+                                                <button className="mt-4 w-full py-2 bg-[#EF9A9A] text-white font-bold rounded-lg text-sm" onClick={() => setShowHatchUI(false)}>關閉</button>
+                                            </div>
+                                        </div>
+                                    )}
 
-                                    </div>
-                                    <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('village')}>⬅ 回村莊</button>
+                                    <button className="absolute bottom-5 left-5 z-20 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('village')}>⬅ 回村莊</button>
                                 </div>
                             )}
 
@@ -2078,7 +2063,7 @@
                                         )}
                                     </div>
                                     <div className="flex-[1.2] flex flex-col justify-center h-full relative">
-                                        <div className="bg-white border-4 border-[#4361EE] rounded-2xl p-5 mb-4 shadow-[0_4px_0_rgba(0,0,0,0.1)] text-center relative"><div className="text-2xl font-black text-[#333]">{battle.question || "載入中..."}</div></div>
+                                        <div className={`bg-white border-4 border-[#4361EE] rounded-2xl p-5 mb-4 shadow-[0_4px_0_rgba(0,0,0,0.1)] text-center relative ${battle.wrongShake ? 'anim-wrong-shake' : ''}`}><div className="text-2xl font-black text-[#333]">{battle.question || "載入中..."}</div></div>
                                         <div className="grid grid-cols-2 gap-4 w-full mt-2">
                                             {battle.options.map((opt, idx) => (
                                                 <button key={idx} className="bg-white border-2 border-[#ddd] rounded-xl py-4 text-xl font-bold text-[#2B2D42] cursor-pointer shadow-[0_4px_0_#ccc] transition-all hover:border-[#4361EE] hover:bg-[#f0f8ff] active:translate-y-1 active:shadow-none" onClick={(e) => handleAnswer(opt, e)}>{opt}</button>
@@ -2158,7 +2143,8 @@
 
                             {damageFloats.map(df => (
                                 <div key={df.id} className="absolute pointer-events-none z-[101] anim-floatUp"
-                                     style={df.target === 'player' ? { color: 'red', top: '60%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' } 
+                                     style={df.target === 'wrong-answer' ? { color: '#FF2222', top: '38%', left: '55%', fontSize: '2.2rem', fontWeight: 'bold', textShadow: '2px 2px 0 #000', transform: 'translateX(-50%)' }
+                                          : df.target === 'player' ? { color: 'red', top: '60%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' }
                                           : df.target === 'monster-crit' ? { color: '#FFD700', top: '35%', left: '45%', fontSize: '2.5rem', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }
                                           : { color: 'red', top: '40%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' }}>
                                     {typeof df.amount === 'number' && !df.target.includes('crit') ? `-${df.amount}` : df.amount}
