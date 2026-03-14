@@ -111,8 +111,8 @@
             merchant: {
                 name: "流浪商人",
                 img: "👳‍♂️",
-                defaultLines: ["年輕人，外面的世界很危險的...", "有沒有看到什麼發光的碎片？", "我的駱駝好像走丟了..."],
-                purchaseLines: ["好眼光！這可是這片大陸上少見的珍品。", "交易愉快，願風指引你的道路。"]
+                defaultLines: ["嘿嘿，你找對人了...", "我從遠方帶來的東西，市面上根本買不到。", "金幣到位，好東西自然到你手。"],
+                purchaseLines: ["識貨的人才懂這東西的價值，好好利用吧！", "哈哈，交易愉快！這種貨，下次可不知道還有沒有了。", "聰明的選擇，勇者。願它在戰場上為你添光。"]
             }
         };
 
@@ -155,10 +155,10 @@
             gem_purple: { id: 'gem_purple', name: '動物園長的紫寶石', type: 'material', icon: '💜', desc: '動物大逃亡的通關證明，閃耀著紫色的光芒。' },
             sword_dual: { id: 'sword_dual', name: '影舞雙刀', price: 1500, type: 'weapon', atk: 20, icon: '🗡️', desc: '攻擊力 +20' },
             pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！' },
-            potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
+            potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
             potion_exp: { id: 'potion_exp', name: '經驗藥水', type: 'consumable_special', icon: '🍵', desc: '立即獲得經驗值 +200！一次性效果。' },
-            sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
-            sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×4。打死 3 隻怪後消失。' }
+            sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', price: 1000, type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
+            sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', price: 1000, type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×4。打死 3 隻怪後消失。' }
         };
 
         const IDIOMS = [
@@ -1276,7 +1276,7 @@
                 setCurrentNpc(npcId);
                 if (npcId === 'merchant') {
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
-                    let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
+                    let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
                     setNpcMessage(introText);
                 } else {
                     const profile = NPC_PROFILES[npcId];
@@ -1854,7 +1854,7 @@
                                     <img src="養雞場.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="雞舍" onError={(e) => { e.target.src='https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/%E9%A4%8A%E9%9B%9E%E5%A0%B4.jpg'; }} />
 
                                     {/* 養雞人 NPC */}
-                                    <div className="absolute top-[62%] left-[18%] w-[14%] h-[26%] cursor-pointer z-10 rounded-xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('養雞人', '把蛋放進孵化機，然後用「營養劑」餵食，進度到100%就能孵化了！', '🧑‍🌾')}></div>
+                                    <div className="absolute top-[62%] left-[18%] w-[14%] h-[26%] cursor-pointer z-10 rounded-xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('養雞人', '怎麼有奇怪的東西砸進來？嚇我一跳！\n...你是要用孵化機嗎？把蛋放進去，用「營養劑」餵食，進度到100%就孵出來了。', '🧑‍🌾')}></div>
 
                                     {/* 珍貴蛋孵化室（大鳥巢） */}
                                     <div className="absolute top-[38%] left-[32%] w-[22%] h-[38%] cursor-pointer z-10 rounded-2xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => setShowHatchUI(true)}></div>
@@ -2124,7 +2124,7 @@
                                             <button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene('village')}>離開</button>
                                         </div>
                                         <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3 overflow-y-auto custom-scroll pr-1">
-                                            {(currentNpc === 'merchant' ? (['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].filter(id => hasItem(id)).length === 5 ? ['key_strange'] : []) : SHOP_ITEMS).map(itemId => {
+                                            {(currentNpc === 'merchant' ? (['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].filter(id => hasItem(id)).length === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : []) : SHOP_ITEMS).map(itemId => {
                                                 const item = ITEMS[itemId]; const isHidden = itemId === 'key_strange';
                                                 return (
                                                     <div key={itemId} className={`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}`}>
