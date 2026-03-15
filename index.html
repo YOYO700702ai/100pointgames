@@ -287,6 +287,20 @@
               lines: ['「好痛……這裡是哪裡？發光蘑菇？還有城堡？」', '（難道……我真的帶著0分考卷，掉進遊戲世界裡了嗎？）'] }
         ];
 
+        const ACHIEVEMENTS = [
+            { id: 'exam_zero_master', title: '零分考卷大師' },
+            { id: 'no_wrong',         title: '挖賽！！天才神童' },
+            { id: 'pet_master',       title: '神奇寶貝大師' },
+            { id: 'hero',             title: '勇者！！！' },
+            { id: 'gacha_king',       title: '轉蛋天王' },
+            { id: 'rich',             title: '天生我材必有用' },
+            { id: 'desert_5',         title: '法老也瘋狂' },
+            { id: 'tundra_5',         title: '北極熊好冷喔' },
+            { id: 'harbor_5',         title: '烏龜烏龜～碰' },
+            { id: 'ruins_5',          title: '資源回收大師' },
+            { id: 'forest_5',         title: '竹林第八賢' },
+        ];
+
         const END_SLIDES = [
             { img: 'https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/5..jpg',
               lines: ['能量充滿', '時空機啟動......目的地，地球'] },
@@ -308,7 +322,9 @@
             
             const [player, setPlayer] = useState({
                 name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
-                inventory: [{ id: 'exam_zero', qty: 1 }], equipped: { weapon: null, pet: null }, gachaUnlocked: false
+                inventory: [{ id: 'exam_zero', qty: 1 }], equipped: { weapon: null, pet: null }, gachaUnlocked: false,
+                zoneClears: { east_forest:0, west_desert:0, south_harbor:0, north_tundra:0, outer_ruins:0 },
+                totalGoldEarned: 100, totalWrong: 0, gachaSpent: 0, examZeroClears: 0, neverWrong: true
             });
 
             const [battle, setBattle] = useState({
@@ -476,7 +492,9 @@
                     setEndSlideReady(false);
                 } else {
                     const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
-                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
+                    const ach = getAchievements(player); const earned = ACHIEVEMENTS.filter(a=>ach[a.id]).map(a=>a.title);
+                    const achText = earned.length>0 ? earned.join('、') : '（尚未解鎖）';
+                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：\n${achText}\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
                 }
             };
 
@@ -572,9 +590,27 @@
                     const monkeyMult = prev.equipped.pet === 'pet_monkey' ? 2 : 1;
                     const swordGoldMult = prev.equipped.weapon === 'sword_paper_gold' ? 2 : 1;
                     const goldDoubleMult = (prev.equipped.pet === 'pet_monkey' && prev.equipped.weapon === 'sword_paper_gold') ? 10 : monkeyMult * swordGoldMult;
-                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt * goldDoubleMult };
+                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt * goldDoubleMult, totalGoldEarned: (prev.totalGoldEarned||0) + goldAmt * goldDoubleMult };
                 });
                 return { leveledUp: didLevelUp, newLevel: newLvl };
+            };
+
+            const getAchievements = (p) => {
+                const inv = p.inventory||[];
+                const hasPet = id => inv.some(i=>i.id===id) || p.equipped?.pet===id;
+                return {
+                    exam_zero_master: (p.examZeroClears||0)>=5,
+                    no_wrong:         p.neverWrong===true && (p.level||1)>=3,
+                    pet_master:       ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(hasPet),
+                    hero:             (p.level||1)>=10,
+                    gacha_king:       (p.gachaSpent||0)>=5000,
+                    rich:             (p.totalGoldEarned||0)>=10000,
+                    desert_5:         ((p.zoneClears||{}).west_desert||0)>=5,
+                    tundra_5:         ((p.zoneClears||{}).north_tundra||0)>=5,
+                    harbor_5:         ((p.zoneClears||{}).south_harbor||0)>=5,
+                    ruins_5:          ((p.zoneClears||{}).outer_ruins||0)>=5,
+                    forest_5:         ((p.zoneClears||{}).east_forest||0)>=5,
+                };
             };
 
             const heal = (amount) => setPlayer(prev => ({ ...prev, hp: Math.min(prev.hp + amount, stats.maxHp) }));
@@ -777,7 +813,7 @@
                         setTimeout(() => { if (battle.active) setupNextQuestion(battle.questionPool, null); }, 400); 
                     }
                 } else {
-                    updatePlayer({ streak: 0 }); const dmg = battle.monster.atk;
+                    setPlayer(prev => ({ ...prev, streak: 0, totalWrong: (prev.totalWrong||0)+1, neverWrong: false })); const dmg = battle.monster.atk;
                     const btns = btnEvent.target.parentElement.children; for(let b of btns) { if(b.textContent === String(battle.answer)) b.classList.add('bg-green-400'); }
                     triggerWrongShake(); showDamage('❌ 答錯了！', 'wrong-answer');
                     const isDead = takeDamage(dmg);
@@ -825,7 +861,13 @@
             };
 
             const handleWinBattle = (monsterDef, leveledUp, newLevel) => {
-                setBattle(prev => ({ ...prev, active: false })); 
+                setBattle(prev => ({ ...prev, active: false }));
+                const zoneId = battle.zone?.id;
+                if (zoneId) setPlayer(prev => ({
+                    ...prev,
+                    zoneClears: { ...(prev.zoneClears||{}), [zoneId]: ((prev.zoneClears||{})[zoneId]||0)+1 },
+                    examZeroClears: prev.equipped?.weapon === 'exam_zero' ? (prev.examZeroClears||0)+1 : (prev.examZeroClears||0)
+                }));
                 let msg = `獲得 EXP +${monsterDef.exp}，金幣 +${monsterDef.gold}`; 
                 if (leveledUp) { msg += `\n\n🎉 恭喜升級到 LV.${newLevel}！HP 全滿！`; }
                 let icon = '🏆'; let dropMsgParts = [];
@@ -1450,6 +1492,7 @@
                 if (!hasItem('coin_gacha')) { showMessage('轉蛋幣不足', `轉蛋一次需要 1 枚轉蛋幣！可以去商店購買哦。`, '🐔'); return; }
                 
                 removeItemById('coin_gacha', 1);
+                setPlayer(prev => ({ ...prev, gachaSpent: (prev.gachaSpent||0)+100 }));
 
                 // 篩除已擁有或已裝備的蛋
                 const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
@@ -1981,7 +2024,7 @@
                                 <div className="absolute inset-0">
                                     <img src="11.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="村莊" onError={(e) => { e.target.src='https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/11.jpg'; }} />
                                     <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
-                                    <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
+                                    <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('achievement_hall')}></div>
                                     <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); }}></div>
                                     <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}></div>
                                     <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
@@ -2181,7 +2224,7 @@
                                                 clipPath:'polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%)',
                                             }}
                                             onClick={() => {
-                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:20, baseMaxHp:20, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false });
+                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:20, baseMaxHp:20, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false, zoneClears:{east_forest:0,west_desert:0,south_harbor:0,north_tundra:0,outer_ruins:0}, totalGoldEarned:100, totalWrong:0, gachaSpent:0, examZeroClears:0, neverWrong:true });
                                                 setHatchSlot({ eggId: null, progress: 0 });
                                                 setScene('start');
                                             }}>
@@ -2318,6 +2361,60 @@
                                                 </button>
                                             )}
                                         </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {scene === 'achievement_hall' && (() => {
+                                const ach = getAchievements(player);
+                                return (
+                                    <div className="absolute inset-0 flex flex-col overflow-hidden"
+                                        style={{background:'linear-gradient(180deg,#2c1a0e 0%,#3d2410 50%,#2c1a0e 100%)'}}>
+                                        {/* 頂部裝飾橫幅 */}
+                                        <div className="flex items-center justify-center py-4 relative"
+                                            style={{borderBottom:'3px solid #c8941a', background:'rgba(0,0,0,0.4)'}}>
+                                            <span className="text-3xl mr-3">⛪</span>
+                                            <h2 className="text-2xl font-black text-center m-0"
+                                                style={{color:'#f5d76e', textShadow:'0 0 12px #c8941a, 0 2px 4px rgba(0,0,0,0.8)', fontFamily:'serif', letterSpacing:'0.15em'}}>
+                                                成就教堂
+                                            </h2>
+                                            <span className="text-3xl ml-3">⛪</span>
+                                        </div>
+                                        {/* 匾額列表 */}
+                                        <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 custom-scroll">
+                                            {ACHIEVEMENTS.map(a => {
+                                                const unlocked = ach[a.id];
+                                                return (
+                                                    <div key={a.id} className="relative flex items-center justify-center py-4 px-6 rounded-xl"
+                                                        style={unlocked ? {
+                                                            background:'linear-gradient(135deg,#7c5200,#c8941a,#f5d76e,#c8941a,#7c5200)',
+                                                            border:'3px solid #f5d76e',
+                                                            boxShadow:'0 0 18px #c8941a, 0 4px 12px rgba(0,0,0,0.6)',
+                                                        } : {
+                                                            background:'linear-gradient(135deg,#1a1a1a,#333,#1a1a1a)',
+                                                            border:'3px solid #555',
+                                                            filter:'grayscale(1)',
+                                                            opacity:0.45,
+                                                        }}>
+                                                        {/* 左右角落裝飾 */}
+                                                        {unlocked && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">✦</span>}
+                                                        {unlocked && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg">✦</span>}
+                                                        <span className="text-lg font-black text-center"
+                                                            style={{
+                                                                color: unlocked ? '#3d1f00' : '#888',
+                                                                fontFamily:'serif',
+                                                                letterSpacing:'0.1em',
+                                                                textShadow: unlocked ? '0 1px 2px rgba(255,255,200,0.6)' : 'none'
+                                                            }}>
+                                                            {a.title}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <button className="m-4 mt-0 py-3 font-black rounded-xl text-white text-base"
+                                            style={{background:'#5D4037', border:'2px solid #8D6E63', boxShadow:'0 3px 0 #3e2723'}}
+                                            onClick={() => setScene('village')}>← 回村莊</button>
                                     </div>
                                 );
                             })()}
