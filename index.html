@@ -1300,8 +1300,7 @@
                     const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
                     const missingFrags = allFrags.filter(id => !hasItem(id));
                     if (missingFrags.length > 0) { setNpcMessage(`還差 ${missingFrags.length} 種通關證明！五大地區都要跑過才行。`); return; }
-                    if (player.gold < 1000) { setNpcMessage("材料齊了，但還需要 1000G 手續費！"); return; }
-                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000 })); allFrags.forEach(fid => removeItemById(fid, 1)); addItem('sword_paper_gold', 1); setNpcMessage("嘿嘿，跑遍五大地區才換到的稀有貨！好好珍惜！"); return;
+                    allFrags.forEach(fid => removeItemById(fid, 1)); addItem('sword_paper_gold', 1); setNpcMessage("嘿嘿，跑遍五大地區才換到的稀有貨！好好珍惜！"); return;
                 }
                 if (player.gold < item.price) { setNpcMessage("錢不夠喔，再去賺多一點吧！"); return; }
                 setPlayer(prev => ({ ...prev, gold: prev.gold - item.price })); addItem(itemId, 1); const _pl = NPC_PROFILES[currentNpc].purchaseLines; setNpcMessage(_pl[Math.floor(Math.random() * _pl.length)]);
@@ -2142,7 +2141,7 @@
                                                     <div key={itemId} className={`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}`}>
                                                         <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">{item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}</div>
                                                         <div className="text-[0.8rem] font-bold shrink-0 w-full mb-1">{item.name}</div>
-                                                        <div className="bg-[#FF9F1C] text-white rounded-full px-2 py-0.5 text-[0.8rem] my-1.5 font-bold">💰 {itemId === 'key_strange' ? '1000 + 5種證明' : itemId === 'sword_paper_gold' ? '1000 + 5種證明' : item.price}</div>
+                                                        <div className="bg-[#FF9F1C] text-white rounded-full px-2 py-0.5 text-[0.8rem] my-1.5 font-bold">💰 {itemId === 'key_strange' ? '1000 + 5種證明' : itemId === 'sword_paper_gold' ? '5種通關證明' : item.price}</div>
                                                         <p className="text-[0.7rem] text-[#666] m-0 mb-2">{item.desc}</p>
                                                         <button className="mt-auto bg-[#4361EE] text-white text-sm font-bold px-4 py-1.5 rounded-lg shadow-[0_2px_0_#2841ac] active:translate-y-0.5 active:shadow-none" onClick={() => buyItem(itemId)}>購買</button>
                                                     </div>
