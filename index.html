@@ -291,7 +291,7 @@
             { id: 'exam_zero_master', title: '零分考卷大師' },
             { id: 'no_wrong',         title: '挖賽！！天才神童' },
             { id: 'pet_master',       title: '神奇寶貝大師' },
-            { id: 'hero',             title: '勇者！！！' },
+            { id: 'hero',             title: '勇者' },
             { id: 'gacha_king',       title: '轉蛋天王' },
             { id: 'rich',             title: '天生我材必有用' },
             { id: 'desert_5',         title: '法老也瘋狂' },
@@ -493,7 +493,7 @@
                 } else {
                     const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
                     const ach = getAchievements(player); const earned = ACHIEVEMENTS.filter(a=>ach[a.id]).map(a=>a.title);
-                    const achText = earned.length>0 ? earned.join('、') : '（尚未解鎖）';
+                    const achText = earned.length>0 ? earned.map(t=>`【${t}】`).join('　') : '（尚未解鎖）';
                     showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：\n${achText}\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
                 }
             };
