@@ -157,6 +157,7 @@
             pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！跟金幣加倍紙劍同時裝備則 ×10！' },
             potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
             potion_exp: { id: 'potion_exp', name: '經驗藥水', type: 'consumable_special', icon: '🍵', desc: '立即獲得經驗值 +200！一次性效果。' },
+            exam_zero: { id: 'exam_zero', name: '0分考卷', type: 'weapon', atk: 2, icon: '📋', desc: '從異世界帶來的0分考卷。攻擊力 +2，也許它還有別的用途？' },
             sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', price: 1000, type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
             sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', price: 1000, type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×10！打死 3 隻怪後消失。' }
         };
@@ -298,7 +299,7 @@
             
             const [player, setPlayer] = useState({
                 name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
-                inventory: [], equipped: { weapon: null, pet: null }, gachaUnlocked: false
+                inventory: [{ id: 'exam_zero', qty: 1 }], equipped: { weapon: null, pet: null }, gachaUnlocked: false
             });
 
             const [battle, setBattle] = useState({
@@ -1494,9 +1495,11 @@
                                     <span className="text-base font-black font-mono">⚔️ {stats.atk}</span>
                                 </div>
 
+                                {scene !== 'equipment' && (
                                 <button className="mt-auto w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => { setPrevScene(scene); setScene('equipment'); }}>
                                     🎒 背包
                                 </button>
+                                )}
                                 <button className="mt-1.5 w-full mb-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform overflow-hidden relative disabled:opacity-60" onClick={saveToCloud} disabled={isSaving} style={{minHeight:'2rem'}}>
                                     {isSaving ? (
                                         <div className="flex flex-col items-center justify-center px-2 py-1 gap-0.5">
