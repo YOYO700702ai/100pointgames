@@ -154,11 +154,11 @@
             gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' },
             gem_purple: { id: 'gem_purple', name: '動物園長的紫寶石', type: 'material', icon: '💜', desc: '動物大逃亡的通關證明，閃耀著紫色的光芒。' },
             sword_dual: { id: 'sword_dual', name: '影舞雙刀', price: 1500, type: 'weapon', atk: 20, icon: '🗡️', desc: '攻擊力 +20' },
-            pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！' },
+            pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '【技能：金幣加倍】打怪獲得的金幣 ×2！跟金幣加倍紙劍同時裝備則 ×8！' },
             potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
             potion_exp: { id: 'potion_exp', name: '經驗藥水', type: 'consumable_special', icon: '🍵', desc: '立即獲得經驗值 +200！一次性效果。' },
             sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', price: 1000, type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
-            sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', price: 1000, type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×4。打死 3 隻怪後消失。' }
+            sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', price: 1000, type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×8！打死 3 隻怪後消失。' }
         };
 
         const IDIOMS = [
@@ -448,7 +448,7 @@
                     if (prev.equipped.pet && ITEMS[prev.equipped.pet]) newMaxHp += (ITEMS[prev.equipped.pet].hp || 0);
                     const monkeyMult = prev.equipped.pet === 'pet_monkey' ? 2 : 1;
                     const swordGoldMult = prev.equipped.weapon === 'sword_paper_gold' ? 2 : 1;
-                    const goldDoubleMult = (prev.equipped.pet === 'pet_monkey' && prev.equipped.weapon === 'sword_paper_gold') ? 4 : monkeyMult * swordGoldMult;
+                    const goldDoubleMult = (prev.equipped.pet === 'pet_monkey' && prev.equipped.weapon === 'sword_paper_gold') ? 8 : monkeyMult * swordGoldMult;
                     return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt * goldDoubleMult };
                 });
                 return { leveledUp: didLevelUp, newLevel: newLvl };
