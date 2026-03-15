@@ -1503,26 +1503,23 @@
                 });
 
                 // 機率表（總計100%）
-                // 蛋8% | 大紅7% | 一擊紙劍8% | 金幣紙劍6% | 藍波6% | 經驗藥水5% | 營養劑55% | 吐槽5%
-                // 若無蛋可抽，那8%併入營養劑（變63%）
+                // 蛋10% | 大紅7% | 一擊紙劍8% | 金幣紙劍6% | 藍波9% | 營養劑55% | 吐槽5%
+                // 若無蛋可抽，那10%併入營養劑（變65%）
                 const roll = Math.random() * 100;
 
-                if (roll < 8 && unownedEggs.length > 0) {
+                if (roll < 10 && unownedEggs.length > 0) {
                     const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
-                } else if (roll < 15) {
+                } else if (roll < 17) {
                     addItem('potion_l', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_l'].name}`, ITEMS['potion_l'].icon);
-                } else if (roll < 23) {
+                } else if (roll < 25) {
                     addItem('sword_paper_kill', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_kill'].name}`, ITEMS['sword_paper_kill'].icon);
-                } else if (roll < 29) {
+                } else if (roll < 31) {
                     addItem('sword_paper_gold', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_gold'].name}`, ITEMS['sword_paper_gold'].icon);
-                } else if (roll < 35) {
-                    addItem('potion_rainbow', 1);
-                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_rainbow'].name}`, ITEMS['potion_rainbow'].icon);
                 } else if (roll < 40) {
                     addItem('potion_rainbow', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_rainbow'].name}`, ITEMS['potion_rainbow'].icon);
