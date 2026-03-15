@@ -374,6 +374,7 @@
             const [storyLineIdx, setStoryLineIdx] = useState(0);
             const [storyDoneLines, setStoryDoneLines] = useState([]);
             const [storySlideReady, setStorySlideReady] = useState(false);
+            const [merchantItems, setMerchantItems] = useState([]);
             const isNewCharRef = useRef(false);
             const storyTimerRef = useRef(null);
 
@@ -421,7 +422,7 @@
                     setStoryDisplayed('');
                     setStorySlideReady(false);
                 } else {
-                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！', '🌟', () => setScene('map'));
+                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！\n\n⚠️ 注意：請牢記你的帳號密碼並且隨時存檔！！', '🌟', () => setScene('map'));
                 }
             };
 
@@ -1349,6 +1350,8 @@
                 if (npcId === 'merchant') {
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
                     let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
+                    const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : [];
+                    setMerchantItems(snapshot);
                     setNpcMessage(introText);
                 } else {
                     const profile = NPC_PROFILES[npcId];
@@ -2007,7 +2010,7 @@
 
                                         <div className="text-4xl mb-1 animate-[spin_6s_linear_infinite]">⚙️</div>
                                         <h2 className="text-2xl font-black text-[#E040FB] mb-1 tracking-widest" style={{textShadow:'0 0 20px #9C27B0'}}>壞掉的奇怪機器</h2>
-                                        <p className="text-[#9575CD] text-sm mb-8 font-bold">將五顆魔王寶石放入插槽，啟動時空機</p>
+                                        <p className="text-[#9575CD] text-sm mb-8 font-bold">上面有五個心型凹槽，是做甚麼用的呢？</p>
 
                                         {/* 五個愛心插槽 */}
                                         <div className="flex gap-3 mb-6">
@@ -2032,7 +2035,7 @@
                                         {/* 進度 */}
                                         <div className={`font-bold mb-5 text-sm tracking-wide ${allReady ? 'text-[#FFD700]' : 'text-[#9575CD]'}`}
                                             style={allReady ? {textShadow:'0 0 10px #FFD700'} : {}}>
-                                            {allReady ? '✨ 五顆寶石全數就位！時空機準備就緒！' : `${filledCount} / 5 顆寶石已就位`}
+                                            {allReady ? '✨ 五個凹槽全數就位！準備就緒！' : `${filledCount} / 5 個凹槽已就位`}
                                         </div>
 
                                         {/* 啟動按鈕 */}
@@ -2040,11 +2043,11 @@
                                             className={`px-8 py-3 font-black rounded-2xl text-lg tracking-widest transition-all ${allReady ? 'text-white animate-pulse hover:scale-110 active:scale-95' : 'bg-[#1a1a2e] text-[#444] border-2 border-[#333] cursor-not-allowed'}`}
                                             style={allReady ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
                                             onClick={() => {
-                                                if (!allReady) return;
+                                                if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
                                                 setScene('game_clear');
                                             }}
                                         >
-                                            ⚡ 啟動時空機 ⚡
+                                            ⚡ 啟動 ⚡
                                         </button>
 
                                         <button className="mt-6 px-5 py-2 bg-[#1a1a2e] text-[#9575CD] font-bold rounded-xl border border-[#333] text-sm hover:bg-[#222] transition-colors"
@@ -2204,7 +2207,7 @@
                                             <button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene('village')}>離開</button>
                                         </div>
                                         <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3 overflow-y-auto custom-scroll pr-1">
-                                            {(currentNpc === 'merchant' ? (['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].filter(id => hasItem(id)).length === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : []) : SHOP_ITEMS).map(itemId => {
+                                            {(currentNpc === 'merchant' ? merchantItems : SHOP_ITEMS).map(itemId => {
                                                 const item = ITEMS[itemId]; const isHidden = itemId === 'key_strange';
                                                 return (
                                                     <div key={itemId} className={`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}`}>
