@@ -421,18 +421,6 @@
 
             useEffect(() => { slidingPiecesRef.current = slidingGame.pieces; }, [slidingGame.pieces]);
 
-            // 關閉頁面時自動存檔＋提醒
-            useEffect(() => {
-                const handleBeforeUnload = (e) => {
-                    if (player.accountId && user && db) {
-                        try { setDoc(doc(db, 'saves', player.accountId), player); } catch(_) {}
-                    }
-                    e.preventDefault();
-                    e.returnValue = '';
-                };
-                window.addEventListener('beforeunload', handleBeforeUnload);
-                return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-            }, [player, user]);
 
             // 開場故事打字機
             useEffect(() => {
