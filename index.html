@@ -450,6 +450,9 @@
             const playCoinSound = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); [[0, 1200, 0.25], [0.12, 1500, 0.2], [0.22, 1000, 0.15]].forEach(([delay, freq, vol]) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.setValueAtTime(freq, ctx.currentTime + delay); g.gain.setValueAtTime(vol, ctx.currentTime + delay); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18); o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.18); }); } catch(e) {} };
 
             const saveToCloud = async () => {
+                const allGems = ['gem_red', 'gem_blue', 'gem_yellow', 'gem_green', 'gem_purple'];
+                const missingGems = allGems.filter(id => !hasItem(id)).length;
+                if (missingGems > 0) { showMessage("無法存檔", `還差 ${missingGems} 顆寶石！\n必須收集全五顆心型寶石才能存檔。`, "💎"); return; }
                 if (!player.accountId) { showMessage("存檔失敗", "您目前是訪客模式，無法存檔。\n請重新登入並輸入「冒險帳號」！", "⚠️"); return; }
                 if (!user || !db) { showMessage("存檔失敗", "網路未連線或尚未設定 Firebase。", "⚠️"); return; }
                 setIsSaving(true);
