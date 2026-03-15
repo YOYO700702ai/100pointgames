@@ -600,7 +600,7 @@
                 const hasPet = id => inv.some(i=>i.id===id) || p.equipped?.pet===id;
                 return {
                     exam_zero_master: (p.examZeroClears||0)>=5,
-                    no_wrong:         p.neverWrong===true && (p.level||1)>=3,
+                    no_wrong:         p.achNoWrong===true,
                     pet_master:       ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(hasPet),
                     hero:             (p.level||1)>=10,
                     gacha_king:       (p.gachaSpent||0)>=5000,
@@ -1464,7 +1464,7 @@
                 const item = ITEMS[itemId];
                 if (itemId === 'key_strange') {
                     if (player.gold < 1000) { setNpcMessage("金幣不足...需要 1000G 才能換鑰匙。"); return; }
-                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000 })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); setNpcMessage("成交！這把鑰匙交給你了！"); return;
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000, achNoWrong: prev.neverWrong === true })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); setNpcMessage("成交！這把鑰匙交給你了！"); return;
                 }
                 if (itemId === 'sword_paper_gold') {
                     const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
@@ -2224,7 +2224,7 @@
                                                 clipPath:'polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%)',
                                             }}
                                             onClick={() => {
-                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:20, baseMaxHp:20, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false, zoneClears:{east_forest:0,west_desert:0,south_harbor:0,north_tundra:0,outer_ruins:0}, totalGoldEarned:100, totalWrong:0, gachaSpent:0, examZeroClears:0, neverWrong:true });
+                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:20, baseMaxHp:20, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false, zoneClears:{east_forest:0,west_desert:0,south_harbor:0,north_tundra:0,outer_ruins:0}, totalGoldEarned:100, totalWrong:0, gachaSpent:0, examZeroClears:0, neverWrong:true, achNoWrong:false });
                                                 setHatchSlot({ eggId: null, progress: 0 });
                                                 setScene('start');
                                             }}>
