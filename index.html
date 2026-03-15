@@ -611,7 +611,7 @@
                 const list = battle.zone.monsters; const template = list[Math.floor(Math.random() * list.length)];
                 const waveStats = [{ hp: 30, atk: 5, exp: 20 }, { hp: 50, atk: 5, exp: 40 }, { hp: 80, atk: 10, exp: 80 }]; const ws = waveStats[wave - 1] || waveStats[2];
                 const waveIndicator = wave === 3 ? " (BOSS)" : ` (第${wave}/3隻)`;
-                const newMonster = { ...template, name: template.name + waveIndicator, maxHp: ws.hp, hp: ws.hp, atk: ws.atk, gold: template.gold, exp: ws.exp };
+                const newMonster = { ...template, name: template.name + waveIndicator, maxHp: ws.hp, hp: ws.hp, atk: ws.atk, gold: wave === 3 ? 80 : template.gold, exp: ws.exp };
                 setupNextQuestion(currentPool, newMonster);
             };
 
