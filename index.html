@@ -476,14 +476,14 @@
                     setEndSlideReady(false);
                 } else {
                     const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
-                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟');
+                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
                 }
             };
 
             const endStorySkip = () => {
                 clearInterval(endTimerRef.current);
                 const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
-                showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟');
+                showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
             };
 
             const stats = useMemo(() => {
