@@ -158,6 +158,7 @@
             potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
             potion_exp: { id: 'potion_exp', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
             exam_zero: { id: 'exam_zero', name: '0分考卷', type: 'weapon', atk: 2, icon: '📋', desc: '從異世界帶來的0分考卷。也許它還有別的用途？' },
+            exam_hundred: { id: 'exam_hundred', name: '100分考卷', type: 'weapon', atk: 30, icon: '📝', desc: '哥布林商人神奇地把0分考卷改造成了滿分！攻擊力大幅提升。' },
             sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', price: 1000, type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
             sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', price: 1000, type: 'weapon', atk: 0, icon: '💰', desc: '【技能：金幣加倍】打怪金幣×2！跟神偷猴同時裝備則×10！打死 3 隻怪後消失。' }
         };
@@ -288,17 +289,17 @@
         ];
 
         const ACHIEVEMENTS = [
-            { id: 'exam_zero_master', title: '零分考卷大師' },
-            { id: 'no_wrong',         title: '挖賽！！天才神童' },
-            { id: 'pet_master',       title: '神奇寶貝大師' },
-            { id: 'hero',             title: '勇者' },
-            { id: 'gacha_king',       title: '轉蛋天王' },
-            { id: 'rich',             title: '天生我材必有用' },
-            { id: 'desert_5',         title: '法老也瘋狂' },
-            { id: 'tundra_5',         title: '北極熊好冷喔' },
-            { id: 'harbor_5',         title: '烏龜烏龜～碰' },
-            { id: 'ruins_5',          title: '資源回收大師' },
-            { id: 'forest_5',         title: '竹林第八賢' },
+            { id: 'exam_zero_master', title: '零分考卷大師',   cond: '裝備0分考卷，成功通關任意5個地圖關卡' },
+            { id: 'no_wrong',         title: '挖賽！！天才神童', cond: '購買魔王關鑰匙前，從未答錯任何題目' },
+            { id: 'pet_master',       title: '神奇寶貝大師',   cond: '收集並孵化所有5種寵物蛋' },
+            { id: 'hero',             title: '勇者',           cond: '達到最高等級 LV.10' },
+            { id: 'gacha_king',       title: '轉蛋天王',       cond: '在轉蛋機累計花費超過 5000 元' },
+            { id: 'rich',             title: '天生我材必有用', cond: '遊戲中累計賺超過一萬金幣' },
+            { id: 'desert_5',         title: '法老也瘋狂',     cond: '炎熱荒漠（數學科）通關 5 次' },
+            { id: 'tundra_5',         title: '北極熊好冷喔',   cond: '北凍原（英語科）通關 5 次' },
+            { id: 'harbor_5',         title: '烏龜烏龜～碰',   cond: '元素港灣（自然科）通關 5 次' },
+            { id: 'ruins_5',          title: '資源回收大師',   cond: '編年廢墟（社會科）通關 5 次' },
+            { id: 'forest_5',         title: '竹林第八賢',     cond: '千卷墨林（國語科）通關 5 次' },
         ];
 
         const END_SLIDES = [
@@ -1459,6 +1460,16 @@
             const openShop = (npcId) => {
                 setCurrentNpc(npcId);
                 if (npcId === 'merchant') {
+                    // 零分考卷大師 → 升級成100分考卷
+                    const ach = getAchievements(player);
+                    if (ach.exam_zero_master && hasItem('exam_zero') && !hasItem('exam_hundred')) {
+                        setTimeout(() => showMessage('哥布林商人', '嘿嘿...等一下！\n你這張考卷...我研究了很久了！\n我用特殊藥水幫你把0分考卷改造成了100分考卷！\n攻擊力足足提升到了 +30！', '🏕️', () => {
+                            removeSpecificItem('exam_zero');
+                            if (player.equipped.weapon === 'exam_zero') setPlayer(prev => ({ ...prev, equipped: { ...prev.equipped, weapon: null } }));
+                            addItem('exam_hundred', 1);
+                            showMessage('升級成功！', '「0分考卷」已升級為「100分考卷」！\n攻擊力 +30！', '📝');
+                        }), 200);
+                    }
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
                     let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
                     const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : [];
@@ -1513,24 +1524,27 @@
                 });
 
                 // 機率表（總計100%）
-                // 蛋10% | 大紅7% | 一擊紙劍8% | 金幣紙劍6% | 藍波9% | 營養劑55% | 吐槽5%
-                // 若無蛋可抽，那10%併入營養劑（變65%）
+                // 一般：蛋10% | 大紅7% | 一擊8% | 金幣6% | 藍波9% | 營養劑55% | 吐槽5%
+                // 50顆後若還有蛋：蛋50% | 大紅7% | 一擊8% | 金幣6% | 藍波9% | 營養劑15% | 吐槽5%
+                const gachaCount = Math.floor((player.gachaSpent || 0) / 100);
+                const highEggMode = gachaCount >= 50 && unownedEggs.length > 0;
+                const o = highEggMode ? 40 : 0; // offset：蛋多佔40%，其他選項整體右移
                 const roll = Math.random() * 100;
 
-                if (roll < 10 && unownedEggs.length > 0) {
+                if (roll < (10 + o) && unownedEggs.length > 0) {
                     const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
-                } else if (roll < 17) {
+                } else if (roll < (17 + o)) {
                     addItem('potion_l', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_l'].name}`, ITEMS['potion_l'].icon);
-                } else if (roll < 25) {
+                } else if (roll < (25 + o)) {
                     addItem('sword_paper_kill', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_kill'].name}`, ITEMS['sword_paper_kill'].icon);
-                } else if (roll < 31) {
+                } else if (roll < (31 + o)) {
                     addItem('sword_paper_gold', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_gold'].name}`, ITEMS['sword_paper_gold'].icon);
-                } else if (roll < 40) {
+                } else if (roll < (40 + o)) {
                     addItem('potion_rainbow', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_rainbow'].name}`, ITEMS['potion_rainbow'].icon);
                 } else if (roll < 95) {
@@ -2407,15 +2421,20 @@
                                                         {/* 左右角落裝飾 */}
                                                         {unlocked && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">✦</span>}
                                                         {unlocked && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg">✦</span>}
-                                                        <span className="text-lg font-black text-center"
-                                                            style={{
-                                                                color: unlocked ? '#3d1f00' : '#888',
-                                                                fontFamily:'serif',
-                                                                letterSpacing:'0.1em',
-                                                                textShadow: unlocked ? '0 1px 2px rgba(255,255,200,0.6)' : 'none'
-                                                            }}>
-                                                            {a.title}
-                                                        </span>
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <span className="text-lg font-black text-center"
+                                                                style={{
+                                                                    color: unlocked ? '#3d1f00' : '#888',
+                                                                    fontFamily:'serif',
+                                                                    letterSpacing:'0.1em',
+                                                                    textShadow: unlocked ? '0 1px 2px rgba(255,255,200,0.6)' : 'none'
+                                                                }}>
+                                                                {a.title}
+                                                            </span>
+                                                            <span className="text-xs text-center" style={{color: unlocked ? '#6b3a00' : '#666', opacity: 0.85}}>
+                                                                {a.cond}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
