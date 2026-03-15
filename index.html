@@ -654,10 +654,20 @@
                 setPlayer(prev => { let newInv = [...prev.inventory]; newInv.push({id: itemId, qty: 1}); return { ...prev, inventory: newInv, equipped: { ...prev.equipped, [slotType]: null } }; });
             };
 
+            const parseCSVRow = (row) => {
+                const result = []; let cur = ''; let inQ = false;
+                for (let i = 0; i < row.length; i++) {
+                    const ch = row[i];
+                    if (ch === '"') { if (inQ && row[i+1] === '"') { cur += '"'; i++; } else { inQ = !inQ; } }
+                    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+                    else { cur += ch; }
+                }
+                result.push(cur.trim()); return result;
+            };
             const fetchCsv = async (url) => {
                 try {
                     const r = await fetch(url); const text = await r.text(); const res = [];
-                    text.split('\n').forEach(row => { const c = row.split(',').map(x => x.trim()); if (c.length >= 2 && c[0] !== "題目" && c[0] !== "Question") res.push({ q: c[0], a: c[1], wrong: [c[2], c[3], c[4]].filter(Boolean) }); });
+                    text.split('\n').forEach(row => { const c = parseCSVRow(row); if (c.length >= 2 && c[0] !== "題目" && c[0] !== "Question" && c[0] !== 'A欄 (題目)') res.push({ q: c[0], a: c[1], wrong: [c[2], c[3], c[4]].filter(Boolean) }); });
                     return res;
                 } catch (e) { return []; }
             };
