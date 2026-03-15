@@ -2042,8 +2042,11 @@
                                         <button
                                             className={`px-8 py-3 font-black rounded-2xl text-lg tracking-widest transition-all ${allReady ? 'text-white animate-pulse hover:scale-110 active:scale-95' : 'bg-[#1a1a2e] text-[#444] border-2 border-[#333] cursor-not-allowed'}`}
                                             style={allReady ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
+                                                if (player.accountId && user && db) {
+                                                    try { await setDoc(doc(db, 'saves', player.accountId), player); } catch(e) {}
+                                                }
                                                 setScene('game_clear');
                                             }}
                                         >
