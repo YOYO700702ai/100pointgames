@@ -1540,13 +1540,13 @@
                             {scene === 'map' && (
                                 <div className="absolute inset-0 bg-[#64B5F6]">
                                     <img src="https://i.ibb.co/997Fr3cn/unnamed.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="地圖" />
-                                    <div className="absolute top-[38%] left-[38%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('north_tundra')}></div>
-                                    <div className="absolute top-[85%] left-[50%] w-[15%] h-[12%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('south_harbor')}></div>
-                                    <div className="absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}></div>
-                                    <div className="absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}></div>
-                                    <div className="absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}></div>
-                                    <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl hover:bg-white/30 hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒'); return; } setScene('library_lobby'); }}></div>
-                                    <div className="absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}></div>
+                                    <div className="absolute top-[38%] left-[38%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('north_tundra')}></div>
+                                    <div className="absolute top-[85%] left-[50%] w-[15%] h-[12%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('south_harbor')}></div>
+                                    <div className="absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}></div>
+                                    <div className="absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}></div>
+                                    <div className="absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}></div>
+                                    <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒'); return; } setScene('library_lobby'); }}></div>
+                                    <div className="absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}></div>
                                 </div>
                             )}
 
@@ -1834,7 +1834,7 @@
                                                      style={{fontSize:'3rem', display:'flex', alignItems:'center', justifyContent:'center'}}>
                                                     👺
                                                 </div>
-                                                {isUp && <div className="absolute inset-0 rounded-full hover:bg-white/20 transition-colors"></div>}
+                                                {isUp && <div className="absolute inset-0 rounded-full  transition-colors"></div>}
                                             </div>
                                         ))}
                                     </div>
@@ -1919,11 +1919,11 @@
                             )}                            {scene === 'village' && (
                                 <div className="absolute inset-0">
                                     <img src="11.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="村莊" onError={(e) => { e.target.src='https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/11.jpg'; }} />
-                                    <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
-                                    <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
-                                    <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); }}></div>
-                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}></div>
-                                    <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl hover:bg-white/30 -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
+                                    <div className="absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}></div>
+                                    <div className="absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('成就教堂', '敬請期待!', '⛪')}></div>
+                                    <div className="absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); }}></div>
+                                    <div className="absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}></div>
+                                    <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
                                     <button className="absolute bottom-5 right-5 z-100 bg-transparent text-[#FFAB91] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('chicken_farm')}>往雞舍 ➡</button>
                                 </div>
@@ -1934,13 +1934,13 @@
                                     <img src="養雞場.jpg" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="雞舍" onError={(e) => { e.target.src='https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/%E9%A4%8A%E9%9B%9E%E5%A0%B4.jpg'; }} />
 
                                     {/* 養雞人 NPC */}
-                                    <div className="absolute top-[62%] left-[18%] w-[14%] h-[26%] cursor-pointer z-10 rounded-xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('養雞人', '怎麼有奇怪的東西砸進來？嚇我一跳！\n...你是要用孵化機嗎？把蛋放進去，用「營養劑」餵食，進度到100%就孵出來了。', '🧑‍🌾')}></div>
+                                    <div className="absolute top-[62%] left-[18%] w-[14%] h-[26%] cursor-pointer z-10 rounded-xl  -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('養雞人', '怎麼有奇怪的東西砸進來？嚇我一跳！\n...你是要用孵化機嗎？把蛋放進去，用「營養劑」餵食，進度到100%就孵出來了。', '🧑‍🌾')}></div>
 
                                     {/* 珍貴蛋孵化室（大鳥巢） */}
-                                    <div className="absolute top-[38%] left-[32%] w-[22%] h-[38%] cursor-pointer z-10 rounded-2xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => setShowHatchUI(true)}></div>
+                                    <div className="absolute top-[38%] left-[32%] w-[22%] h-[38%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => setShowHatchUI(true)}></div>
 
                                     {/* 壞掉的奇怪機器（圓頂機器） */}
-                                    <div className="absolute top-[48%] left-[70%] w-[20%] h-[40%] cursor-pointer z-10 rounded-2xl hover:bg-white/20 -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('time_machine')}></div>
+                                    <div className="absolute top-[48%] left-[70%] w-[20%] h-[40%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('time_machine')}></div>
 
                                     {/* 孵化室 UI Modal */}
                                     {showHatchUI && (
@@ -2235,7 +2235,7 @@
                                 const slide = STORY_SLIDES[storySlide];
                                 return (
                                     <div className="absolute inset-0 flex flex-col bg-black z-[150]">
-                                        <button className="absolute top-3 right-3 z-20 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full border border-white/30 hover:bg-white/20" onClick={storySkip}>跳過故事 ▶▶</button>
+                                        <button className="absolute top-3 right-3 z-20 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full border border-white/30 " onClick={storySkip}>跳過故事 ▶▶</button>
                                         <div className="relative flex-1 overflow-hidden">
                                             {slide.img
                                                 ? <img src={slide.img} className="w-full h-full object-contain" alt="" />
