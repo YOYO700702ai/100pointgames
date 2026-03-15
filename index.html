@@ -271,6 +271,22 @@
         const EGG_TO_PET = { egg_1: 'pet_owl', egg_2: 'pet_jellyfish', egg_3: 'pet_ankylo', egg_4: 'pet_rat', egg_5: 'pet_stompy' };
 
         // ==========================================
+        // ★ 開場故事 ★
+        // ==========================================
+        const STORY_SLIDES = [
+            { img: 'https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/1.jpg',
+              lines: ['媽媽：「你看看這張數學考卷！又是0分！你到底有沒有在用心啊？」', '（可惡……我也想考好啊，但數學真的好無聊……）'] },
+            { img: 'https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/2.jpg',
+              lines: ['（唉……如果學習能像打電動一樣就好了。不用死背課本，而是去打怪、尋寶、拿裝備，那該有多好玩？）'] },
+            { img: null,
+              lines: ['你迷迷糊糊地睡著了....', '恍惚間，好像有地震，你睜開眼睛'] },
+            { img: 'https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/3.jpg',
+              lines: ['（咦？房間怎麼會出現這麼大的彩色漩渦！）', '「哇啊啊啊——救命啊！」', '（為什麼連0分考卷也一起跟著被吸進來了啦！）'] },
+            { img: 'https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/4.jpg',
+              lines: ['「好痛……這裡是哪裡？發光蘑菇？還有城堡？」', '（難道……我真的帶著0分考卷，掉進遊戲世界裡了嗎？）'] }
+        ];
+
+        // ==========================================
         // ★ 核心組件 (App) ★
         // ==========================================
         function App() {
@@ -351,6 +367,15 @@
             const [slidingPetUsed, setSlidingPetUsed] = useState(false);
             const slidingPiecesRef = useRef([]);
 
+            // --- 開場故事狀態 ---
+            const [storySlide, setStorySlide] = useState(0);
+            const [storyDisplayed, setStoryDisplayed] = useState('');
+            const [storyLineIdx, setStoryLineIdx] = useState(0);
+            const [storyDoneLines, setStoryDoneLines] = useState([]);
+            const [storySlideReady, setStorySlideReady] = useState(false);
+            const isNewCharRef = useRef(false);
+            const storyTimerRef = useRef(null);
+
             useEffect(() => {
                 if (!auth) return;
                 const initAuth = async () => {
@@ -362,6 +387,44 @@
             }, []);
 
             useEffect(() => { slidingPiecesRef.current = slidingGame.pieces; }, [slidingGame.pieces]);
+
+            // 開場故事打字機
+            useEffect(() => {
+                if (scene !== 'story') return;
+                const slide = STORY_SLIDES[storySlide];
+                const line = slide.lines[storyLineIdx];
+                if (!line) { setStorySlideReady(true); return; }
+                setStoryDisplayed('');
+                setStorySlideReady(false);
+                let i = 0;
+                storyTimerRef.current = setInterval(() => {
+                    i++;
+                    setStoryDisplayed(line.slice(0, i));
+                    if (i >= line.length) {
+                        clearInterval(storyTimerRef.current);
+                        setTimeout(() => {
+                            setStoryDoneLines(prev => [...prev, line]);
+                            setStoryLineIdx(prev => prev + 1);
+                            setStoryDisplayed('');
+                        }, 600);
+                    }
+                }, 45);
+                return () => clearInterval(storyTimerRef.current);
+            }, [scene, storySlide, storyLineIdx]);
+
+            const storyNext = () => {
+                if (storySlide < STORY_SLIDES.length - 1) {
+                    setStorySlide(prev => prev + 1);
+                    setStoryLineIdx(0);
+                    setStoryDoneLines([]);
+                    setStoryDisplayed('');
+                    setStorySlideReady(false);
+                } else {
+                    setScene('map');
+                }
+            };
+
+            const storySkip = () => setScene('map');
 
             const stats = useMemo(() => {
                 let atk = player.baseAtk + (player.level - 1) * 2;
@@ -506,7 +569,7 @@
                 setLoadingMsg('正在讀取雲端題庫...');
                 const [chi, eng, soc, sci] = await Promise.all([ fetchCsv(CHINESE_CSV_URL), fetchCsv(ENGLISH_CSV_URL), fetchCsv(SOCIAL_CSV_URL), fetchCsv(SCIENCE_CSV_URL) ]);
                 QUESTION_BANKS.chinese_csv = chi; QUESTION_BANKS.english_csv = eng; QUESTION_BANKS.social_csv = soc; QUESTION_BANKS.science_csv = sci; QUESTION_BANKS.mixed = [...chi, ...eng, ...soc, ...sci];
-                setLoadingMsg(''); setScene('map');
+                setLoadingMsg(''); if (isNewCharRef.current) { isNewCharRef.current = false; setScene('story'); } else { setScene('map'); }
             };
 
             const handleStart = async () => {
@@ -527,9 +590,12 @@
                                 setTimeout(() => showMessage('讀取成功', `歡迎回來，${cloudData.name}！\n(目前等級 ${cloudData.level})`, '🎉'), 500);
                             }
                         } else {
+                            isNewCharRef.current = true;
                             setTimeout(() => showMessage('建立新檔', `帳號 ${player.accountId} 不存在，已為您建立全新進度。`, '📝'), 500);
                         }
-                    } catch(e) { console.error(e); setTimeout(() => showMessage('連線失敗', '雲端讀取失敗，將以離線模式開始。', '⚠️'), 500); }
+                    } catch(e) { console.error(e); isNewCharRef.current = true; setTimeout(() => showMessage('連線失敗', '雲端讀取失敗，將以離線模式開始。', '⚠️'), 500); }
+                } else {
+                    isNewCharRef.current = true;
                 }
                 await loadAllDatabases();
             };
@@ -2161,6 +2227,32 @@
                                     {typeof df.amount === 'number' && !df.target.includes('crit') ? `-${df.amount}` : df.amount}
                                 </div>
                             ))}
+
+                            {scene === 'story' && (() => {
+                                const slide = STORY_SLIDES[storySlide];
+                                return (
+                                    <div className="absolute inset-0 flex flex-col bg-black z-[150]">
+                                        <button className="absolute top-3 right-3 z-20 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full border border-white/30 hover:bg-white/20" onClick={storySkip}>跳過故事 ▶▶</button>
+                                        <div className="flex-1 flex items-center justify-center overflow-hidden">
+                                            {slide.img
+                                                ? <img src={slide.img} className="w-full h-full object-contain" alt="" />
+                                                : <div className="w-full h-full bg-black flex items-center justify-center"><span className="text-white/40 text-2xl">⋯</span></div>
+                                            }
+                                        </div>
+                                        <div className="bg-white/95 rounded-t-2xl px-5 pt-4 pb-3 min-h-[130px] flex flex-col justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+                                            <div className="text-[0.95rem] text-[#222] leading-relaxed whitespace-pre-line">
+                                                {storyDoneLines.map((l, i) => <p key={i} className="m-0 mb-1">{l}</p>)}
+                                                {storyDisplayed && <p className="m-0">{storyDisplayed}<span className="inline-block w-[2px] h-[1em] bg-gray-600 align-middle ml-0.5 animate-pulse" /></p>}
+                                            </div>
+                                            {storySlideReady && (
+                                                <button className="self-end mt-2 bg-[#4361EE] text-white text-sm font-bold px-5 py-1.5 rounded-full shadow-[0_3px_0_#2841ac] active:translate-y-0.5 active:shadow-none" onClick={storyNext}>
+                                                    {storySlide < STORY_SLIDES.length - 1 ? '繼續 ▶' : '開始冒險！'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {overlay && (
                                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[200]">
