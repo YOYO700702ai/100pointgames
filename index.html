@@ -325,7 +325,7 @@
                 name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
                 inventory: [{ id: 'exam_zero', qty: 1 }], equipped: { weapon: null, pet: null }, gachaUnlocked: false,
                 zoneClears: { east_forest:0, west_desert:0, south_harbor:0, north_tundra:0, outer_ruins:0 },
-                totalGoldEarned: 100, totalWrong: 0, gachaSpent: 0, examZeroClears: 0, neverWrong: true, villageTalked: false
+                totalGoldEarned: 100, totalWrong: 0, gachaSpent: 0, examZeroClears: 0, neverWrong: true, villageTalked: false, shopVisited: false
             });
 
             const [battle, setBattle] = useState({
@@ -1477,7 +1477,13 @@
                     setNpcMessage(introText);
                 } else {
                     const profile = NPC_PROFILES[npcId];
-                    setNpcMessage(profile.defaultLines[Math.floor(Math.random() * profile.defaultLines.length)]);
+                    if (!player.shopVisited) {
+                        setPlayer(prev => ({ ...prev, shopVisited: true }));
+                        setNpcMessage("啊！我把轉蛋機鑰匙掉到沙漠裡了...");
+                    } else {
+                        const others = profile.defaultLines.filter(l => !l.includes('轉蛋機鑰匙掉到沙漠'));
+                        setNpcMessage(others[Math.floor(Math.random() * others.length)]);
+                    }
                 }
                 setScene('shop');
             };
