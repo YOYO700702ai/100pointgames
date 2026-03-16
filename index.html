@@ -329,8 +329,9 @@
             });
 
             const [battle, setBattle] = useState({
-                active: false, zone: null, wave: 1, monster: null, question: null, options: [], answer: null, questionPool: [], isShaking: false, flashRed: false, wrongShake: false
+                active: false, zone: null, wave: 1, monster: null, question: null, options: [], answer: null, questionPool: [], isShaking: false, flashRed: false, wrongShake: false, eliminateWrong: false
             });
+            const [randomEvent, setRandomEvent] = useState(null);
 
             const [damageFloats, setDamageTexts] = useState([]);
             const [npcMessage, setNpcMessage] = useState('');
@@ -804,7 +805,8 @@
                 let opts = [qObj.a];
                 if (qObj.wrong && qObj.wrong.length > 0) { opts = opts.concat(qObj.wrong.slice(0, 3)); while(opts.length < 4) opts.push("???"); } else { while(opts.length < 4) opts.push(Math.floor(Math.random()*100).toString()); }
                 opts.sort(() => Math.random() - 0.5);
-                setBattle(prev => ({ ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: opts, isProcessing: false }));
+                if (battle.eliminateWrong) { const wrong = opts.filter(o => o !== qObj.a); opts = [qObj.a, wrong[0]].sort(() => Math.random() - 0.5); }
+                setBattle(prev => ({ ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: opts, isProcessing: false, eliminateWrong: false }));
             };
 
             const handleAnswer = (selectedVal, btnEvent) => {
@@ -867,12 +869,32 @@
                 const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold);
                 playCoinSound();
                 if (currentWave < 3) {
-                    showDamage("下一隻怪物出現！", "monster-crit");
                     if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\nHP 全滿！`, '🎉'), 100);
-                    setBattle(prev => ({ ...prev, active: true, monster: null, wave: prev.wave + 1 })); 
-                } else { 
-                    handleWinBattle(monsterDef, leveledUp, newLevel); 
-                } 
+                    if (currentWave === 1 && Math.random() < 0.3) {
+                        const types = ['chest', 'animal', 'woodcutter'];
+                        const eventType = types[Math.floor(Math.random() * 3)];
+                        setRandomEvent({ type: eventType, chestWinner: Math.floor(Math.random() * 3), onComplete: () => { setRandomEvent(null); showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 2 })); } });
+                    } else {
+                        showDamage("下一隻怪物出現！", "monster-crit");
+                        setBattle(prev => ({ ...prev, active: true, monster: null, wave: prev.wave + 1 }));
+                    }
+                } else {
+                    handleWinBattle(monsterDef, leveledUp, newLevel);
+                }
+            };
+
+            const handleChestPick = (idx) => {
+                if (idx === randomEvent.chestWinner) { addItem('coin_gacha', 1); showMessage('🎉 選中了！', '獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
+                else { showMessage('😅 可惜...', '空箱子，什麼也沒有。', '📦', randomEvent.onComplete); }
+            };
+            const handleAnimalHelp = (help) => {
+                if (!help) { showMessage('...', '你選擇離開，小動物眼神有些落寞。', '🦊', randomEvent.onComplete); return; }
+                if (Math.random() < 0.5) { addItem('coin_gacha', 1); showMessage('🐾 救援成功！', '小動物感激地舔了你的手！\n獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
+                else { const bite = Math.max(1, Math.floor(player.hp / 2)); setPlayer(prev => ({ ...prev, hp: Math.max(1, prev.hp - bite) })); showMessage('😖 被咬了！', `小動物驚慌地咬了你一口\n失去 ${bite} HP！`, '🩸', randomEvent.onComplete); }
+            };
+            const handleWoodcutterChoice = (choice) => {
+                if (choice === 'eliminate') { setBattle(prev => ({ ...prev, eliminateWrong: true })); showMessage('✨ 樵夫的禮物', '下一題將消除兩個錯誤答案！', '🪓', randomEvent.onComplete); }
+                else { setPlayer(prev => ({ ...prev, hp: stats.maxHp })); showMessage('💚 樵夫的禮物', 'HP 已恢復至最大值！', '🪓', randomEvent.onComplete); }
             };
 
             const handleWinBattle = (monsterDef, leveledUp, newLevel) => {
@@ -2272,6 +2294,36 @@
                                 </div>
                             )}
 
+                            {randomEvent && scene === 'battle' && (
+                                <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/60">
+                                    <div className="bg-white rounded-3xl p-7 mx-4 shadow-2xl max-w-xs w-full text-center">
+                                        {randomEvent.type === 'chest' && (<>
+                                            <div className="text-5xl mb-2">👼</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">女神的恩賜！</h3>
+                                            <p className="text-gray-500 text-sm mb-5">感謝勇者幫忙清掉怪物！<br/>好禮三選一，選中就是你的！！</p>
+                                            <div className="flex gap-3 justify-center">{[0,1,2].map(i => (<button key={i} className="text-5xl bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 active:scale-95 transition-all hover:bg-amber-100" onClick={() => handleChestPick(i)}>📦</button>))}</div>
+                                        </>)}
+                                        {randomEvent.type === 'animal' && (<>
+                                            <div className="text-5xl mb-2">🦊</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">捕獸夾事件！</h3>
+                                            <p className="text-gray-500 text-sm mb-5">有一隻小動物被捕獸夾夾住了<br/>你要幫助牠嗎？</p>
+                                            <div className="flex gap-3">
+                                                <button className="flex-1 bg-green-100 border-2 border-green-400 text-green-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleAnimalHelp(true)}>幫助牠</button>
+                                                <button className="flex-1 bg-gray-100 border-2 border-gray-300 text-gray-500 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleAnimalHelp(false)}>離開</button>
+                                            </div>
+                                        </>)}
+                                        {randomEvent.type === 'woodcutter' && (<>
+                                            <div className="text-5xl mb-2">🪓</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">遇到樵夫！</h3>
+                                            <p className="text-gray-500 text-sm mb-5">老樵夫感謝你清除附近的怪物<br/>想送你一份禮物，你選哪個？</p>
+                                            <div className="flex flex-col gap-3">
+                                                <button className="bg-purple-100 border-2 border-purple-400 text-purple-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleWoodcutterChoice('eliminate')}>✨ 下一題消除兩個錯誤答案</button>
+                                                <button className="bg-red-100 border-2 border-red-400 text-red-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleWoodcutterChoice('heal')}>💚 HP 補滿</button>
+                                            </div>
+                                        </>)}
+                                    </div>
+                                </div>
+                            )}
                             {scene === 'battle' && battle.zone && (
                                 <div className="absolute inset-0 flex flex-row p-6 gap-6 items-center transition-colors duration-500" style={{backgroundColor: battle.zone.bg}}>
                                 {battle.showCorrect && <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"><div className="anim-correct text-[10rem] drop-shadow-[0_4px_20px_rgba(0,200,0,0.6)]">✅</div></div>}
