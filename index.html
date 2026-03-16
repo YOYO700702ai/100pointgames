@@ -322,7 +322,7 @@
             const [prevScene, setPrevScene] = useState('map');
             
             const [player, setPlayer] = useState({
-                name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 20, baseMaxHp: 20, baseAtk: 3, streak: 0,
+                name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 15, baseMaxHp: 15, baseAtk: 3, streak: 0,
                 inventory: [{ id: 'exam_zero', qty: 1 }], equipped: { weapon: null, pet: null }, gachaUnlocked: false,
                 zoneClears: { east_forest:0, west_desert:0, south_harbor:0, north_tundra:0, outer_ruins:0 },
                 totalGoldEarned: 100, totalWrong: 0, gachaSpent: 0, examZeroClears: 0, neverWrong: true, villageTalked: false, shopVisited: false
@@ -2252,7 +2252,7 @@
                                                 clipPath:'polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%)',
                                             }}
                                             onClick={() => {
-                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:20, baseMaxHp:20, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false, zoneClears:{east_forest:0,west_desert:0,south_harbor:0,north_tundra:0,outer_ruins:0}, totalGoldEarned:100, totalWrong:0, gachaSpent:0, examZeroClears:0, neverWrong:true, achNoWrong:false });
+                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:15, baseMaxHp:15, baseAtk:3, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false, zoneClears:{east_forest:0,west_desert:0,south_harbor:0,north_tundra:0,outer_ruins:0}, totalGoldEarned:100, totalWrong:0, gachaSpent:0, examZeroClears:0, neverWrong:true, achNoWrong:false });
                                                 setHatchSlot({ eggId: null, progress: 0 });
                                                 setScene('start');
                                             }}>
