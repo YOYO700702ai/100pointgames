@@ -874,6 +874,9 @@
                         const types = ['chest', 'animal', 'woodcutter'];
                         const eventType = types[Math.floor(Math.random() * 3)];
                         setRandomEvent({ type: eventType, chestWinner: Math.floor(Math.random() * 3), onComplete: () => { setRandomEvent(null); showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 2 })); } });
+                    } else if (currentWave === 2 && Math.random() < 0.3) {
+                        const goW3 = () => { setRandomEvent(null); showDamage("BOSS 出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 3 })); };
+                        setRandomEvent({ type: 'cardgame', phase: 'offer', leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1, round: 1, prize: 0, onComplete: goW3 });
                     } else {
                         showDamage("下一隻怪物出現！", "monster-crit");
                         setBattle(prev => ({ ...prev, active: true, monster: null, wave: prev.wave + 1 }));
@@ -895,6 +898,37 @@
             const handleWoodcutterChoice = (choice) => {
                 if (choice === 'eliminate') { setBattle(prev => ({ ...prev, eliminateWrong: true })); showMessage('✨ 樵夫的禮物', '下一題將消除兩個錯誤答案！', '🪓', randomEvent.onComplete); }
                 else { setPlayer(prev => ({ ...prev, hp: stats.maxHp })); showMessage('💚 樵夫的禮物', 'HP 已恢復至最大值！', '🪓', randomEvent.onComplete); }
+            };
+
+            const handleCardGame = (action) => {
+                const ev = randomEvent;
+                if (action === 'decline') { ev.onComplete(); return; }
+                if (action === 'accept') {
+                    if (player.gold < 10) { showMessage('金幣不足', '需要 10G 才能參加遊戲！', '💸'); return; }
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 10 }));
+                    setRandomEvent(prev => ({ ...prev, phase: 'guess' })); return;
+                }
+                if (action === 'big' || action === 'small') {
+                    const correct = (action === 'big' && ev.rightCard > ev.leftCard) || (action === 'small' && ev.rightCard < ev.leftCard);
+                    const prizes = [50, 100, 200]; const prize = prizes[ev.round - 1];
+                    if (correct) {
+                        if (ev.round === 3) {
+                            setPlayer(prev => ({ ...prev, gold: prev.gold + prize }));
+                            showMessage('🎉 恭喜！', `太厲害了！三關全過！\n獲得最高獎金 ${prize}G！`, '🏆', ev.onComplete);
+                        } else {
+                            setRandomEvent(prev => ({ ...prev, phase: 'win_continue', prize, round: prev.round + 1, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 }));
+                        }
+                    } else {
+                        showMessage('😭 猜錯了！', `右邊是 ${ev.rightCard}，你猜${action==='big'?'大':'小'}錯了！\n什麼都沒有...`, '💸', ev.onComplete);
+                    } return;
+                }
+                if (action === 'take') {
+                    setPlayer(prev => ({ ...prev, gold: prev.gold + ev.prize }));
+                    showMessage('😊 不貪心！', `帶走 ${ev.prize}G，明智的選擇！`, '💰', ev.onComplete); return;
+                }
+                if (action === 'continue') {
+                    setRandomEvent(prev => ({ ...prev, phase: 'guess' }));
+                }
             };
 
             const handleWinBattle = (monsterDef, leveledUp, newLevel) => {
@@ -2320,6 +2354,38 @@
                                                 <button className="bg-purple-100 border-2 border-purple-400 text-purple-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleWoodcutterChoice('eliminate')}>✨ 下一題消除兩個錯誤答案</button>
                                                 <button className="bg-red-100 border-2 border-red-400 text-red-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleWoodcutterChoice('heal')}>💚 HP 補滿</button>
                                             </div>
+                                        </>)}
+                                        {randomEvent.type === 'cardgame' && (<>
+                                            <div className="text-5xl mb-1">🎴</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">猜大小遊戲！</h3>
+                                            {randomEvent.phase === 'offer' && (<>
+                                                <p className="text-gray-500 text-sm mb-4">花 10G 挑戰猜大小<br/>最高可贏得 <span className="text-amber-500 font-bold">200G</span>！要玩嗎？</p>
+                                                <div className="flex gap-3">
+                                                    <button className="flex-1 bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('accept')}>玩！(-10G)</button>
+                                                    <button className="flex-1 bg-gray-100 border-2 border-gray-300 text-gray-500 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('decline')}>不玩</button>
+                                                </div>
+                                            </>)}
+                                            {randomEvent.phase === 'guess' && (<>
+                                                <p className="text-xs text-gray-400 mb-3">第 {randomEvent.round} 關 ／ 左牌已翻開</p>
+                                                <div className="flex gap-4 justify-center items-center mb-4">
+                                                    <div className="w-16 h-20 bg-amber-400 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md">{randomEvent.leftCard}</div>
+                                                    <div className="text-2xl text-gray-400">VS</div>
+                                                    <div className="w-16 h-20 bg-indigo-400 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md">？</div>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-3">右邊的牌比左邊 <span className="font-bold text-amber-600">{randomEvent.leftCard}</span> 還要...</p>
+                                                <div className="flex gap-3">
+                                                    <button className="flex-1 bg-red-100 border-2 border-red-400 text-red-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('big')}>大 ⬆️</button>
+                                                    <button className="flex-1 bg-blue-100 border-2 border-blue-400 text-blue-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('small')}>小 ⬇️</button>
+                                                </div>
+                                            </>)}
+                                            {randomEvent.phase === 'win_continue' && (<>
+                                                <p className="text-green-600 font-bold mb-1">✅ 猜對了！右牌是 {randomEvent.leftCard}</p>
+                                                <p className="text-gray-500 text-sm mb-4">獲得 <span className="text-amber-500 font-bold">{randomEvent.prize}G</span>！要繼續賭嗎？<br/><span className="text-xs text-gray-400">（繼續：贏得 {randomEvent.prize * 2}G 或全輸）</span></p>
+                                                <div className="flex flex-col gap-2">
+                                                    <button className="bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('continue')}>繼續賭！（第 {randomEvent.round} 關）</button>
+                                                    <button className="bg-green-100 border-2 border-green-400 text-green-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('take')}>不貪心了，帶走 {randomEvent.prize}G</button>
+                                                </div>
+                                            </>)}
                                         </>)}
                                     </div>
                                 </div>
