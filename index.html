@@ -300,6 +300,7 @@
             { id: 'harbor_5',         title: '烏龜烏龜～碰',   cond: '元素港灣（自然科）通關 5 次' },
             { id: 'ruins_5',          title: '資源回收大師',   cond: '編年廢墟（社會科）通關 5 次' },
             { id: 'forest_5',         title: '竹林第八賢',     cond: '千卷墨林（國語科）通關 5 次' },
+            { id: 'card_god',         title: '賭神',           cond: '在猜大小遊戲中連續猜對三關到底' },
         ];
 
         const END_SLIDES = [
@@ -615,6 +616,7 @@
                     harbor_5:         ((p.zoneClears||{}).south_harbor||0)>=5,
                     ruins_5:          ((p.zoneClears||{}).outer_ruins||0)>=5,
                     forest_5:         ((p.zoneClears||{}).east_forest||0)>=5,
+                    card_god:         p.cardGodWon===true,
                 };
             };
 
@@ -913,8 +915,8 @@
                     const prizes = [50, 100, 200]; const prize = prizes[ev.round - 1];
                     if (correct) {
                         if (ev.round === 3) {
-                            setPlayer(prev => ({ ...prev, gold: prev.gold + prize }));
-                            showMessage('🎉 恭喜！', `太厲害了！三關全過！\n獲得最高獎金 ${prize}G！`, '🏆', ev.onComplete);
+                            setPlayer(prev => ({ ...prev, gold: prev.gold + prize, cardGodWon: true }));
+                            showMessage('🎉 恭喜！', `太厲害了！三關全過！\n獲得最高獎金 ${prize}G！\n🏅 成就解鎖：「賭神」`, '🏆', ev.onComplete);
                         } else {
                             setRandomEvent(prev => ({ ...prev, phase: 'win_continue', prize, round: prev.round + 1, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 }));
                         }
