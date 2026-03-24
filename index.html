@@ -300,7 +300,7 @@
             { id: 'harbor_5',         title: '烏龜烏龜～碰',   cond: '元素港灣（自然科）通關 5 次' },
             { id: 'ruins_5',          title: '資源回收大師',   cond: '編年廢墟（社會科）通關 5 次' },
             { id: 'forest_5',         title: '竹林第八賢',     cond: '千卷墨林（國語科）通關 5 次' },
-            { id: 'card_god',         title: '賭神',           cond: '在猜大小遊戲中連續猜對三關到底' },
+            { id: 'card_god',         title: '賭神',           cond: '在猜大小遊戲中連續猜對五關到底' },
         ];
 
         const END_SLIDES = [
@@ -912,11 +912,11 @@
                 }
                 if (action === 'big' || action === 'small') {
                     const correct = (action === 'big' && ev.rightCard > ev.leftCard) || (action === 'small' && ev.rightCard < ev.leftCard);
-                    const prizes = [50, 100, 200]; const prize = prizes[ev.round - 1];
+                    const prizes = [50, 100, 200, 250, 350]; const prize = prizes[ev.round - 1];
                     if (correct) {
-                        if (ev.round === 3) {
+                        if (ev.round === 5) {
                             setPlayer(prev => ({ ...prev, gold: prev.gold + prize, cardGodWon: true }));
-                            showMessage('🎉 恭喜！', `太厲害了！三關全過！\n獲得最高獎金 ${prize}G！\n🏅 成就解鎖：「賭神」`, '🏆', ev.onComplete);
+                            showMessage('🎉 賭神降臨！', `五關全過！傳說中的賭神就是你！\n獲得最高獎金 ${prize}G！\n🏅 成就解鎖：「賭神」`, '🏆', ev.onComplete);
                         } else {
                             setRandomEvent(prev => ({ ...prev, phase: 'win_continue', prize, round: prev.round + 1, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 }));
                         }
@@ -2382,7 +2382,7 @@
                                             </>)}
                                             {randomEvent.phase === 'win_continue' && (<>
                                                 <p className="text-green-600 font-bold mb-1">✅ 猜對了！右牌是 {randomEvent.leftCard}</p>
-                                                <p className="text-gray-500 text-sm mb-4">獲得 <span className="text-amber-500 font-bold">{randomEvent.prize}G</span>！要繼續賭嗎？<br/><span className="text-xs text-gray-400">（繼續：贏得 {randomEvent.prize * 2}G 或全輸）</span></p>
+                                                <p className="text-gray-500 text-sm mb-4">獲得 <span className="text-amber-500 font-bold">{randomEvent.prize}G</span>！要繼續賭嗎？<br/><span className="text-xs text-gray-400">（繼續：贏得 {[50,100,200,250,350][randomEvent.round-1]}G 或全輸）</span></p>
                                                 <div className="flex flex-col gap-2">
                                                     <button className="bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('continue')}>繼續賭！（第 {randomEvent.round} 關）</button>
                                                     <button className="bg-green-100 border-2 border-green-400 text-green-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('take')}>不貪心了，帶走 {randomEvent.prize}G</button>
