@@ -783,6 +783,9 @@
                 }
 
                 if (player.hp <= 0) { showMessage('體力不足', '請先使用藥水恢復 HP！', '🚑'); return; }
+                const zoneFragMap = { east_forest: 'frag_east', west_desert: 'frag_west', south_harbor: 'frag_south', north_tundra: 'frag_north', outer_ruins: 'frag_outer' };
+                const fragId = zoneFragMap[zoneKey];
+                if (fragId) { const fragSlot = player.inventory.find(i => i.id === fragId); if (fragSlot && fragSlot.qty >= 3) { showMessage('怪物逃跑了！', '這裡的怪都被嚇走了，\n把通關證明用掉再來吧！', '👻'); return; } }
                 let pool = [];
                 if (zone.type === 'custom_csv' || zone.type === 'mixed_all') { const bankKey = zone.type === 'mixed_all' ? 'mixed' : zone.questionBank; pool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); }
                 setBattle({ active: true, zone, wave: 1, questionPool: pool, monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false, wrongShake: false, isProcessing: false });
