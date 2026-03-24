@@ -876,7 +876,7 @@
                         const types = ['chest', 'animal', 'woodcutter'];
                         const eventType = types[Math.floor(Math.random() * 3)];
                         setRandomEvent({ type: eventType, chestWinner: Math.floor(Math.random() * 3), onComplete: () => { setRandomEvent(null); showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 2 })); } });
-                    } else if (currentWave === 2 && Math.random() < 0.3) {
+                    } else if (currentWave === 2 && Math.random() < 0.4) {
                         const goW3 = () => { setRandomEvent(null); showDamage("BOSS 出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 3 })); };
                         setRandomEvent({ type: 'cardgame', phase: 'offer', leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1, round: 1, prize: 0, onComplete: goW3 });
                     } else {
