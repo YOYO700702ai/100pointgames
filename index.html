@@ -1535,8 +1535,8 @@
                         }), 200);
                     }
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
-                    let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)\n\n一擊必殺紙劍也有在賣，\n通關證明各兩份＋3000G！`;
-                    const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : ['sword_paper_kill'];
+                    let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
+                    const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : [];
                     setMerchantItems(snapshot);
                     setNpcMessage(introText);
                 } else {
