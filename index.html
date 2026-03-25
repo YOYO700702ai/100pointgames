@@ -1547,8 +1547,8 @@
                         }), 200);
                     }
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
-                    let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
-                    const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold', 'frag_exchange'] : [];
+                    let introText = hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
+                    const snapshot = hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold', 'frag_exchange'] : collectedCount === 5 ? ['key_strange'] : [];
                     setMerchantItems(snapshot);
                     setNpcMessage(introText);
                 } else {
@@ -1623,8 +1623,8 @@
                 });
 
                 // 機率表（總計100%）
-                // 一般：蛋10% | 大紅7% | 一擊8% | 金幣6% | 藍波9% | 營養劑55% | 吐槽5%
-                // 50顆後若還有蛋：蛋50% | 大紅7% | 一擊8% | 金幣6% | 藍波9% | 營養劑15% | 吐槽5%
+                // 一般：蛋10% | 大紅7% | 一擊7% | 金幣7% | 藍波9% | 營養劑55% | 吐槽5%
+                // 50顆後若還有蛋：蛋50% | 大紅7% | 一擊7% | 金幣7% | 藍波9% | 營養劑15% | 吐槽5%
                 const gachaCount = Math.floor((player.gachaSpent || 0) / 100);
                 const highEggMode = gachaCount >= 50 && unownedEggs.length > 0;
                 const o = highEggMode ? 40 : 0; // offset：蛋多佔40%，其他選項整體右移
@@ -1637,7 +1637,7 @@
                 } else if (roll < (17 + o)) {
                     addItem('potion_l', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_l'].name}`, ITEMS['potion_l'].icon);
-                } else if (roll < (25 + o)) {
+                } else if (roll < (24 + o)) {
                     addItem('sword_paper_kill', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_kill'].name}`, ITEMS['sword_paper_kill'].icon);
                 } else if (roll < (31 + o)) {
@@ -1788,27 +1788,27 @@
                                     <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('map')}>← 離開</button>
 
                                     {/* 星願守門人 NPC（中央天使） */}
-                                    <div className="absolute top-[38%] left-[50%] w-[14%] h-[22%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                    <div className="absolute top-[42%] left-[50%] w-[18%] h-[26%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
                                         onClick={() => showMessage('星願守門人', '歡迎來到星願永恆宮！\n這裡的關卡如果沒有帶著神獸，是絕對不可能過關的喔！！\n如果還沒有神獸，去村裡的轉蛋雞看看吧～～\n要收集五隻神獸才有機會回家唷～！', '👼')}></div>
 
                                     {/* 魔法圖書館（左上） */}
-                                    <div className="absolute top-[28%] left-[18%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                    <div className="absolute top-[27%] left-[15%] w-[22%] h-[30%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
                                         onClick={() => startIdiomGame()}></div>
 
                                     {/* 小丑猜寶箱（左下） */}
-                                    <div className="absolute top-[70%] left-[18%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                    <div className="absolute top-[72%] left-[17%] w-[22%] h-[26%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
                                         onClick={() => startClownGame()}></div>
 
                                     {/* 釣魚小遊戲（下中） */}
-                                    <div className="absolute top-[75%] left-[48%] w-[14%] h-[18%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                    <div className="absolute top-[78%] left-[48%] w-[20%] h-[22%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
                                         onClick={() => startMemoryGame()}></div>
 
                                     {/* 礦坑打地鼠（右上） */}
-                                    <div className="absolute top-[28%] left-[82%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                    <div className="absolute top-[25%] left-[83%] w-[22%] h-[30%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
                                         onClick={() => startMoleGame()}></div>
 
                                     {/* 動物大逃亡（右下） */}
-                                    <div className="absolute top-[65%] left-[82%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                    <div className="absolute top-[65%] left-[82%] w-[22%] h-[26%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
                                         onClick={() => startSlidingGame()}></div>
                                 </div>
                             )}
@@ -2460,7 +2460,15 @@
                                             <div className="font-bold text-[#5D4037] border-b border-[#ddd] pb-2 mb-2">🎒 背包物品</div>
                                             <div className="grid grid-cols-[repeat(auto-fill,minmax(70px,1fr))] gap-3 overflow-y-auto custom-scroll pb-2 content-start">
                                                 {[...player.inventory].sort((a, b) => {
-                                                    const order = (id) => { const t = ITEMS[id]?.type; if (t==='key'||t==='trophy'||t==='material') return 0; if (t==='weapon') return 1; if (t==='pet'||t==='egg') return 2; return 3; };
+                                                    const order = (id) => {
+                                                        if (id.startsWith('frag_') || id.startsWith('gem_')) return 0;
+                                                        const t = ITEMS[id]?.type;
+                                                        if (t==='key'||t==='trophy') return 1;
+                                                        if (t==='weapon') return 2;
+                                                        if (t==='pet'||t==='egg') return 3;
+                                                        if (t==='consumable'||t==='consumable_hatch'||t==='material') return 4;
+                                                        return 5;
+                                                    };
                                                     return order(a.id) - order(b.id);
                                                 }).map((slot) => {
                                                     const idx = player.inventory.findIndex(s => s.id === slot.id);
