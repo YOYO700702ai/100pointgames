@@ -110,7 +110,7 @@
     <div class="stat-card"><div class="label">總玩家數</div><div class="value" id="statTotal">-</div></div>
     <div class="stat-card"><div class="label">最高等級</div><div class="value" id="statMaxLv">-</div></div>
     <div class="stat-card"><div class="label">拿到鑰匙</div><div class="value" id="statKey">-</div></div>
-    <div class="stat-card"><div class="label">完成通關</div><div class="value" id="statClear">-</div></div>
+    <div class="stat-card"><div class="label">看過結局</div><div class="value" id="statClear">-</div></div>
   </div>
 
   <!-- 工具列 -->
@@ -134,10 +134,12 @@
           <th>ATK</th>
           <th>通關區域</th>
           <th>鑰匙</th>
+          <th>成就</th>
+          <th>通關</th>
           <th>操作</th>
         </tr>
       </thead>
-      <tbody id="tableBody"><tr><td colspan="10" class="loading">載入中...</td></tr></tbody>
+      <tbody id="tableBody"><tr><td colspan="12" class="loading">載入中...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -202,7 +204,7 @@
     document.getElementById('statMaxLv').textContent = 'LV.' + maxLv;
     const keyCount = allPlayers.filter(p => (p.inventory||[]).some(i => i.id === 'key_strange')).length;
     document.getElementById('statKey').textContent = keyCount + ' 人';
-    const clearCount = allPlayers.filter(p => p.level >= 10).length;
+    const clearCount = allPlayers.filter(p => p.gameCleared === true).length;
     document.getElementById('statClear').textContent = clearCount + ' 人';
   }
 
@@ -221,7 +223,7 @@
       { id: 'outer_ruins', label: '社' },
     ];
     if (filtered.length === 0) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">沒有資料</td></tr>';
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" class="empty">沒有資料</td></tr>';
       return;
     }
     document.getElementById('tableBody').innerHTML = filtered.map(p => {
@@ -232,6 +234,21 @@
       ).join(' ');
       const baseAtk = p.baseAtk || 8;
       const atk = baseAtk + ((p.level||1)-1)*2;
+      const TOTAL_ACH = 12;
+      const achCount = [
+        (p.examZeroClears||0)>=5,
+        p.achNoWrong===true,
+        p.level>=10,
+        (p.gachaSpent||0)>=5000,
+        (p.totalGoldEarned||0)>=10000,
+        ((p.zoneClears||{}).west_desert||0)>=5,
+        ((p.zoneClears||{}).north_tundra||0)>=5,
+        ((p.zoneClears||{}).south_harbor||0)>=5,
+        ((p.zoneClears||{}).outer_ruins||0)>=5,
+        ((p.zoneClears||{}).east_forest||0)>=5,
+        p.cardGodWon===true,
+        ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(id=>(p.inventory||[]).some(i=>i.id===id)||p.equipped?.pet===id),
+      ].filter(Boolean).length;
       return `<tr>
         <td><input type="checkbox" class="select-cb row-cb" data-id="${p._id}"></td>
         <td style="font-family:monospace;color:#94a3b8">${p.accountId||'-'}</td>
@@ -241,7 +258,9 @@
         <td><span class="badge badge-gold">💰${p.gold||0}</span></td>
         <td>⚔️${atk}</td>
         <td style="font-size:0.8rem">${zoneDots}</td>
-        <td>${hasKey ? '🗝️ 有':'—'}</td>
+        <td>${hasKey ? '🗝️':'—'}</td>
+        <td>${achCount}/${TOTAL_ACH}</td>
+        <td>${p.gameCleared ? '✅':'—'}</td>
         <td><button class="del-btn" onclick="deleteSingle('${p._id}', '${p.name||p.accountId}')">刪除</button></td>
       </tr>`;
     }).join('');
