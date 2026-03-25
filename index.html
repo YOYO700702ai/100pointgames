@@ -1782,51 +1782,33 @@
                             )}
 
                             {scene === 'library_lobby' && (
-                                <div className="absolute inset-0 bg-[#EFEBE9] p-3 flex flex-col items-center justify-center">
-                                    <h2 className="text-2xl font-bold text-[#5D4037] mb-4 tracking-widest text-shadow-title text-white">魔法圖書館 - 大廳</h2>
+                                <div className="absolute inset-0 bg-cover bg-center" style={{backgroundImage:"url('https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/%E6%98%9F%E9%A1%98%E6%B0%B8%E6%81%86%E5%AE%AE.png')"}}>
+                                    {/* 離開按鈕 */}
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('map')}>← 離開</button>
 
-                                    <div className="flex flex-col gap-2.5 w-full max-w-[480px]">
-                                        {/* 上排：兩張 */}
-                                        <div className="flex gap-2.5 justify-center">
-                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#8D6E63] p-2.5 w-[145px]"
-                                                onClick={() => startIdiomGame()}>
-                                                <div className="text-[2.8rem]">📚</div>
-                                                <div className="text-xs font-bold text-[#5D4037] text-center">圖書管理員的考驗</div>
-                                                <div className="text-[0.65rem] font-bold text-[#EF5350] bg-[#FFCDD2] px-2 py-0.5 rounded-full">紅寶石挑戰</div>
-                                            </div>
-                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#42A5F5] p-2.5 w-[145px]"
-                                                onClick={() => startClownGame()}>
-                                                <div className="text-[2.8rem]">🤡</div>
-                                                <div className="text-xs font-bold text-[#1565C0] text-center">小丑的尋寶遊戲</div>
-                                                <div className="text-[0.65rem] font-bold text-[#1E88E5] bg-[#BBDEFB] px-2 py-0.5 rounded-full">藍寶石挑戰</div>
-                                            </div>
-                                        </div>
-                                        {/* 下排：三張 */}
-                                        <div className="flex gap-2.5 justify-center">
-                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#FBC02D] p-2.5 w-[120px]"
-                                                onClick={() => startMemoryGame()}>
-                                                <div className="text-[2.3rem]">🃏</div>
-                                                <div className="text-xs font-bold text-[#F57F17] text-center">紙牌大師的記憶</div>
-                                                <div className="text-[0.65rem] font-bold text-[#FBC02D] bg-[#FFF9C4] px-2 py-0.5 rounded-full">黃寶石挑戰</div>
-                                            </div>
-                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#2E7D32] p-2.5 w-[120px]"
-                                                onClick={() => startMoleGame()}>
-                                                <div className="text-[2.3rem]">👺</div>
-                                                <div className="text-xs font-bold text-[#2E7D32] text-center">暴走地精翡翠礦坑</div>
-                                                <div className="text-[0.65rem] font-bold text-[#388E3C] bg-[#C8E6C9] px-2 py-0.5 rounded-full">綠寶石挑戰</div>
-                                            </div>
-                                            <div className="bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all border-[3px] border-[#7B1FA2] p-2.5 w-[120px]"
-                                                onClick={() => startSlidingGame()}>
-                                                <div className="text-[2.3rem]">🐘</div>
-                                                <div className="text-xs font-bold text-[#7B1FA2] text-center">動物大逃亡</div>
-                                                <div className="text-[0.65rem] font-bold text-[#9C27B0] bg-[#F3E5F5] px-2 py-0.5 rounded-full">紫寶石挑戰</div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {/* 星願守門人 NPC（中央天使） */}
+                                    <div className="absolute top-[38%] left-[50%] w-[14%] h-[22%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                        onClick={() => showMessage('星願守門人', '歡迎來到星願永恆宮！\n這裡的關卡如果沒有帶著神獸，是絕對不可能過關的喔！！\n如果還沒有神獸，去村裡的轉蛋雞看看吧～～\n要收集五隻神獸才有機會回家唷～！', '👼')}></div>
 
-                                    <button className="mt-4 px-6 py-2 bg-[#9E9E9E] text-white font-bold rounded-xl shadow-[0_4px_0_#616161] active:translate-y-1 active:shadow-none hover:bg-[#757575] text-lg" onClick={() => setScene('map')}>
-                                        離開圖書館
-                                    </button>
+                                    {/* 魔法圖書館（左上） */}
+                                    <div className="absolute top-[28%] left-[18%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                        onClick={() => startIdiomGame()}></div>
+
+                                    {/* 小丑猜寶箱（左下） */}
+                                    <div className="absolute top-[70%] left-[18%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                        onClick={() => startClownGame()}></div>
+
+                                    {/* 釣魚小遊戲（下中） */}
+                                    <div className="absolute top-[75%] left-[48%] w-[14%] h-[18%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                        onClick={() => startMemoryGame()}></div>
+
+                                    {/* 礦坑打地鼠（右上） */}
+                                    <div className="absolute top-[28%] left-[82%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                        onClick={() => startMoleGame()}></div>
+
+                                    {/* 動物大逃亡（右下） */}
+                                    <div className="absolute top-[65%] left-[82%] w-[14%] h-[20%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-white/20 transition-all"
+                                        onClick={() => startSlidingGame()}></div>
                                 </div>
                             )}
 
