@@ -1623,44 +1623,29 @@
                 });
 
                 // 機率表（總計100%）
-                // 一般：蛋10% | 大紅7% | 一擊7% | 金幣7% | 藍波24% | 營養劑40% | 吐槽5%
+                // 一般：蛋10% | 大紅16% | 一擊7% | 金幣7% | 藍波15% | 營養劑40% | 吐槽5%
                 // 50顆後若還有蛋：蛋40% | 大紅7% | 一擊7% | 金幣7% | 藍波9% | 營養劑25% | 吐槽5%
                 const gachaCount = Math.floor((player.gachaSpent || 0) / 100);
                 const highEggMode = gachaCount >= 50 && unownedEggs.length > 0;
                 const roll = Math.random() * 100;
-                const eggT = highEggMode ? 40 : 10;
-                const rainbowT = highEggMode ? 70 : 55;
+                const addGacha = (id) => { addItem(id, 1); showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS[id].name}`, ITEMS[id].icon); };
 
-                if (roll < eggT && unownedEggs.length > 0) {
-                    const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
-                    addItem(gotEgg, 1);
-                    showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
-                } else if (roll < (eggT + 7)) {
-                    addItem('potion_l', 1);
-                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_l'].name}`, ITEMS['potion_l'].icon);
-                } else if (roll < (eggT + 14)) {
-                    addItem('sword_paper_kill', 1);
-                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_kill'].name}`, ITEMS['sword_paper_kill'].icon);
-                } else if (roll < (eggT + 21)) {
-                    addItem('sword_paper_gold', 1);
-                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_gold'].name}`, ITEMS['sword_paper_gold'].icon);
-                } else if (roll < rainbowT) {
-                    addItem('potion_rainbow', 1);
-                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_rainbow'].name}`, ITEMS['potion_rainbow'].icon);
-                } else if (roll < 95) {
-                    addItem('potion_nutri', 1);
-                    showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_nutri'].name}`, ITEMS['potion_nutri'].icon);
+                if (highEggMode) {
+                    if (roll < 40 && unownedEggs.length > 0) { const e = unownedEggs[Math.floor(Math.random()*unownedEggs.length)]; addItem(e,1); showMessage('中大獎啦！',`咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[e].name} ✨`,ITEMS[e].icon); }
+                    else if (roll < 47) { addGacha('potion_l'); }
+                    else if (roll < 54) { addGacha('sword_paper_kill'); }
+                    else if (roll < 61) { addGacha('sword_paper_gold'); }
+                    else if (roll < 70) { addGacha('potion_rainbow'); }
+                    else if (roll < 95) { addGacha('potion_nutri'); }
+                    else { const jokes=["老闆：這轉蛋機裡的獎品，簡直就像是沒經費的動畫第二季一樣慘不忍睹...","老闆：你以為會出SSR嗎？不，這只是一場沒有盡頭的「漫步」的開始...","老闆：轉出這種廢物，就連男主角的青梅竹馬都不會多看你一眼的。","老闆：這機率比那些穿越異世界卻拿不到外掛作弊能力的機率還要低啊...","老闆：放棄吧，你的幸運值大概跟那個只會狂死的倒霉男主角差不多吧。"]; showMessage('銘謝惠顧...', `轉蛋機發出奇怪的聲音，什麼也沒掉出來。\n\n旁邊神秘商店老闆探出頭吐槽：\n「${jokes[Math.floor(Math.random()*jokes.length)]}」`, '🐔'); }
                 } else {
-                    // 吐槽 5%（95~100）
-                    const jokes = [
-                        "老闆：這轉蛋機裡的獎品，簡直就像是沒經費的動畫第二季一樣慘不忍睹...",
-                        "老闆：你以為會出SSR嗎？不，這只是一場沒有盡頭的「漫步」的開始...",
-                        "老闆：轉出這種廢物，就連男主角的青梅竹馬都不會多看你一眼的。",
-                        "老闆：這機率比那些穿越異世界卻拿不到外掛作弊能力的機率還要低啊...",
-                        "老闆：放棄吧，你的幸運值大概跟那個只會狂死的倒霉男主角差不多吧。"
-                    ];
-                    const joke = jokes[Math.floor(Math.random() * jokes.length)];
-                    showMessage('銘謝惠顧...', `轉蛋機發出奇怪的聲音，什麼也沒掉出來。\n\n旁邊神秘商店老闆探出頭吐槽：\n「${joke}」`, '🐔');
+                    if (roll < 10 && unownedEggs.length > 0) { const e = unownedEggs[Math.floor(Math.random()*unownedEggs.length)]; addItem(e,1); showMessage('中大獎啦！',`咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[e].name} ✨`,ITEMS[e].icon); }
+                    else if (roll < 26) { addGacha('potion_l'); }
+                    else if (roll < 33) { addGacha('sword_paper_kill'); }
+                    else if (roll < 40) { addGacha('sword_paper_gold'); }
+                    else if (roll < 55) { addGacha('potion_rainbow'); }
+                    else if (roll < 95) { addGacha('potion_nutri'); }
+                    else { const jokes=["老闆：這轉蛋機裡的獎品，簡直就像是沒經費的動畫第二季一樣慘不忍睹...","老闆：你以為會出SSR嗎？不，這只是一場沒有盡頭的「漫步」的開始...","老闆：轉出這種廢物，就連男主角的青梅竹馬都不會多看你一眼的。","老闆：這機率比那些穿越異世界卻拿不到外掛作弊能力的機率還要低啊...","老闆：放棄吧，你的幸運值大概跟那個只會狂死的倒霉男主角差不多吧。"]; showMessage('銘謝惠顧...', `轉蛋機發出奇怪的聲音，什麼也沒掉出來。\n\n旁邊神秘商店老闆探出頭吐槽：\n「${jokes[Math.floor(Math.random()*jokes.length)]}」`, '🐔'); }
                 }
             };
 
