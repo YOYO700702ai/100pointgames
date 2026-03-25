@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理員後台｜亞德雷大陸</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  /* 登入畫面 */
+  #loginScreen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; gap: 16px;
+  }
+  #loginScreen h1 { font-size: 1.5rem; color: #94a3b8; letter-spacing: 0.1em; }
+  #loginScreen input {
+    padding: 12px 20px; border-radius: 10px; border: 2px solid #334155;
+    background: #1e293b; color: #e2e8f0; font-size: 1.1rem; width: 260px;
+    text-align: center; outline: none;
+  }
+  #loginScreen input:focus { border-color: #6366f1; }
+  #loginScreen button {
+    padding: 10px 32px; background: #6366f1; color: white; border: none;
+    border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer;
+  }
+  #loginScreen button:hover { background: #4f46e5; }
+  #loginError { color: #f87171; font-size: 0.9rem; }
+
+  /* 主頁面 */
+  #mainScreen { display: none; padding: 24px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .header h1 { font-size: 1.4rem; font-weight: bold; color: #a5b4fc; }
+  .header span { font-size: 0.85rem; color: #64748b; }
+
+  /* 統計列 */
+  .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card {
+    background: #1e293b; border-radius: 12px; padding: 16px 24px;
+    border: 1px solid #334155; flex: 1; min-width: 140px;
+  }
+  .stat-card .label { font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
+  .stat-card .value { font-size: 1.6rem; font-weight: bold; color: #e2e8f0; }
+
+  /* 工具列 */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .toolbar input {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #334155;
+    background: #1e293b; color: #e2e8f0; font-size: 0.9rem; flex: 1; min-width: 180px;
+  }
+  .btn { padding: 8px 18px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.8; }
+  .btn-danger { background: #ef4444; color: white; }
+  .btn-refresh { background: #0ea5e9; color: white; }
+  .btn-logout { background: #334155; color: #94a3b8; }
+
+  /* 表格 */
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #334155; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead { background: #1e293b; }
+  thead th { padding: 12px 14px; text-align: left; color: #94a3b8; font-weight: 600; white-space: nowrap; }
+  tbody tr { border-top: 1px solid #1e293b; transition: background 0.1s; }
+  tbody tr:hover { background: #1e293b; }
+  tbody td { padding: 10px 14px; vertical-align: middle; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 99px;
+    font-size: 0.75rem; font-weight: bold;
+  }
+  .badge-lv { background: #312e81; color: #a5b4fc; }
+  .badge-gold { background: #422006; color: #fbbf24; }
+  .badge-hp { background: #450a0a; color: #fca5a5; }
+  .zone-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+  .dot-on { background: #22c55e; }
+  .dot-off { background: #374151; }
+  .del-btn {
+    padding: 4px 12px; background: #7f1d1d; color: #fca5a5;
+    border: 1px solid #991b1b; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+  }
+  .del-btn:hover { background: #991b1b; }
+  .select-cb { width: 16px; height: 16px; cursor: pointer; accent-color: #6366f1; }
+
+  .empty { text-align: center; padding: 40px; color: #475569; }
+  .loading { text-align: center; padding: 40px; color: #64748b; }
+  #deleteCount { color: #f87171; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<!-- 登入畫面 -->
+<div id="loginScreen">
+  <h1>🏰 亞德雷大陸・管理後台</h1>
+  <input type="password" id="pwInput" placeholder="輸入管理員密碼" onkeydown="if(event.key==='Enter')login()">
+  <button onclick="login()">進入</button>
+  <span id="loginError"></span>
+</div>
+
+<!-- 主頁面 -->
+<div id="mainScreen">
+  <div class="header">
+    <h1>🏰 亞德雷大陸・管理後台</h1>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="lastRefresh"></span>
+      <button class="btn btn-refresh" onclick="loadData()">🔄 重新整理</button>
+      <button class="btn btn-logout" onclick="logout()">登出</button>
+    </div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="stats">
+    <div class="stat-card"><div class="label">總玩家數</div><div class="value" id="statTotal">-</div></div>
+    <div class="stat-card"><div class="label">最高等級</div><div class="value" id="statMaxLv">-</div></div>
+    <div class="stat-card"><div class="label">拿到鑰匙</div><div class="value" id="statKey">-</div></div>
+    <div class="stat-card"><div class="label">完成通關</div><div class="value" id="statClear">-</div></div>
+  </div>
+
+  <!-- 工具列 -->
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋帳號或暱稱..." oninput="renderTable()">
+    <span id="deleteCount"></span>
+    <button class="btn btn-danger" onclick="deleteSelected()" id="delBtn" style="display:none">🗑️ 刪除勾選</button>
+  </div>
+
+  <!-- 表格 -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="select-cb" id="selectAll" onchange="toggleAll(this)"></th>
+          <th>帳號 ID</th>
+          <th>暱稱</th>
+          <th>等級</th>
+          <th>HP</th>
+          <th>金幣</th>
+          <th>ATK</th>
+          <th>通關區域</th>
+          <th>鑰匙</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"><tr><td colspan="10" class="loading">載入中...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getFirestore, collection, getDocs, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+  const ADMIN_PASSWORD = 'yoyo2026';  // ← 在這裡改你的密碼
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBnHKkNtvQdSoCywSCZKkwPI_dRLJNXvXg",
+    authDomain: "rpggame-7ae09.firebaseapp.com",
+    projectId: "rpggame-7ae09",
+    storageBucket: "rpggame-7ae09.firebasestorage.app",
+    messagingSenderId: "766489842525",
+    appId: "1:766489842525:web:75a6ca54772ee659854eb4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  let allPlayers = [];
+
+  // 登入
+  window.login = () => {
+    const pw = document.getElementById('pwInput').value;
+    if (pw === ADMIN_PASSWORD) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+      loadData();
+    } else {
+      document.getElementById('loginError').textContent = '密碼錯誤';
+      document.getElementById('pwInput').value = '';
+    }
+  };
+
+  window.logout = () => {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('mainScreen').style.display = 'none';
+    document.getElementById('pwInput').value = '';
+    allPlayers = [];
+  };
+
+  // 載入資料
+  window.loadData = async () => {
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading">載入中...</td></tr>';
+    try {
+      const snap = await getDocs(collection(db, 'saves'));
+      allPlayers = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      updateStats();
+      renderTable();
+      document.getElementById('lastRefresh').textContent = '更新：' + new Date().toLocaleTimeString('zh-TW');
+    } catch(e) {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">讀取失敗：' + e.message + '</td></tr>';
+    }
+  };
+
+  // 統計
+  function updateStats() {
+    document.getElementById('statTotal').textContent = allPlayers.length;
+    const maxLv = allPlayers.reduce((m, p) => Math.max(m, p.level || 1), 1);
+    document.getElementById('statMaxLv').textContent = 'LV.' + maxLv;
+    const keyCount = allPlayers.filter(p => (p.inventory||[]).some(i => i.id === 'key_strange')).length;
+    document.getElementById('statKey').textContent = keyCount + ' 人';
+    const clearCount = allPlayers.filter(p => p.level >= 10).length;
+    document.getElementById('statClear').textContent = clearCount + ' 人';
+  }
+
+  // 渲染表格
+  window.renderTable = () => {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allPlayers.filter(p =>
+      (p.accountId || '').toLowerCase().includes(q) ||
+      (p.name || '').toLowerCase().includes(q)
+    );
+    const zones = [
+      { id: 'east_forest', label: '國' },
+      { id: 'west_desert', label: '數' },
+      { id: 'south_harbor', label: '自' },
+      { id: 'north_tundra', label: '英' },
+      { id: 'outer_ruins', label: '社' },
+    ];
+    if (filtered.length === 0) {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">沒有資料</td></tr>';
+      return;
+    }
+    document.getElementById('tableBody').innerHTML = filtered.map(p => {
+      const zoneClears = p.zoneClears || {};
+      const hasKey = (p.inventory||[]).some(i => i.id === 'key_strange');
+      const zoneDots = zones.map(z =>
+        `<span class="zone-dot ${(zoneClears[z.id]||0)>0 ? 'dot-on':'dot-off'}" title="${z.label} ${zoneClears[z.id]||0}次"></span>${z.label}`
+      ).join(' ');
+      const baseAtk = p.baseAtk || 8;
+      const atk = baseAtk + ((p.level||1)-1)*2;
+      return `<tr>
+        <td><input type="checkbox" class="select-cb row-cb" data-id="${p._id}"></td>
+        <td style="font-family:monospace;color:#94a3b8">${p.accountId||'-'}</td>
+        <td style="font-weight:bold">${p.name||'-'}</td>
+        <td><span class="badge badge-lv">LV.${p.level||1}</span></td>
+        <td><span class="badge badge-hp">${p.hp||0}/${(p.baseMaxHp||15)+((p.level||1)-1)*10}</span></td>
+        <td><span class="badge badge-gold">💰${p.gold||0}</span></td>
+        <td>⚔️${atk}</td>
+        <td style="font-size:0.8rem">${zoneDots}</td>
+        <td>${hasKey ? '🗝️ 有':'—'}</td>
+        <td><button class="del-btn" onclick="deleteSingle('${p._id}', '${p.name||p.accountId}')">刪除</button></td>
+      </tr>`;
+    }).join('');
+
+    document.querySelectorAll('.row-cb').forEach(cb => {
+      cb.addEventListener('change', updateDelBtn);
+    });
+  };
+
+  function updateDelBtn() {
+    const checked = document.querySelectorAll('.row-cb:checked').length;
+    document.getElementById('delBtn').style.display = checked > 0 ? 'inline-block' : 'none';
+    document.getElementById('deleteCount').textContent = checked > 0 ? `已選 ${checked} 筆` : '';
+  }
+
+  window.toggleAll = (cb) => {
+    document.querySelectorAll('.row-cb').forEach(r => r.checked = cb.checked);
+    updateDelBtn();
+  };
+
+  // 刪除單筆
+  window.deleteSingle = async (id, name) => {
+    if (!confirm(`確定要刪除「${name}」的存檔嗎？`)) return;
+    await deleteDoc(doc(db, 'saves', id));
+    allPlayers = allPlayers.filter(p => p._id !== id);
+    updateStats();
+    renderTable();
+  };
+
+  // 刪除勾選
+  window.deleteSelected = async () => {
+    const checked = [...document.querySelectorAll('.row-cb:checked')].map(cb => cb.dataset.id);
+    if (checked.length === 0) return;
+    if (!confirm(`確定要刪除 ${checked.length} 筆存檔嗎？此操作無法還原。`)) return;
+    for (const id of checked) {
+      await deleteDoc(doc(db, 'saves', id));
+    }
+    allPlayers = allPlayers.filter(p => !checked.includes(p._id));
+    updateStats();
+    renderTable();
+    document.getElementById('delBtn').style.display = 'none';
+    document.getElementById('deleteCount').textContent = '';
+    document.getElementById('selectAll').checked = false;
+  };
+</script>
+</body>
+</html>
