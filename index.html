@@ -1702,15 +1702,16 @@
                                     <span className="text-base font-black font-mono">⚔️ {stats.atk}</span>
                                 </div>
 
+                                <div className="mt-auto flex flex-col gap-1 mb-2">
                                 {scene !== 'equipment' && (
-                                <button className="mt-auto w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => { setPrevScene(scene); setScene('equipment'); }}>
+                                <button className="w-full p-1.5 text-sm bg-[#FF9F1C] text-white font-bold rounded-lg shadow-[0_3px_0_#b87114] active:scale-95 transition-transform" onClick={() => { setPrevScene(scene); setScene('equipment'); }}>
                                     🎒 背包
                                 </button>
                                 )}
-                                <button className="mt-1 w-full text-sm bg-[#7986CB] text-white font-bold rounded-lg shadow-[0_3px_0_#3949ab] active:scale-95 transition-transform" style={{minHeight:'2rem'}} onClick={() => showMessage('❓ 通關小提示', '1️⃣ 五個關卡都要過一次，才能找哥布林商人換鑰匙！\n\n2️⃣ 星願永恆宮的關卡，沒有神獸當寵物是過不去的！\n\n3️⃣ 有空多逛逛商店，裡面有好東西喔～', '💡')}>
+                                <button className="w-full text-sm bg-[#7986CB] text-white font-bold rounded-lg shadow-[0_3px_0_#3949ab] active:scale-95 transition-transform" style={{minHeight:'2rem'}} onClick={() => showMessage('❓ 通關小提示', '1️⃣ 五個關卡都要過一次，才能找哥布林商人換鑰匙！\n\n2️⃣ 星願永恆宮的關卡，沒有神獸當寵物是過不去的！\n\n3️⃣ 有空多逛逛商店，裡面有好東西喔～', '💡')}>
                                     ❓ 通關小提示
                                 </button>
-                                <button className="mt-1.5 w-full mb-2 text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform overflow-hidden relative disabled:opacity-60" onClick={saveToCloud} disabled={isSaving} style={{minHeight:'2rem'}}>
+                                <button className="w-full text-sm bg-[#4CB944] text-white font-bold rounded-lg shadow-[0_3px_0_#2d8a26] active:scale-95 transition-transform overflow-hidden relative disabled:opacity-60" onClick={saveToCloud} disabled={isSaving} style={{minHeight:'2rem'}}>
                                     {isSaving ? (
                                         <div className="flex flex-col items-center justify-center px-2 py-1 gap-0.5">
                                             <span className="text-xs">存檔中...</span>
@@ -1720,6 +1721,7 @@
                                         </div>
                                     ) : '💾 存檔'}
                                 </button>
+                                </div>
                             </div>
                         )}
 
