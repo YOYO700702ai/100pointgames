@@ -379,7 +379,7 @@
             const [moleGame, setMoleGame] = useState({
                 active: false,
                 score: 0,
-                targetScore: 60,
+                targetScore: 55,
                 timeLeft: 15,
                 holes: Array(9).fill(false), // 9個洞，true = 地精出現
                 is2x2: false // 甲龍技能啟動
@@ -1291,7 +1291,7 @@
 
             const actualStartMole = (is2x2) => {
                 setMoleGame({
-                    active: true, score: 0, targetScore: 60, timeLeft: 15,
+                    active: true, score: 0, targetScore: 55, timeLeft: 15,
                     holes: Array(9).fill(false), is2x2
                 });
                 setScene('minigame_mole');
@@ -1326,7 +1326,7 @@
                                         setScene('library_lobby');
                                     });
                                 } else {
-                                    showMessage('\u6311\u6230\u5931\u6557', `\u53ea\u6253\u5230 ${prev.score} \u96bb\uff0c\u9700\u8981 60 \u96bb\u624d\u80fd\u904e\u95dc\uff01\n\u5e36\u8457\u80fd\u904e\u95dc\u7684\u5c0f\u5925\u4f34\u518d\u4f86\u5427\uff01`, '\ud83d\udc7a', () => {
+                                    showMessage('\u6311\u6230\u5931\u6557', `\u53ea\u6253\u5230 ${prev.score} \u96bb\uff0c\u9700\u8981 55 \u96bb\u624d\u80fd\u904e\u95dc\uff01\n\u5e36\u8457\u80fd\u904e\u95dc\u7684\u5c0f\u5925\u4f34\u518d\u4f86\u5427\uff01`, '\ud83d\udc7a', () => {
                                         setScene('library_lobby');
                                     });
                                 }
@@ -2028,7 +2028,7 @@
                                             👺
                                         </div>
                                         <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#2E7D32] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
-                                            貪婪地精工頭：「哼！你能在 15 秒內打到 60 隻地精嗎？」
+                                            貪婪地精工頭：「哼！你能在 15 秒內打到 55 隻地精嗎？」
                                         </div>
                                     </div>
                                 </div>
