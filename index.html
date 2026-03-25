@@ -42,9 +42,16 @@
         let app, auth, db;
         const appId = 'my-math-rpg'; // 自訂 ID
         
-        // ⚠️ 重要：如果您要在 GitHub Pages 使用存檔功能，必須建立自己的 Firebase 專案，
-        // 並將設定貼在這裡。否則請將存檔相關功能視為無效。
-        const firebaseConfig = {
+        // 從 URL hash 讀取老師設定（教師版模式）
+        let _teacherConfig = null;
+        try {
+            if (location.hash && location.hash.length > 1)
+                _teacherConfig = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+        } catch(e) {}
+        const IS_TEACHER_MODE = _teacherConfig !== null;
+        const TEACHER_CONFIG_ERROR = IS_TEACHER_MODE && !(_teacherConfig?.firebase?.apiKey);
+
+        const _defaultFirebaseConfig = {
           apiKey: "AIzaSyBnHKkNtvQdSoCywSCZKkwPI_dRLJNXvXg",
           authDomain: "rpggame-7ae09.firebaseapp.com",
           projectId: "rpggame-7ae09",
@@ -53,9 +60,10 @@
           appId: "1:766489842525:web:75a6ca54772ee659854eb4",
           measurementId: "G-74W13YB5H4"
         };
+        const firebaseConfig = IS_TEACHER_MODE ? (_teacherConfig?.firebase || {}) : _defaultFirebaseConfig;
 
         try {
-            if (Object.keys(firebaseConfig).length > 0) {
+            if (!TEACHER_CONFIG_ERROR && Object.keys(firebaseConfig).length > 0) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
@@ -74,10 +82,10 @@
         // ★ 遊戲設定與資料庫 (常數) ★
         // ==========================================
 
-        const CHINESE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkJiMnZSApC9QGpRkUajkGpB4zu3_vlRRJUnnYqQUT8mwpVC9p5feKEqv0c24OjdnWyW9BBaCv_AEp/pub?output=csv";
-        const ENGLISH_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYawqE63-aJdaU9HGx3R2hZ3gXHvQpCTXOMqW9uordFM944NwST6a06u30rj-CSTGT8JpYhynbx-Py/pub?output=csv";
-        const SOCIAL_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDucdYQZqNCJiBoFnl8aJZhQpHwLnotubA4vALBeh_ckKQQtu2xRXjb6W2cebPWpzi9a53zRZ665y0/pub?output=csv";
-        const SCIENCE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuoTtan8hFBbXnaumdMOmqDsQrhlkGJlvEdgchTHxdG5G63utIpW1jtyKhkdPMT_rTaB28YWQIP3uk/pub?output=csv";
+        const CHINESE_CSV_URL = _teacherConfig?.csvChinese || "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkJiMnZSApC9QGpRkUajkGpB4zu3_vlRRJUnnYqQUT8mwpVC9p5feKEqv0c24OjdnWyW9BBaCv_AEp/pub?output=csv";
+        const ENGLISH_CSV_URL = _teacherConfig?.csvEnglish || "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYawqE63-aJdaU9HGx3R2hZ3gXHvQpCTXOMqW9uordFM944NwST6a06u30rj-CSTGT8JpYhynbx-Py/pub?output=csv";
+        const SOCIAL_CSV_URL  = _teacherConfig?.csvSocial  || "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDucdYQZqNCJiBoFnl8aJZhQpHwLnotubA4vALBeh_ckKQQtu2xRXjb6W2cebPWpzi9a53zRZ665y0/pub?output=csv";
+        const SCIENCE_CSV_URL = _teacherConfig?.csvScience || "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuoTtan8hFBbXnaumdMOmqDsQrhlkGJlvEdgchTHxdG5G63utIpW1jtyKhkdPMT_rTaB28YWQIP3uk/pub?output=csv";
 
         let QUESTION_BANKS = { chinese_csv: [], english_csv: [], social_csv: [], science_csv: [], mixed: [] };
 
@@ -1716,8 +1724,17 @@
                         )}
 
                         <div className="flex-1 relative overflow-hidden flex bg-white">
-                            
-                            {scene === 'start' && (
+
+                            {TEACHER_CONFIG_ERROR && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#fff0f3] z-[300] p-10 text-center">
+                                    <div className="text-5xl mb-4">⚠️</div>
+                                    <div className="text-xl font-bold text-red-700 mb-2">找不到資料庫設定</div>
+                                    <div className="text-gray-600 mb-6 text-sm leading-relaxed">此連結缺少 Firebase 資料庫設定。<br/>請重新前往設定頁面，確認已填入資料庫金鑰。</div>
+                                    <a href="https://yoyo700702ai.github.io/100pointgames-teacher/" className="bg-pink-500 text-white px-6 py-3 rounded-xl font-bold text-sm">← 回到設定頁</a>
+                                </div>
+                            )}
+
+                            {!TEACHER_CONFIG_ERROR && scene === 'start' && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-cover bg-center z-[200] p-10 text-center" style={{backgroundImage: "url('https://raw.githubusercontent.com/YOYO700702ai/100pointgames/main/unnamed.jpg')"}}>
                                     <div className="flex flex-col items-center w-full">
                                         <div className="text-[2.5rem] text-white font-black mb-8 tracking-widest text-shadow-title">歡迎來到亞德雷大陸！</div>
