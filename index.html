@@ -109,7 +109,7 @@
                 purchaseLines: NPC_PURCHASE_LINES
             },
             merchant: {
-                name: "流浪商人",
+                name: "哥布林商人",
                 img: "👳‍♂️",
                 defaultLines: ["嘿嘿，你找對人了...", "我從遠方帶來的東西，市面上根本買不到。", "金幣到位，好東西自然到你手。"],
                 purchaseLines: ["識貨的人才懂這東西的價值，好好利用吧！", "哈哈，交易愉快！這種貨，下次可不知道還有沒有了。", "聰明的選擇，勇者。願它在戰場上為你添光。"]
@@ -131,6 +131,7 @@
             frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
             frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
             frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '編年廢墟的通關證明' },
+            frag_exchange: { id: 'frag_exchange', name: '五證換金', type: 'special', icon: '💱', desc: '五種通關證明各一份，換取 1000G！' },
             key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
             key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
             coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 100, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
@@ -774,7 +775,7 @@
             };
 
             const startBattle = (zoneKey) => {
-                if (zoneKey === 'magic_library' && !hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒'); return; }
+                if (zoneKey === 'magic_library' && !hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的哥布林商人吧)', '🔒'); return; }
                 const zone = ZONES[zoneKey]; 
                 
                 if (zone && zone.type === 'minigame') {
@@ -919,7 +920,9 @@
                     const correct = (action === 'big' && ev.rightCard > ev.leftCard) || (action === 'small' && ev.rightCard < ev.leftCard);
                     const prizes = [50, 100, 200, 250, 350]; const prize = prizes[ev.round - 1];
                     // 先翻開右牌讓玩家看到，再顯示結果
-                    setRandomEvent(prev => ({ ...prev, phase: 'reveal', isCorrect: correct, revealedCard: ev.rightCard, prize: correct ? prize : 0 }));
+                    const isTie = ev.rightCard === ev.leftCard;
+                    if (isTie) { setRandomEvent(prev => ({ ...prev, phase: 'reveal', isCorrect: false, isTie: true, revealedCard: ev.rightCard, prize: 0 })); return; }
+                    setRandomEvent(prev => ({ ...prev, phase: 'reveal', isCorrect: correct, isTie: false, revealedCard: ev.rightCard, prize: correct ? prize : 0 }));
                     return;
                 }
                 if (action === 'confirm_win') {
@@ -932,6 +935,7 @@
                     return;
                 }
                 if (action === 'confirm_loss') {
+                    if (ev.isTie) { setRandomEvent(prev => ({ ...prev, phase: 'guess', isTie: false, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 })); return; }
                     showMessage('😭 猜錯了！', `右邊是 ${ev.revealedCard}，什麼都沒有...`, '💸', ev.onComplete); return;
                 }
                 if (action === 'take') {
@@ -1543,7 +1547,7 @@
                     }
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
                     let introText = collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
-                    const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold'] : [];
+                    const snapshot = collectedCount === 5 ? ['key_strange'] : hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_kill', 'sword_paper_gold', 'frag_exchange'] : [];
                     setMerchantItems(snapshot);
                     setNpcMessage(introText);
                 } else {
@@ -1564,6 +1568,14 @@
                 if (itemId === 'key_strange') {
                     if (player.gold < 1000) { setNpcMessage("金幣不足...需要 1000G 才能換鑰匙。"); return; }
                     setPlayer(prev => ({ ...prev, gold: prev.gold - 1000, achNoWrong: prev.neverWrong === true })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); setNpcMessage("成交！這把鑰匙交給你了！"); setTimeout(() => saveToCloud(), 500); return;
+                }
+                if (itemId === 'frag_exchange') {
+                    const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
+                    const missingFrags = allFrags.filter(id => !hasItem(id));
+                    if (missingFrags.length > 0) { setNpcMessage(`還差 ${missingFrags.length} 種通關證明！五種都要有才行。`); return; }
+                    allFrags.forEach(id => removeItemById(id, 1));
+                    setPlayer(prev => ({ ...prev, gold: prev.gold + 1000 }));
+                    setNpcMessage("哈哈！五種通關證明，換你 1000G！下次繼續努力！"); return;
                 }
                 if (itemId === 'sword_paper_kill') {
                     const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
@@ -1764,7 +1776,7 @@
                                     <div className="absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}></div>
                                     <div className="absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}></div>
                                     <div className="absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}></div>
-                                    <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的流浪商人吧)', '🔒'); return; } setScene('library_lobby'); }}></div>
+                                    <div className="absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的哥布林商人吧)', '🔒'); return; } setScene('library_lobby'); }}></div>
                                     <div className="absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}></div>
                                 </div>
                             )}
@@ -2408,8 +2420,8 @@
                                                 <p className="text-xs text-gray-400 mb-3">第 {randomEvent.round} 關 ／ 結果揭曉！</p>
                                                 <div className="flex gap-4 justify-center items-center mb-3">
                                                     <div className="w-16 h-20 bg-amber-400 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md">{randomEvent.leftCard}</div>
-                                                    <div className="text-3xl">{randomEvent.isCorrect ? '✅' : '❌'}</div>
-                                                    <div className="w-16 h-20 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md anim-card-flip" style={{backgroundColor: randomEvent.isCorrect ? '#22c55e' : '#ef4444'}}>{randomEvent.revealedCard}</div>
+                                                    <div className="text-3xl">{randomEvent.isTie ? '🤝' : randomEvent.isCorrect ? '✅' : '❌'}</div>
+                                                    <div className="w-16 h-20 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md anim-card-flip" style={{backgroundColor: randomEvent.isTie ? '#f59e0b' : randomEvent.isCorrect ? '#22c55e' : '#ef4444'}}>{randomEvent.revealedCard}</div>
                                                 </div>
                                                 {randomEvent.isCorrect ? (<>
                                                     <p className="text-green-600 font-bold mb-1">猜對了！獲得 <span className="text-amber-500">{randomEvent.prize}G</span>！</p>
@@ -2422,6 +2434,9 @@
                                                     </>) : (
                                                         <button className="bg-yellow-100 border-2 border-yellow-400 text-yellow-700 font-bold rounded-2xl py-3 w-full active:scale-95" onClick={() => handleCardGame('confirm_win')}>🏆 領取最高獎金！</button>
                                                     )}
+                                                </>) : randomEvent.isTie ? (<>
+                                                    <p className="text-amber-500 font-bold mb-3">🤝 平手！左右都是 {randomEvent.revealedCard}，重抽一次！</p>
+                                                    <button className="bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 w-full active:scale-95" onClick={() => handleCardGame('confirm_loss')}>重新猜！</button>
                                                 </>) : (<>
                                                     <p className="text-red-500 font-bold mb-3">猜錯了...右牌是 {randomEvent.revealedCard}</p>
                                                     <button className="bg-gray-100 border-2 border-gray-300 text-gray-600 font-bold rounded-2xl py-3 w-full active:scale-95" onClick={() => handleCardGame('confirm_loss')}>離開</button>
@@ -2505,7 +2520,7 @@
                                     </div>
                                     <div className="flex-1 flex flex-col">
                                         <div className="flex justify-between items-center mb-3">
-                                            <h2 className="m-0 text-2xl font-bold text-[#5D4037]">{currentNpc === 'merchant' ? '🏕️ 流浪商人' : '🏪 神秘商店'}</h2>
+                                            <h2 className="m-0 text-2xl font-bold text-[#5D4037]">{currentNpc === 'merchant' ? '🏕️ 哥布林商人' : '🏪 神秘商店'}</h2>
                                             <button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene('village')}>離開</button>
                                         </div>
                                         <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3 overflow-y-auto custom-scroll pr-1">
