@@ -1556,7 +1556,7 @@
                 const item = ITEMS[itemId];
                 if (itemId === 'key_strange') {
                     if (player.gold < 1000) { setNpcMessage("金幣不足...需要 1000G 才能換鑰匙。"); return; }
-                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000, achNoWrong: prev.neverWrong === true })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); setNpcMessage("成交！這把鑰匙交給你了！"); return;
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000, achNoWrong: prev.neverWrong === true })); ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'].forEach(fid => removeSpecificItem(fid)); addItem('key_strange', 1); setNpcMessage("成交！這把鑰匙交給你了！"); setTimeout(() => saveToCloud(), 500); return;
                 }
                 if (itemId === 'sword_paper_kill') {
                     const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
