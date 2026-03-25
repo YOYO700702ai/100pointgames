@@ -1623,27 +1623,28 @@
                 });
 
                 // 機率表（總計100%）
-                // 一般：蛋10% | 大紅7% | 一擊7% | 金幣7% | 藍波9% | 營養劑55% | 吐槽5%
-                // 50顆後若還有蛋：蛋50% | 大紅7% | 一擊7% | 金幣7% | 藍波9% | 營養劑15% | 吐槽5%
+                // 一般：蛋10% | 大紅7% | 一擊7% | 金幣7% | 藍波24% | 營養劑40% | 吐槽5%
+                // 50顆後若還有蛋：蛋40% | 大紅7% | 一擊7% | 金幣7% | 藍波9% | 營養劑25% | 吐槽5%
                 const gachaCount = Math.floor((player.gachaSpent || 0) / 100);
                 const highEggMode = gachaCount >= 50 && unownedEggs.length > 0;
-                const o = highEggMode ? 40 : 0; // offset：蛋多佔40%，其他選項整體右移
                 const roll = Math.random() * 100;
+                const eggT = highEggMode ? 40 : 10;
+                const rainbowT = highEggMode ? 70 : 55;
 
-                if (roll < (10 + o) && unownedEggs.length > 0) {
+                if (roll < eggT && unownedEggs.length > 0) {
                     const gotEgg = unownedEggs[Math.floor(Math.random() * unownedEggs.length)];
                     addItem(gotEgg, 1);
                     showMessage('中大獎啦！', `咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[gotEgg].name} ✨`, ITEMS[gotEgg].icon);
-                } else if (roll < (17 + o)) {
+                } else if (roll < (eggT + 7)) {
                     addItem('potion_l', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_l'].name}`, ITEMS['potion_l'].icon);
-                } else if (roll < (24 + o)) {
+                } else if (roll < (eggT + 14)) {
                     addItem('sword_paper_kill', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_kill'].name}`, ITEMS['sword_paper_kill'].icon);
-                } else if (roll < (31 + o)) {
+                } else if (roll < (eggT + 21)) {
                     addItem('sword_paper_gold', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['sword_paper_gold'].name}`, ITEMS['sword_paper_gold'].icon);
-                } else if (roll < (40 + o)) {
+                } else if (roll < rainbowT) {
                     addItem('potion_rainbow', 1);
                     showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS['potion_rainbow'].name}`, ITEMS['potion_rainbow'].icon);
                 } else if (roll < 95) {
