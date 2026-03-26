@@ -658,6 +658,9 @@
                         if (currentEquipId) newInv.push({id: currentEquipId, qty: 1});
                         return { ...prev, inventory: newInv, equipped: { ...prev.equipped, [slotType]: slot.id } };
                     });
+                    if (slotType === 'weapon' && (slot.id === 'sword_paper_kill' || slot.id === 'sword_paper_gold')) {
+                        paperKillsRef.current[slot.id] = 0;
+                    }
                     const newWeapon = slotType === 'weapon' ? slot.id : player.equipped.weapon;
                     const newPet = slotType === 'pet' ? slot.id : player.equipped.pet;
                     if (newWeapon === 'sword_paper_gold' && newPet === 'pet_monkey') {
@@ -860,26 +863,24 @@
             };
 
             const handleWinWave = (monsterDef, currentWave) => { 
-                // 紙劍耐久度機制：每次打死一隻波次怪計數
+                // 紙劍耐久度機制：用 ref 追蹤，避免 stale closure
                 const papersToCheck = ['sword_paper_kill', 'sword_paper_gold'];
                 papersToCheck.forEach(swordId => {
                     if (player.equipped.weapon === swordId) {
-                        const swordItem = player.inventory.find(i => i.id === swordId);
-                        const currentKills = (swordItem && swordItem.kills) || 0;
-                        const newKills = currentKills + 1;
+                        paperKillsRef.current[swordId] = (paperKillsRef.current[swordId] || 0) + 1;
                         const killLimit = swordId === 'sword_paper_gold' ? 6 : 3;
-                        if (newKills >= killLimit) {
+                        if (paperKillsRef.current[swordId] >= killLimit) {
+                            paperKillsRef.current[swordId] = 0;
                             setPlayer(prev => ({
                                 ...prev,
                                 equipped: { ...prev.equipped, weapon: null },
-                                inventory: prev.inventory.filter(i => i.id !== swordId)
+                                inventory: prev.inventory.map(i => {
+                                    if (i.id !== swordId) return i;
+                                    const newQty = (i.qty || 1) - 1;
+                                    return newQty <= 0 ? null : { ...i, qty: newQty };
+                                }).filter(Boolean)
                             }));
                             showMessage('📜 紙劍毀了！', `「${ITEMS[swordId].name}」已經打死 ${killLimit} 隻怪物而消失了！`, '📜');
-                        } else {
-                            setPlayer(prev => ({
-                                ...prev,
-                                inventory: prev.inventory.map(i => i.id === swordId ? { ...i, kills: newKills } : i)
-                            }));
                         }
                     }
                 });
@@ -1288,6 +1289,7 @@
             // --- 打地精小遊戲 ---
             const moleTimerRef = useRef(null);
             const moleSpawnRef = useRef(null);
+            const paperKillsRef = useRef({ sword_paper_kill: 0, sword_paper_gold: 0 });
 
             const startMoleGame = () => {
                 const use2x2 = player.equipped.pet === 'pet_ankylo';
@@ -1636,7 +1638,7 @@
                 // 機率表：蛋12% | 大紅15% | 一擊7% | 金幣11% | 藍波15% | 營養劑40%
                 const roll = Math.random() * 100;
                 const addGacha = (id) => { addItem(id, 1); showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS[id].name}`, ITEMS[id].icon); };
-                if (roll < 12 && unownedEggs.length > 0) { const e = unownedEggs[Math.floor(Math.random()*unownedEggs.length)]; addItem(e,1); showMessage('中大獎啦！',`咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[e].name} ✨`,ITEMS[e].icon); }
+                if (roll < 12 && unownedEggs.length > 0) { const e = unownedEggs[Math.floor(Math.random()*unownedEggs.length)]; addItem(e,1); const isLastEgg = unownedEggs.length === 1; showMessage('中大獎啦！',`咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[e].name} ✨`,ITEMS[e].icon, isLastEgg ? () => showMessage('村長', '你好像已經把大獎都轉完了哦！', '👴') : null); }
                 else if (roll < 27) { addGacha('potion_l'); }
                 else if (roll < 34) { addGacha('sword_paper_kill'); }
                 else if (roll < 45) { addGacha('sword_paper_gold'); }
