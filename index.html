@@ -890,7 +890,8 @@
                     if (currentWave === 1 && Math.random() < 0.3) {
                         const types = ['chest', 'animal', 'woodcutter'];
                         const eventType = types[Math.floor(Math.random() * 3)];
-                        setRandomEvent({ type: eventType, chestWinner: Math.floor(Math.random() * 3), onComplete: () => { setRandomEvent(null); showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 2 })); } });
+                        const chestPrizes = ['coin_gacha', 'potion_l', 'gold200'].sort(() => Math.random() - 0.5);
+                        setRandomEvent({ type: eventType, chestPrizes, onComplete: () => { setRandomEvent(null); showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 2 })); } });
                     } else if (currentWave === 2 && Math.random() < 0.35) {
                         const goW3 = () => { setRandomEvent(null); showDamage("BOSS 出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 3 })); };
                         setRandomEvent({ type: 'cardgame', phase: 'offer', leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1, round: 1, prize: 0, onComplete: goW3 });
@@ -904,8 +905,9 @@
             };
 
             const handleChestPick = (idx) => {
-                if (idx === 0) { addItem('coin_gacha', 1); showMessage('🎉 打開了！', '獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
-                else if (idx === 1) { addItem('potion_l', 1); showMessage('🎉 打開了！', '獲得大紅藥水 ×1！', '🧪', randomEvent.onComplete); }
+                const prize = (randomEvent.chestPrizes || [])[idx];
+                if (prize === 'coin_gacha') { addItem('coin_gacha', 1); showMessage('🎉 打開了！', '獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
+                else if (prize === 'potion_l') { addItem('potion_l', 1); showMessage('🎉 打開了！', '獲得大紅藥水 ×1！', '🧪', randomEvent.onComplete); }
                 else { setPlayer(prev => ({ ...prev, gold: prev.gold + 200 })); showMessage('🎉 打開了！', '獲得金幣 +200G！', '💰', randomEvent.onComplete); }
             };
             const handleAnimalHelp = (help) => {
