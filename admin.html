@@ -136,6 +136,7 @@
           <th>鑰匙</th>
           <th>成就</th>
           <th>通關</th>
+          <th>最後遊戲時間</th>
           <th>操作</th>
         </tr>
       </thead>
@@ -261,6 +262,7 @@
         <td>${hasKey ? '🗝️':'—'}</td>
         <td>${achCount}/${TOTAL_ACH}</td>
         <td>${p.gameCleared ? '✅':'—'}</td>
+        <td style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">${p.savedAt ? new Date(p.savedAt).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
         <td><button class="del-btn" onclick="deleteSingle('${p._id}', '${p.name||p.accountId}')">刪除</button></td>
       </tr>`;
     }).join('');

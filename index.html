@@ -548,7 +548,7 @@
                 setIsSaving(true);
                 try {
                     const saveRef = doc(db, 'saves', player.accountId);
-                    await setDoc(saveRef, player);
+                    await setDoc(saveRef, { ...player, savedAt: new Date().toISOString() });
                     showMessage("存檔成功", "您的冒險進度已安全保存在雲端！", "💾");
                 } catch (e) { console.error(e); showMessage("存檔失敗", "雲端存檔發生錯誤：" + e.message, "⚠️"); }
                 finally { setIsSaving(false); }
@@ -2243,7 +2243,7 @@
                                             onClick={async () => {
                                                 if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
                                                 if (player.accountId && user && db) {
-                                                    try { await setDoc(doc(db, 'saves', player.accountId), player); } catch(e) {}
+                                                    try { await setDoc(doc(db, 'saves', player.accountId), { ...player, savedAt: new Date().toISOString() }); } catch(e) {}
                                                 }
                                                 setEndSlide(0); setEndLineIdx(0); setEndDoneLines([]); setEndDisplayed(''); setEndSlideReady(false);
                                                 setScene('end_story');
