@@ -904,8 +904,9 @@
             };
 
             const handleChestPick = (idx) => {
-                if (idx === randomEvent.chestWinner) { addItem('coin_gacha', 1); showMessage('🎉 選中了！', '獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
-                else { showMessage('😅 可惜...', '空箱子，什麼也沒有。', '📦', randomEvent.onComplete); }
+                if (idx === 0) { addItem('coin_gacha', 1); showMessage('🎉 打開了！', '獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
+                else if (idx === 1) { addItem('potion_l', 1); showMessage('🎉 打開了！', '獲得大紅藥水 ×1！', '🧪', randomEvent.onComplete); }
+                else { setPlayer(prev => ({ ...prev, gold: prev.gold + 200 })); showMessage('🎉 打開了！', '獲得金幣 +200G！', '💰', randomEvent.onComplete); }
             };
             const handleAnimalHelp = (help) => {
                 if (!help) { showMessage('...', '你選擇離開，小動物眼神有些落寞。', '🦊', randomEvent.onComplete); return; }
@@ -2342,7 +2343,7 @@
                                         {randomEvent.type === 'chest' && (<>
                                             <div className="text-5xl mb-2">👼</div>
                                             <h3 className="font-black text-xl mb-1 text-[#5D4037]">女神的恩賜！</h3>
-                                            <p className="text-gray-500 text-sm mb-5">感謝勇者幫忙清掉怪物！<br/>好禮三選一，選中就是你的！！</p>
+                                            <p className="text-gray-500 text-sm mb-5">感謝勇者幫忙清掉怪物！<br/>三個箱子通通有獎，快選一個！</p>
                                             <div className="flex gap-3 justify-center">{[0,1,2].map(i => (<button key={i} className="text-5xl bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 active:scale-95 transition-all hover:bg-amber-100" onClick={() => handleChestPick(i)}>📦</button>))}</div>
                                         </>)}
                                         {randomEvent.type === 'animal' && (<>
