@@ -1064,7 +1064,7 @@
                         setTimeout(() => {
                             setIdiomGame(p => ({ ...p, active: false }));
                             showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '😤', () => {
-                                setScene('map');
+                                setScene('library_lobby');
                             });
                         }, 500);
                         return { ...prev, slots: newSlots };
@@ -1223,7 +1223,7 @@
                         // 猜錯了
                         setClownGame(prev => ({ ...prev, active: false }));
                         showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🐸', () => {
-                            setScene('map');
+                            setScene('library_lobby');
                         });
                     }
                 }, 1000);
@@ -1531,7 +1531,7 @@
                         setTimeout(() => {
                             setMemoryGame(p => ({ ...p, active: false }));
                             showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🃏', () => {
-                                setScene('map');
+                                setScene('library_lobby');
                             });
                         }, 600);
                     }
@@ -1615,7 +1615,7 @@
                         });
                         return;
                     }
-                    showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！', '🔒');
+                    showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！\n好像有人看到沙漠裡有一把閃閃發光的鑰匙？', '🔒');
                     return;
                 }
                 if (!hasItem('coin_gacha')) { showMessage('轉蛋幣不足', `轉蛋一次需要 1 枚轉蛋幣！可以去商店購買哦。`, '🐔'); return; }
