@@ -129,7 +129,7 @@
             potion_l: { id: 'potion_l', name: '大紅藥水', price: 50, type: 'consumable', value: 30, icon: '🍷', desc: '恢復 30 點 HP' },
             sword_wood: { id: 'sword_wood', name: '木劍', price: 100, type: 'weapon', atk: 5, icon: '🗡️', desc: '攻擊力 +5' },
             sword_iron: { id: 'sword_iron', name: '鐵劍', price: 350, type: 'weapon', atk: 7, icon: '⚔️', desc: '攻擊力 +7' },
-            bow_hunter: { id: 'bow_hunter', name: '獵人長弓', price: 200, type: 'weapon', atk: 0, icon: '🏹', desc: '連對3題，第4下+15傷' }, 
+            bow_hunter: { id: 'bow_hunter', name: '獵人長弓', price: 200, type: 'weapon', atk: 0, icon: '🏹', desc: '連對2題，第3下+25傷' },
             sword_hero: { id: 'sword_hero', name: '勇者之劍', price: 999, type: 'weapon', atk: 12, icon: '💎', desc: '攻擊力 +12' },
             pet_slime: { id: 'pet_slime', name: '史萊姆寶寶', price: 100, type: 'pet', hp: 20, icon: '💧', desc: 'HP上限 +20' },
             pet_bat: { id: 'pet_bat', name: '小蝙蝠', price: 250, type: 'pet', atk: 7, icon: '🦇', desc: '攻擊力 +7' },
@@ -831,7 +831,7 @@
                 if (String(selectedVal) === String(battle.answer)) {
                     playCorrectSound(); triggerCorrectAnim();
                     const currentStreak = player.streak + 1; let dmg = stats.atk; let isCrit = false;
-                    if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 4) { dmg += 15; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
+                    if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 3) { dmg += 25; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
                     const newHp = battle.monster.hp - dmg;
                     showDamage(isCrit ? `蓄力一擊! -${dmg}` : dmg, isCrit ? 'monster-crit' : 'monster'); triggerMonsterShake();
                     if (player.equipped.weapon === 'sword_paper_kill') {
