@@ -1184,7 +1184,7 @@
                         showMessage('孵化失敗...', `你已經擁有【${ITEMS[petId].name}】了！\n${eggName} 無法再孵出一隻。\n獲得轉蛋幣 ×1 作為補償。`, '🥚');
                     } else {
                         addItem(petId, 1);
-                        showMessage('✨ 孵化成功！', `${eggName} 孵化出了\n【${ITEMS[petId].name}】${ITEMS[petId].icon}！\n快去裝備牠吧！`, '✨');
+                        showMessage('✨ 孵化成功！', `${eggName} 孵化出了\n【${ITEMS[petId].name}】${ITEMS[petId].icon}！\n\n${ITEMS[petId].desc}\n\n快去背包裝備牠吧！`, '✨');
                     }
                 } else {
                     setHatchSlot(prev => ({ ...prev, progress: newProgress }));
@@ -2469,9 +2469,9 @@
                                                     return order(a.id) - order(b.id);
                                                 }).map((slot) => {
                                                     const idx = player.inventory.findIndex(s => s.id === slot.id);
-                                                    const item = ITEMS[slot.id]; if (!item) return null; const isSpecial = (item.type === 'key' || item.type === 'trophy' || item.type === 'material');
+                                                    const item = ITEMS[slot.id]; if (!item) return null; const isSpecial = (item.type === 'key' || item.type === 'trophy' || item.type === 'material'); const isGachaPet = ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].includes(item.id);
                                                     return (
-                                                        <div key={idx} className="border-2 border-[#eee] rounded-xl p-1.5 flex flex-col items-center justify-start cursor-pointer relative bg-white w-[70px] h-[90px] hover:border-[#4361EE] hover:-translate-y-0.5 shadow-sm transition-all" onClick={() => (!isSpecial || item.id === 'coin_gacha') ? useItem(idx) : showMessage('物品資訊', item.desc, item.icon)} title={item.desc}>
+                                                        <div key={idx} className="border-2 border-[#eee] rounded-xl p-1.5 flex flex-col items-center justify-start cursor-pointer relative bg-white w-[70px] h-[90px] hover:border-[#4361EE] hover:-translate-y-0.5 shadow-sm transition-all" onClick={() => isGachaPet ? showMessage(item.name, item.desc + '\n\n裝備後技能立即生效！', item.icon, () => useItem(idx)) : (!isSpecial || item.id === 'coin_gacha') ? useItem(idx) : showMessage('物品資訊', item.desc, item.icon)} title={item.desc}>
                                                             <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">{item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}</div>
                                                             <div className="text-[0.8rem] text-center font-bold shrink-0 w-full mb-1">{item.name}</div>
                                                             {slot.qty > 1 && <div className="absolute bottom-0.5 right-1 text-[#5D4037] text-xs font-bold bg-white/80 rounded px-1">x{slot.qty}</div>}
