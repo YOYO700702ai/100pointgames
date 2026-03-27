@@ -2279,9 +2279,14 @@
                                             style={allReady ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
                                             onClick={async () => {
                                                 if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
-                                                if (player.accountId && user && db) {
-                                                    try { await setDoc(doc(db, 'saves', player.accountId), { ...player, gameCleared: true, savedAt: new Date().toISOString() }); } catch(e) {}
-                                                }
+                                                if (!player.accountId) { showMessage('存檔失敗', '您目前是訪客模式，無法記錄通關。\n請重新登入並輸入「冒險帳號」！', '⚠️'); return; }
+                                                if (!user || !db) { showMessage('存檔失敗', '網路未連線或尚未設定 Firebase。', '⚠️'); return; }
+                                                setIsSaving(true);
+                                                try {
+                                                    await setDoc(doc(db, 'saves', player.accountId), { ...player, gameCleared: true, savedAt: new Date().toISOString() });
+                                                    setPlayer(prev => ({ ...prev, gameCleared: true }));
+                                                } catch(e) { setIsSaving(false); showMessage('存檔失敗', '雲端存檔發生錯誤：' + e.message, '⚠️'); return; }
+                                                setIsSaving(false);
                                                 setEndSlide(0); setEndLineIdx(0); setEndDoneLines([]); setEndDisplayed(''); setEndSlideReady(false);
                                                 setScene('end_story');
                                             }}
