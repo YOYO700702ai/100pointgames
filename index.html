@@ -301,6 +301,7 @@
 
         const ACHIEVEMENTS = [
             { id: 'exam_zero_master', title: '零分考卷大師',   cond: '裝備0分考卷，成功通關任意5個地圖關卡' },
+            { id: 'fast_learner',     title: '進步神速',       cond: '獲得100分考卷武器' },
             { id: 'no_wrong',         title: '挖賽！！天才神童', cond: '購買魔王關鑰匙前，從未答錯任何題目' },
             { id: 'pet_master',       title: '神奇寶貝大師',   cond: '收集並孵化所有5種寵物蛋' },
             { id: 'hero',             title: '勇者',           cond: '達到最高等級 LV.10' },
@@ -621,6 +622,7 @@
                 const hasPet = id => inv.some(i=>i.id===id) || p.equipped?.pet===id;
                 return {
                     exam_zero_master: (p.examZeroClears||0)>=5,
+                    fast_learner:     inv.some(i=>i.id==='exam_hundred'),
                     no_wrong:         p.achNoWrong===true,
                     pet_master:       ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(hasPet),
                     hero:             (p.level||1)>=10,
