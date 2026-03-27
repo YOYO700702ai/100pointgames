@@ -2275,23 +2275,26 @@
 
                                         {/* 啟動按鈕 */}
                                         <button
-                                            className={`px-8 py-3 font-black rounded-2xl text-lg tracking-widest transition-all ${allReady ? 'text-white animate-pulse hover:scale-110 active:scale-95' : 'bg-[#1a1a2e] text-[#444] border-2 border-[#333] cursor-not-allowed'}`}
-                                            style={allReady ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
-                                            onClick={() => {
+                                            className={`px-8 py-3 font-black rounded-2xl text-lg tracking-widest transition-all ${allReady && !isSaving ? 'text-white animate-pulse hover:scale-110 active:scale-95' : 'bg-[#1a1a2e] text-[#aaa] border-2 border-[#333] cursor-not-allowed'}`}
+                                            style={allReady && !isSaving ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
+                                            disabled={isSaving}
+                                            onClick={async () => {
                                                 if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
                                                 if (!player.accountId) { showMessage('存檔失敗', '您目前是訪客模式，無法記錄通關。\n請重新登入並輸入「冒險帳號」！', '⚠️'); return; }
                                                 if (!user || !db) { showMessage('存檔失敗', '網路未連線或尚未設定 Firebase。', '⚠️'); return; }
-                                                const savePromise = setDoc(doc(db, 'saves', player.accountId), { ...player, gameCleared: true, savedAt: new Date().toISOString() })
-                                                    .then(() => setPlayer(prev => ({ ...prev, gameCleared: true })))
-                                                    .catch(e => Promise.reject(e));
-                                                showMessage('存檔中....', '正在記錄你的冒險成果...\n按確認進入結局！', '💾', async () => {
-                                                    try { await savePromise; } catch(e) { showMessage('存檔失敗', '雲端存檔發生錯誤：' + e.message, '⚠️'); return; }
+                                                setIsSaving(true);
+                                                try {
+                                                    await setDoc(doc(db, 'saves', player.accountId), { ...player, gameCleared: true, savedAt: new Date().toISOString() });
+                                                    setPlayer(prev => ({ ...prev, gameCleared: true }));
+                                                } catch(e) { setIsSaving(false); showMessage('存檔失敗', '雲端存檔發生錯誤：' + e.message, '⚠️'); return; }
+                                                setIsSaving(false);
+                                                showMessage('存檔完成！', '你的冒險已永久記錄在雲端！\n按確認進入結局～', '💾', () => {
                                                     setEndSlide(0); setEndLineIdx(0); setEndDoneLines([]); setEndDisplayed(''); setEndSlideReady(false);
                                                     setScene('end_story');
                                                 });
                                             }}
                                         >
-                                            ⚡ 啟動 ⚡
+                                            {isSaving ? '⏳ 存檔中...' : '⚡ 啟動 ⚡'}
                                         </button>
 
                                         <button className="mt-6 px-5 py-2 bg-[#1a1a2e] text-[#9575CD] font-bold rounded-xl border border-[#333] text-sm hover:bg-[#222] transition-colors"
