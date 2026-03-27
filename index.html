@@ -2287,7 +2287,7 @@
                                                     setPlayer(prev => ({ ...prev, gameCleared: true }));
                                                 } catch(e) { setIsSaving(false); showMessage('存檔失敗', '雲端存檔發生錯誤：' + e.message, '⚠️'); return; }
                                                 setIsSaving(false);
-                                                showMessage('通關存檔完成！', '你的冒險已永久記錄在雲端！\n接下來欣賞結局吧～', '💾', () => {
+                                                showMessage('存檔中....', '你的冒險已永久記錄在雲端！\n按確認進入結局～', '💾', () => {
                                                     setEndSlide(0); setEndLineIdx(0); setEndDoneLines([]); setEndDisplayed(''); setEndSlideReady(false);
                                                     setScene('end_story');
                                                 });
