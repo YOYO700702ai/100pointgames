@@ -395,6 +395,7 @@
                 holes: Array(9).fill(false), // 9個洞，true = 地精出現
                 is2x2: false // 甲龍技能啟動
             });
+            const [moleHitCells, setMoleHitCells] = useState([]);
 
             // --- 動物大逃亡華容道狀態 ---
             const [slidingGame, setSlidingGame] = useState({
@@ -1360,6 +1361,18 @@
                 const row = Math.floor(index / 3);
                 const col = index % 3;
 
+                // 顯示槌子動畫
+                const hitCells = [];
+                if (moleGame.is2x2) {
+                    for (let r = row; r <= Math.min(row + 1, 2); r++)
+                        for (let c = col; c <= Math.min(col + 1, 2); c++)
+                            hitCells.push(r * 3 + c);
+                } else {
+                    hitCells.push(index);
+                }
+                setMoleHitCells(hitCells);
+                setTimeout(() => setMoleHitCells([]), 250);
+
                 setMoleGame(prev => {
                     const newHoles = [...prev.holes];
                     let hits = 0;
@@ -1655,6 +1668,7 @@
             return (
                 <div className="w-full h-[100vh] bg-[#2B2D42] text-[#2B2D42] font-sans flex items-center justify-center overflow-hidden select-none">
                     <style>{`
+                        @keyframes hitPop { 0% {transform: scale(1.4) rotate(-20deg); opacity:1;} 100% {transform: scale(0.8) rotate(10deg); opacity:0;} }
                         @keyframes floatUp { 0% {transform: translateY(0); opacity:1;} 100% {transform: translateY(-50px); opacity:0;} }
                         @keyframes popIn { 0% {transform: scale(0.5);} 100% {transform: scale(1);} }
                         @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
@@ -2047,6 +2061,12 @@
                                                     👺
                                                 </div>
                                                 {isUp && <div className="absolute inset-0 rounded-full  transition-colors"></div>}
+                                                {moleHitCells.includes(i) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
+                                                         style={{fontSize: moleGame.is2x2 ? '2.8rem' : '2.4rem', animation:'hitPop 0.25s ease-out forwards'}}>
+                                                        🔨
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
