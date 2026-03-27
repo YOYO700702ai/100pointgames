@@ -977,7 +977,11 @@
                 if (leveledUp) { msg += `\n\n🎉 恭喜升級到 LV.${newLevel}！HP 全滿！`; }
                 let icon = '🏆'; let dropMsgParts = [];
                 if (battle.zone.dropItem) { const dropId = battle.zone.dropItem; if (dropId.startsWith('frag_') || !hasItem(dropId)) { addItem(dropId, 1); dropMsgParts.push(`✨ 區域秘寶：${ITEMS[dropId].name}`); icon = ITEMS[dropId].icon; } }
-                if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && !player.gachaUnlocked && Math.random() < 0.5) {
+                if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && !player.gachaUnlocked && ((player.zoneClears||{}).west_desert||0) >= 1) {
+                    addItem('key_gacha', 1);
+                    dropMsgParts.push(`🔑 驚喜掉落：${ITEMS['key_gacha'].name}`);
+                    if (icon === '🏆') icon = ITEMS['key_gacha'].icon;
+                } else if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && !player.gachaUnlocked && Math.random() < 0.5) {
                     addItem('key_gacha', 1);
                     dropMsgParts.push(`🔑 驚喜掉落：${ITEMS['key_gacha'].name}`);
                     if (icon === '🏆') icon = ITEMS['key_gacha'].icon;
