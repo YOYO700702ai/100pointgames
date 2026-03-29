@@ -813,26 +813,27 @@
                 setScene('battle');
             };
 
-            useEffect(() => { if (scene === 'battle' && battle.active && !battle.monster) spawnMonsterAndQuestion(battle.wave, battle.questionPool); }, [scene, battle.active, battle.wave, battle.monster]);
+            useEffect(() => { if (scene === 'battle' && battle.active && !battle.monster) spawnMonsterAndQuestion(battle.wave, battle.questionPool, battle.zone); }, [scene, battle.active, battle.wave, battle.monster]);
 
-            const spawnMonsterAndQuestion = (wave, currentPool) => {
-                const list = battle.zone.monsters; const template = list[Math.floor(Math.random() * list.length)];
+            const spawnMonsterAndQuestion = (wave, currentPool, zone) => {
+                if (!zone) return;
+                const list = zone.monsters; const template = list[Math.floor(Math.random() * list.length)];
                 const waveStats = [{ hp: 30, atk: 5, exp: 20 }, { hp: 50, atk: 5, exp: 40 }, { hp: 80, atk: 10, exp: 80 }]; const ws = waveStats[wave - 1] || waveStats[2];
                 const waveIndicator = wave === 3 ? " (BOSS)" : ` (第${wave}/3隻)`;
                 const newMonster = { ...template, name: template.name + waveIndicator, maxHp: ws.hp, hp: ws.hp, atk: ws.atk, gold: wave === 3 ? 80 : template.gold, exp: ws.exp };
-                setupNextQuestion(currentPool, newMonster);
+                setupNextQuestion(currentPool, newMonster, zone);
             };
 
-            const setupNextQuestion = (pool, currentMonster) => {
-                let qObj; const type = battle.zone.type; let newPool = [...pool];
+            const setupNextQuestion = (pool, currentMonster, zone) => {
+                if (!zone) return;
+                let qObj; const type = zone.type; let newPool = [...pool];
                 if (type === 'math_frac_dec') qObj = generateMathQuestion(); else if (type === 'mixed_all' && Math.random() > 0.5) qObj = generateMathQuestion();
-                else { if (newPool.length > 0) qObj = newPool.pop(); else { const bankKey = type === 'mixed_all' ? 'mixed' : battle.zone.questionBank; newPool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); qObj = newPool.pop() || { q: "休息一下，1+1=?", a: "2", wrong: ["3", "4", "5"] }; } }
+                else { if (newPool.length > 0) qObj = newPool.pop(); else { const bankKey = type === 'mixed_all' ? 'mixed' : zone.questionBank; newPool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); qObj = newPool.pop() || { q: "休息一下，1+1=?", a: "2", wrong: ["3", "4", "5"] }; } }
                 if (!qObj) qObj = { q: "休息一下，1+1=?", a: "2", wrong: ["3", "4", "5"] };
                 let opts = [qObj.a];
                 if (qObj.wrong && qObj.wrong.length > 0) { opts = opts.concat(qObj.wrong.slice(0, 3)); while(opts.length < 4) opts.push("???"); } else { while(opts.length < 4) opts.push(Math.floor(Math.random()*100).toString()); }
                 opts.sort(() => Math.random() - 0.5);
-                if (battle.eliminateWrong) { const wrong = opts.filter(o => o !== qObj.a); opts = [qObj.a, wrong[0]].sort(() => Math.random() - 0.5); }
-                setBattle(prev => ({ ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: opts, isProcessing: false, eliminateWrong: false }));
+                setBattle(prev => { const wrong = opts.filter(o => o !== qObj.a); const finalOpts = prev.eliminateWrong ? [qObj.a, wrong[0]].sort(() => Math.random() - 0.5) : opts; return { ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: finalOpts, isProcessing: false, eliminateWrong: false }; });
             };
 
             const handleAnswer = (selectedVal, btnEvent) => {
@@ -853,7 +854,7 @@
                         setTimeout(() => handleWinWave(battle.monster, battle.wave), 800);
                     } else { 
                         setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } })); 
-                        setTimeout(() => { if (battle.active) setupNextQuestion(battle.questionPool, null); }, 400); 
+                        setTimeout(() => { if (battle.active) setupNextQuestion(battle.questionPool, null, battle.zone); }, 400);
                     }
                 } else {
                     setPlayer(prev => ({ ...prev, streak: 0, totalWrong: (prev.totalWrong||0)+1, neverWrong: false })); const dmg = battle.monster.atk;
@@ -864,7 +865,7 @@
                         setBattle(prev => ({ ...prev, isProcessing: false }));
                         handleLose(); 
                     } else {
-                        setTimeout(() => { for(let b of btns) b.classList.remove('bg-green-400'); if (battle.active) setupNextQuestion(battle.questionPool, null); }, 1000);
+                        setTimeout(() => { for(let b of btns) b.classList.remove('bg-green-400'); if (battle.active) setupNextQuestion(battle.questionPool, null, battle.zone); }, 1000);
                     }
                 }
             };
