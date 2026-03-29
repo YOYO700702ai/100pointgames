@@ -1314,6 +1314,8 @@
             };
 
             const actualStartMole = (is2x2) => {
+                clearInterval(moleTimerRef.current);
+                clearInterval(moleSpawnRef.current);
                 setMoleGame({
                     active: true, score: 0, targetScore: 55, timeLeft: 15,
                     holes: Array(9).fill(false), is2x2
