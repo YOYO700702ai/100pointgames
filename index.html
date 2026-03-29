@@ -854,7 +854,7 @@
                         setTimeout(() => handleWinWave(battle.monster, battle.wave), 800);
                     } else { 
                         setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } })); 
-                        setTimeout(() => { if (battle.active) setupNextQuestion(battle.questionPool, null, battle.zone); }, 400);
+                        setTimeout(() => { const b = battleRef.current; if (b.active) setupNextQuestion(b.questionPool, null, b.zone); }, 400);
                     }
                 } else {
                     setPlayer(prev => ({ ...prev, streak: 0, totalWrong: (prev.totalWrong||0)+1, neverWrong: false })); const dmg = battle.monster.atk;
@@ -863,9 +863,9 @@
                     const isDead = takeDamage(dmg);
                     if (isDead) {
                         setBattle(prev => ({ ...prev, isProcessing: false }));
-                        handleLose(); 
+                        handleLose();
                     } else {
-                        setTimeout(() => { for(let b of btns) b.classList.remove('bg-green-400'); if (battle.active) setupNextQuestion(battle.questionPool, null, battle.zone); }, 1000);
+                        setTimeout(() => { for(let b of btns) b.classList.remove('bg-green-400'); const b = battleRef.current; if (b.active) setupNextQuestion(b.questionPool, null, b.zone); }, 1000);
                     }
                 }
             };
@@ -1302,6 +1302,8 @@
             const moleTimerRef = useRef(null);
             const moleSpawnRef = useRef(null);
             const paperKillsRef = useRef({ sword_paper_kill: 0, sword_paper_gold: 0 });
+            const battleRef = useRef(battle);
+            useEffect(() => { battleRef.current = battle; });
 
             const startMoleGame = () => {
                 const use2x2 = player.equipped.pet === 'pet_ankylo';
