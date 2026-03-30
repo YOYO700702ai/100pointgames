@@ -64,10 +64,10 @@ if (_cfg) {
 }
 
 const CSV = {
-  chinese: _cfg?.csvChinese || '',
-  english: _cfg?.csvEnglish || '',
-  social:  _cfg?.csvSocial  || '',
-  science: _cfg?.csvScience || '',
+  chinese: _cfg?.csvChinese || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQkJiMnZSApC9QGpRkUajkGpB4zu3_vlRRJUnnYqQUT8mwpVC9p5feKEqv0c24OjdnWyW9BBaCv_AEp/pub?output=csv',
+  english: _cfg?.csvEnglish || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYawqE63-aJdaU9HGx3R2hZ3gXHvQpCTXOMqW9uordFM944NwST6a06u30rj-CSTGT8JpYhynbx-Py/pub?output=csv',
+  social:  _cfg?.csvSocial  || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRDucdYQZqNCJiBoFnl8aJZhQpHwLnotubA4vALBeh_ckKQQtu2xRXjb6W2cebPWpzi9a53zRZ665y0/pub?output=csv',
+  science: _cfg?.csvScience || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuoTtan8hFBbXnaumdMOmqDsQrhlkGJlvEdgchTHxdG5G63utIpW1jtyKhkdPMT_rTaB28YWQIP3uk/pub?output=csv',
 };
 
 // ── Constants ──
@@ -137,15 +137,22 @@ const genMath = () => {
 
 // ── Pick question from pool ──
 const popQuestion = (pool, zone) => {
-  if (zone.type === 'math') return genMath();
-  let p = [...pool];
-  if (p.length === 0) p = [...BANKS[zone.bank]].sort(()=>Math.random()-0.5);
-  const qObj = p.pop() || { q:'1+1=?', a:'2', wrong:['3','4','5'] };
+  let qObj, newPool = [...pool];
+  if (zone.type === 'math') {
+    qObj = genMath();
+  } else {
+    if (newPool.length === 0) newPool = [...BANKS[zone.bank]].sort(()=>Math.random()-0.5);
+    qObj = newPool.pop() || { q:'1+1=?', a:'2', wrong:['3','4','5'] };
+  }
   let opts = [qObj.a];
-  if (qObj.wrong.length>0) { opts = opts.concat(qObj.wrong.slice(0,3)); while(opts.length<4) opts.push('???'); }
-  else { while(opts.length<4) opts.push(String(Math.floor(Math.random()*100))); }
-  opts.sort(()=>Math.random()-0.5);
-  return { qObj, opts, newPool: p };
+  if (qObj.wrong && qObj.wrong.length > 0) {
+    opts = opts.concat(qObj.wrong.slice(0, 3));
+    while (opts.length < 4) opts.push('???');
+  } else {
+    while (opts.length < 4) opts.push(String(Math.floor(Math.random() * 100)));
+  }
+  opts.sort(() => Math.random() - 0.5);
+  return { qObj, opts, newPool };
 };
 
 // ── App ──
