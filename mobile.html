@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>亞德雷大陸 Mobile</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #1e1b4b; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #root { min-height: 100dvh; display: flex; justify-content: center; align-items: flex-start; }
+  .app { width: 100%; max-width: 430px; min-height: 100dvh; background: #f8fafc; position: relative; overflow: hidden; }
+  .btn { display: flex; align-items: center; justify-content: center; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; user-select: none; }
+  .btn:active { transform: translateY(2px); box-shadow: none !important; }
+  .btn-primary { background: #4f46e5; color: #fff; box-shadow: 0 4px 0 #3730a3; }
+  .btn-success { background: #16a34a; color: #fff; box-shadow: 0 4px 0 #15803d; }
+  .btn-danger { background: #dc2626; color: #fff; box-shadow: 0 4px 0 #b91c1c; }
+  .btn-warning { background: #d97706; color: #fff; box-shadow: 0 4px 0 #b45309; }
+  .btn-ghost { background: #e2e8f0; color: #475569; box-shadow: 0 4px 0 #cbd5e1; }
+  .btn-option { background: #fff; color: #1e293b; box-shadow: 0 4px 0 #cbd5e1; border: 2px solid #e2e8f0; font-size: 1rem; font-weight: 700; border-radius: 14px; padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.1s; width: 100%; }
+  .btn-option:active { transform: translateY(2px); box-shadow: none; }
+  .btn-option.correct { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+  .btn-option.wrong { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
+  .hp-bar { height: 10px; border-radius: 99px; background: #fee2e2; overflow: hidden; }
+  .hp-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ef4444, #f97316); transition: width 0.4s; }
+  .exp-bar { height: 6px; border-radius: 99px; background: #dbeafe; overflow: hidden; }
+  .exp-fill { height: 100%; border-radius: 99px; background: #3b82f6; transition: width 0.4s; }
+  .monster-hp-bar { height: 12px; border-radius: 99px; background: #fecaca; overflow: hidden; }
+  .monster-hp-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width 0.5s; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake { 10%,90%{transform:translateX(-3px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-6px)} 40%,60%{transform:translateX(6px)} }
+  .bounce { animation: bounce 0.6s; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal-box { background: #fff; border-radius: 20px; padding: 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
+  .scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  input { font-size: 16px !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ── Teacher Config from URL hash ──
+let _cfg = null;
+try { if (location.hash.length > 1) _cfg = JSON.parse(atob(location.hash.slice(1))); } catch(e) {}
+const NO_CONFIG = !_cfg;
+
+let db = null, auth = null;
+if (_cfg) {
+  try {
+    const app = firebase.initializeApp({ apiKey:_cfg.apiKey, authDomain:_cfg.authDomain, projectId:_cfg.projectId, storageBucket:_cfg.storageBucket, messagingSenderId:_cfg.messagingSenderId, appId:_cfg.appId });
+    db = firebase.firestore(app);
+    auth = firebase.auth(app);
+    auth.signInAnonymously().catch(()=>{});
+  } catch(e) {}
+}
+
+const CSV = {
+  chinese: _cfg?.csvChinese || '',
+  english: _cfg?.csvEnglish || '',
+  social:  _cfg?.csvSocial  || '',
+  science: _cfg?.csvScience || '',
+};
+
+// ── Constants ──
+const ZONES = {
+  east_forest: { id:'east_forest', name:'千卷墨林', emoji:'🌿', subject:'國語', color:'#795548', bg:'#EFEBE9', type:'csv', bank:'chinese', monsters:[{name:'竹簡怪',icon:'🎋'},{name:'毛筆精',icon:'🖌️'},{name:'古詩魔',icon:'📜'}] },
+  west_desert: { id:'west_desert', name:'炎熱荒漠', emoji:'🏜️', subject:'數學', color:'#e65100', bg:'#FFF3E0', type:'math', monsters:[{name:'沙塵怪',icon:'🌫️'},{name:'蠍子王',icon:'🦂'},{name:'仙人掌戰士',icon:'🌵'}] },
+  south_harbor:{ id:'south_harbor',name:'元素港灣', emoji:'⚓', subject:'自然', color:'#2e7d32', bg:'#E8F5E9', type:'csv', bank:'science', monsters:[{name:'水元素',icon:'💧'},{name:'火焰靈',icon:'🔥'},{name:'雷電球',icon:'⚡'}] },
+  north_tundra:{ id:'north_tundra',name:'單字凍原', emoji:'❄️', subject:'英語', color:'#1565c0', bg:'#E3F2FD', type:'csv', bank:'english', monsters:[{name:'雪狼',icon:'🐺'},{name:'冰巨人',icon:'⛄'},{name:'極地熊',icon:'🐻‍❄️'}] },
+  outer_ruins: { id:'outer_ruins', name:'編年廢墟', emoji:'🏛️', subject:'社會', color:'#6a1b9a', bg:'#F3E5F5', type:'csv', bank:'social',  monsters:[{name:'石像鬼',icon:'🗿'},{name:'考古幽靈',icon:'👻'},{name:'時光守護者',icon:'⏳'}] },
+};
+
+const ITEMS = {
+  exam_zero:    { id:'exam_zero',    name:'0分考卷',   type:'weapon',     atk:0,  icon:'📝', desc:'勇氣的象徵。ATK+0' },
+  exam_hundred: { id:'exam_hundred', name:'100分考卷', type:'weapon',     atk:30, icon:'📋', desc:'奇蹟武器！ATK+30' },
+  sword_iron:   { id:'sword_iron',   name:'鐵劍',      type:'weapon',     atk:7,  price:350, icon:'🗡️', desc:'ATK+7' },
+  bow_hunter:   { id:'bow_hunter',   name:'長弓',      type:'weapon',     atk:5,  price:500, icon:'🏹', desc:'ATK+5，連對2題第3下+25傷害' },
+  potion_s:     { id:'potion_s',     name:'小紅藥水',  type:'consumable', icon:'🧪', price:50,  heal:5,    desc:'回復 5 HP' },
+  potion_l:     { id:'potion_l',     name:'大紅藥水',  type:'consumable', icon:'🍶', price:150, healFull:true, desc:'回復至滿血' },
+};
+
+const SHOP_ITEMS = ['potion_s','potion_l','sword_iron','bow_hunter'];
+let BANKS = { chinese:[], english:[], social:[], science:[] };
+
+const WAVE_STATS = [
+  { hp:30, atk:5, exp:20, gold:25 },
+  { hp:50, atk:5, exp:40, gold:50 },
+  { hp:80, atk:10, exp:80, gold:80 },
+];
+
+// ── CSV parser ──
+const parseCSV = (text) => {
+  const rows = [];
+  text.split('\n').forEach(line => {
+    const cols = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur=''; }
+      else cur += c;
+    }
+    cols.push(cur.trim());
+    if (cols.length >= 2 && cols[0] && !['題目','Question','A欄 (題目)'].includes(cols[0]))
+      rows.push({ q:cols[0], a:cols[1], wrong:[cols[2],cols[3],cols[4]].filter(Boolean) });
+  });
+  return rows;
+};
+
+const fetchBank = async (url) => {
+  if (!url) return [];
+  try { return parseCSV(await (await fetch(url)).text()); } catch { return []; }
+};
+
+// ── Math question ──
+const genMath = () => {
+  const ops = ['+','-','×','÷'];
+  const op = ops[Math.floor(Math.random()*4)];
+  let n1 = (Math.floor(Math.random()*50)+1)/10, n2 = (Math.floor(Math.random()*50)+1)/10, ans;
+  if (op==='+') ans=n1+n2;
+  else if (op==='-') { if(n1<n2){let t=n1;n1=n2;n2=t;} ans=n1-n2; }
+  else if (op==='×') ans=Math.round(n1*n2*100)/100;
+  else { n2=Math.floor(Math.random()*5)+1; n1=n2*(Math.floor(Math.random()*5)+1); ans=n1/n2; }
+  ans=Math.round(ans*100)/100;
+  let wrongs=[];
+  while(wrongs.length<3){let w=Math.round((ans+(Math.random()>0.5?0.1:-0.1)*(Math.floor(Math.random()*5)+1))*100)/100;if(w!==ans&&!wrongs.includes(w)&&w>=0)wrongs.push(w);}
+  return { q:`${n1} ${op} ${n2} = ?`, a:String(ans), wrong:wrongs.map(String) };
+};
+
+// ── Pick question from pool ──
+const popQuestion = (pool, zone) => {
+  if (zone.type === 'math') return genMath();
+  let p = [...pool];
+  if (p.length === 0) p = [...BANKS[zone.bank]].sort(()=>Math.random()-0.5);
+  const qObj = p.pop() || { q:'1+1=?', a:'2', wrong:['3','4','5'] };
+  let opts = [qObj.a];
+  if (qObj.wrong.length>0) { opts = opts.concat(qObj.wrong.slice(0,3)); while(opts.length<4) opts.push('???'); }
+  else { while(opts.length<4) opts.push(String(Math.floor(Math.random()*100))); }
+  opts.sort(()=>Math.random()-0.5);
+  return { qObj, opts, newPool: p };
+};
+
+// ── App ──
+function App() {
+  const INIT_PLAYER = { name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:15, baseMaxHp:15, baseAtk:8, streak:0, inventory:[{id:'exam_zero',qty:1}], equipped:{weapon:null} };
+  const [player, setPlayer] = useState(INIT_PLAYER);
+  const [scene, setScene] = useState('start');
+  const [loading, setLoading] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null); // {icon, title, body, onOk}
+  const [battle, setBattle] = useState(null);
+  // battle: {zone, wave, monster:{name,icon,hp,maxHp,atk,gold,exp}, question, answer, options, pool, isProcessing, streak}
+  const battleRef = useRef(null);
+  useEffect(() => { battleRef.current = battle; }, [battle]);
+
+  const showMsg = (icon, title, body, onOk) => setMsg({icon, title, body, onOk});
+
+  // ── Stats ──
+  const getStats = (p) => {
+    const w = p.equipped?.weapon ? ITEMS[p.equipped.weapon] : null;
+    const weaponAtk = w?.atk || 0;
+    const maxHp = p.baseMaxHp;
+    return { atk: p.baseAtk + weaponAtk + Math.floor(p.level/2), maxHp };
+  };
+  const stats = getStats(player);
+
+  // ── Load databases ──
+  const loadDBs = async () => {
+    setLoading('載入題庫中...');
+    const [ch, en, so, sc] = await Promise.all([fetchBank(CSV.chinese), fetchBank(CSV.english), fetchBank(CSV.social), fetchBank(CSV.science)]);
+    BANKS.chinese = ch; BANKS.english = en; BANKS.social = so; BANKS.science = sc;
+    setLoading('');
+  };
+
+  // ── Save to cloud ──
+  const saveToCloud = async (p = player) => {
+    if (!p.accountId || !db) return false;
+    setSaving(true);
+    try {
+      await db.collection('saves').doc(p.accountId).set({ ...p, savedAt: new Date().toISOString() });
+      setSaving(false); return true;
+    } catch(e) { setSaving(false); return false; }
+  };
+
+  // ── Inventory helpers ──
+  const hasItem = (id, p=player) => p.inventory.some(i=>i.id===id);
+
+  const addItem = (id, qty=1) => setPlayer(prev => {
+    const def = ITEMS[id]; if (!def) return prev;
+    const stackable = def.type !== 'weapon';
+    let inv = [...prev.inventory];
+    if (stackable) {
+      const slot = inv.find(i=>i.id===id);
+      if (slot) slot.qty = (slot.qty||1)+qty;
+      else inv.push({id, qty});
+    } else {
+      for (let i=0;i<qty;i++) inv.push({id, qty:1});
+    }
+    return { ...prev, inventory: inv };
+  });
+
+  const removeItem = (id, qty=1) => setPlayer(prev => {
+    let inv = [...prev.inventory];
+    const idx = inv.findIndex(i=>i.id===id);
+    if (idx < 0) return prev;
+    if ((inv[idx].qty||1) <= qty) inv.splice(idx,1);
+    else inv[idx] = {...inv[idx], qty: inv[idx].qty - qty};
+    return { ...prev, inventory: inv };
+  });
+
+  // ── Gain EXP & Gold ──
+  const gainExpGold = (expGain, goldGain) => {
+    setPlayer(prev => {
+      let { exp, level, maxExp, baseMaxHp, hp, gold, totalGoldEarned } = prev;
+      gold += goldGain;
+      totalGoldEarned = (totalGoldEarned||0) + goldGain;
+      exp += expGain;
+      let leveledUp = false;
+      while (exp >= maxExp && level < 10) {
+        exp -= maxExp; level++; maxExp = Math.floor(maxExp*1.4);
+        baseMaxHp += 5; hp = baseMaxHp; leveledUp = true;
+      }
+      return { ...prev, exp, level, maxExp, baseMaxHp, hp, gold, totalGoldEarned };
+    });
+  };
+
+  // ── Login ──
+  const doLogin = async () => {
+    const name = player.name.trim();
+    const id = player.accountId.trim();
+    if (!name) { showMsg('⚠️','提示','請輸入角色名字！'); return; }
+    setLoading('連線中...');
+    await loadDBs();
+    if (id && db) {
+      try {
+        const snap = await db.collection('saves').doc(id).get();
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.name !== name) { setLoading(''); showMsg('🔒','驗證失敗','名字和帳號不符！'); return; }
+          setPlayer({ ...INIT_PLAYER, ...data });
+          setLoading(''); setScene('village'); return;
+        }
+      } catch(e) {}
+    }
+    setPlayer(prev => ({ ...prev, name, accountId: id, inventory:[{id:'exam_zero',qty:1}] }));
+    setLoading(''); setScene('village');
+  };
+
+  // ── Battle ──
+  const startBattle = (zone) => {
+    const pool = zone.type === 'csv' ? [...BANKS[zone.bank]].sort(()=>Math.random()-0.5) : [];
+    const ws = WAVE_STATS[0];
+    const mTemplate = zone.monsters[Math.floor(Math.random()*zone.monsters.length)];
+    const monster = { ...mTemplate, hp: ws.hp, maxHp: ws.hp, atk: ws.atk, gold: ws.gold, exp: ws.exp };
+    const { qObj, opts, newPool } = popQuestion(pool, zone);
+    setBattle({ zone, wave:1, monster, question: qObj.q, answer: qObj.a, options: opts, pool: newPool, isProcessing: false, streak: 0 });
+    setScene('battle');
+  };
+
+  const nextQuestion = (zone, pool) => {
+    const { qObj, opts, newPool } = popQuestion(pool, zone);
+    setBattle(prev => prev ? ({ ...prev, question: qObj.q, answer: qObj.a, options: opts, pool: newPool, isProcessing: false }) : prev);
+  };
+
+  const handleAnswer = (opt) => {
+    const b = battleRef.current;
+    if (!b || b.isProcessing) return;
+    setBattle(prev => prev ? ({ ...prev, isProcessing: true }) : prev);
+
+    const isCorrect = String(opt) === String(b.answer);
+    const { zone, wave, monster, pool, streak } = b;
+    const ws = WAVE_STATS[wave-1];
+
+    if (isCorrect) {
+      const newStreak = streak + 1;
+      let dmg = stats.atk;
+      if (player.equipped?.weapon === 'bow_hunter' && newStreak >= 3) { dmg += 25; }
+      const newStreak2 = (player.equipped?.weapon === 'bow_hunter' && newStreak >= 3) ? 0 : newStreak;
+      setBattle(prev => prev ? ({ ...prev, streak: newStreak2 }) : prev);
+      setPlayer(prev => ({ ...prev, streak: newStreak }));
+
+      const newHp = monster.hp - dmg;
+      if (newHp <= 0) {
+        // wave won
+        gainExpGold(ws.exp, ws.gold);
+        if (wave >= 3) {
+          // battle won
+          setTimeout(() => {
+            setBattle(null);
+            showMsg('🏆','過關！',`你打敗了所有怪物！\n獲得 ${ws.exp}EXP + ${ws.gold}G`, () => setScene('map'));
+          }, 400);
+        } else {
+          // next wave
+          const nextWave = wave + 1;
+          const nextWS = WAVE_STATS[nextWave-1];
+          const mT = zone.monsters[Math.floor(Math.random()*zone.monsters.length)];
+          const newMonster = { ...mT, hp: nextWS.hp, maxHp: nextWS.hp, atk: nextWS.atk, gold: nextWS.gold, exp: nextWS.exp };
+          const { qObj, opts, newPool } = popQuestion(pool, zone);
+          setTimeout(() => {
+            setBattle(prev => prev ? ({ ...prev, wave: nextWave, monster: newMonster, question: qObj.q, answer: qObj.a, options: opts, pool: newPool, isProcessing: false, streak: 0 }) : prev);
+          }, 600);
+        }
+      } else {
+        setBattle(prev => prev ? ({ ...prev, monster: { ...prev.monster, hp: newHp } }) : prev);
+        setTimeout(() => nextQuestion(zone, pool), 400);
+      }
+    } else {
+      // wrong
+      setPlayer(prev => ({ ...prev, streak: 0, totalWrong: (prev.totalWrong||0)+1 }));
+      setBattle(prev => prev ? ({ ...prev, streak: 0 }) : prev);
+      const newPlayerHp = player.hp - monster.atk;
+      if (newPlayerHp <= 0) {
+        setPlayer(prev => ({ ...prev, hp: 0 }));
+        setTimeout(() => {
+          setBattle(null);
+          showMsg('💀','敗北...','HP 歸零了！\n先補血再來挑戰吧！', () => setScene('village'));
+        }, 600);
+      } else {
+        setPlayer(prev => ({ ...prev, hp: Math.max(0, prev.hp - monster.atk) }));
+        setTimeout(() => nextQuestion(zone, pool), 800);
+      }
+    }
+  };
+
+  // ── Shop ──
+  const buyItem = (id) => {
+    const item = ITEMS[id];
+    if (!item?.price) return;
+    if (player.gold < item.price) { showMsg('💸','金幣不足',`需要 ${item.price}G`); return; }
+    setPlayer(prev => ({ ...prev, gold: prev.gold - item.price }));
+    addItem(id, 1);
+    showMsg('✅','購買成功',`獲得「${item.name}」！`);
+  };
+
+  // ── Use / Equip item ──
+  const useItem = (id) => {
+    const item = ITEMS[id];
+    if (!item) return;
+    if (item.type === 'weapon') {
+      if (player.equipped?.weapon === id) {
+        setPlayer(prev => ({ ...prev, equipped: { ...prev.equipped, weapon: null } }));
+        showMsg('🗡️','卸下武器',`已卸下「${item.name}」`);
+      } else {
+        setPlayer(prev => ({ ...prev, equipped: { ...prev.equipped, weapon: id } }));
+        showMsg('⚔️','裝備成功',`裝備「${item.name}」！ATK+${item.atk}`);
+      }
+    } else if (item.type === 'consumable') {
+      const { maxHp } = getStats(player);
+      if (item.healFull) {
+        setPlayer(prev => ({ ...prev, hp: maxHp }));
+        removeItem(id);
+        showMsg('🍶','回血',`HP 全滿了！`);
+      } else if (item.heal) {
+        setPlayer(prev => ({ ...prev, hp: Math.min(maxHp, prev.hp + item.heal) }));
+        removeItem(id);
+        showMsg('🧪','回血',`回復 ${item.heal} HP！`);
+      }
+    }
+  };
+
+  // ── Renders ──
+
+  // Status bar (top)
+  const StatusBar = () => (
+    <div style={{background:'#1e293b', color:'#f1f5f9', padding:'10px 16px'}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+        <div style={{fontWeight:800, fontSize:'0.9rem'}}>LV.{player.level} <span style={{opacity:0.6, fontSize:'0.75rem'}}>| ⚔️{stats.atk} | 💰{player.gold}G</span></div>
+        <div style={{fontSize:'0.85rem', fontWeight:700, color: player.hp <= 5 ? '#f87171' : '#6ee7b7'}}>{player.name || '冒險者'} ❤️{player.hp}/{stats.maxHp}</div>
+      </div>
+      <div className="hp-bar"><div className="hp-fill" style={{width:`${Math.max(0,(player.hp/stats.maxHp)*100)}%`}}></div></div>
+      <div className="exp-bar" style={{marginTop:3}}><div className="exp-fill" style={{width:`${(player.exp/player.maxExp)*100}%`}}></div></div>
+    </div>
+  );
+
+  // Back button
+  const BackBtn = ({to, label='← 返回'}) => (
+    <button className="btn btn-ghost" style={{padding:'10px 16px', fontSize:'0.9rem', margin:'12px 16px 0'}} onClick={()=>setScene(to)}>{label}</button>
+  );
+
+  // ── Scene: Start ──
+  if (scene === 'start') return (
+    <div className="app" style={{background:'linear-gradient(160deg,#1e1b4b,#312e81)', minHeight:'100dvh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'32px 24px'}}>
+      <div style={{textAlign:'center', marginBottom:32}}>
+        <div style={{fontSize:'4rem', marginBottom:8}}>⚔️</div>
+        <div style={{fontSize:'1.8rem', fontWeight:900, color:'#e0e7ff', letterSpacing:2}}>亞德雷大陸</div>
+        <div style={{fontSize:'0.85rem', color:'#a5b4fc', marginTop:4}}>手機版 · 核心冒險</div>
+      </div>
+      {NO_CONFIG && <div style={{background:'#fef3c7', border:'2px solid #f59e0b', borderRadius:12, padding:12, marginBottom:16, fontSize:'0.8rem', color:'#92400e', textAlign:'center'}}>⚠️ 尚未設定 Firebase，將以訪客模式遊玩（無法存檔）</div>}
+      <div style={{background:'rgba(255,255,255,0.08)', borderRadius:20, padding:20, display:'flex', flexDirection:'column', gap:12}}>
+        <div>
+          <div style={{color:'#c7d2fe', fontSize:'0.8rem', fontWeight:700, marginBottom:6}}>角色名字</div>
+          <input style={{width:'100%', padding:'12px 14px', borderRadius:12, border:'2px solid #4f46e5', background:'rgba(255,255,255,0.9)', fontWeight:700, outline:'none'}} placeholder="輸入你的名字" value={player.name} onChange={e=>setPlayer(p=>({...p,name:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&doLogin()} />
+        </div>
+        <div>
+          <div style={{color:'#c7d2fe', fontSize:'0.8rem', fontWeight:700, marginBottom:6}}>冒險帳號（選填，用於存檔）</div>
+          <input style={{width:'100%', padding:'12px 14px', borderRadius:12, border:'2px solid #4f46e5', background:'rgba(255,255,255,0.9)', fontWeight:700, outline:'none'}} placeholder="6碼以上英文+數字" value={player.accountId} onChange={e=>setPlayer(p=>({...p,accountId:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&doLogin()} />
+        </div>
+        <button className="btn btn-primary" style={{padding:'14px', fontSize:'1.1rem', marginTop:4}} onClick={doLogin} disabled={!!loading}>
+          {loading || '🗡️ 開始冒險！'}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Scene: Village ──
+  if (scene === 'village') return (
+    <div className="app" style={{display:'flex', flexDirection:'column', minHeight:'100dvh'}}>
+      <StatusBar />
+      <div style={{flex:1, padding:'20px 16px', display:'flex', flexDirection:'column', gap:12, background:'#f8fafc'}}>
+        <div style={{textAlign:'center', padding:'16px', background:'linear-gradient(135deg,#f0fdf4,#dcfce7)', borderRadius:16, border:'2px solid #86efac'}}>
+          <div style={{fontSize:'2.5rem'}}>🏘️</div>
+          <div style={{fontWeight:900, fontSize:'1.2rem', color:'#15803d'}}>亞德雷村莊</div>
+          <div style={{fontSize:'0.8rem', color:'#16a34a', marginTop:2}}>歡迎回來，{player.name}！</div>
+        </div>
+
+        <button className="btn btn-primary" style={{padding:'18px', fontSize:'1.1rem'}} onClick={()=>setScene('map')}>
+          🗺️ 大地圖 — 去打怪
+        </button>
+        <button className="btn btn-warning" style={{padding:'18px', fontSize:'1.1rem'}} onClick={()=>setScene('shop')}>
+          🛒 商店 — 補充物資
+        </button>
+        <button className="btn btn-ghost" style={{padding:'18px', fontSize:'1.1rem', color:'#475569'}} onClick={()=>setScene('bag')}>
+          🎒 背包 — 裝備管理
+        </button>
+
+        <div style={{marginTop:'auto', display:'flex', flexDirection:'column', gap:8}}>
+          <button className="btn btn-success" style={{padding:'14px', fontSize:'1rem'}} onClick={async()=>{
+            if (!player.accountId||!db) { showMsg('⚠️','無法存檔',player.accountId?'Firebase 未設定':'請先填寫帳號'); return; }
+            setSaving(true);
+            const ok = await saveToCloud();
+            setSaving(false);
+            showMsg(ok?'💾':'❌', ok?'存檔成功':'存檔失敗', ok?'進度已儲存至雲端！':'請確認網路連線。');
+          }} disabled={saving}>
+            {saving ? '存檔中...' : '💾 存檔'}
+          </button>
+          <div style={{textAlign:'center', fontSize:'0.75rem', color:'#94a3b8'}}>帳號：{player.accountId||'訪客模式'}</div>
+        </div>
+      </div>
+      {msg && <MsgModal {...msg} onClose={()=>{const f=msg.onOk; setMsg(null); f&&f();}} />}
+    </div>
+  );
+
+  // ── Scene: Map ──
+  if (scene === 'map') return (
+    <div className="app" style={{display:'flex', flexDirection:'column', minHeight:'100dvh'}}>
+      <StatusBar />
+      <BackBtn to="village" />
+      <div style={{padding:'12px 16px 24px', display:'flex', flexDirection:'column', gap:10}}>
+        <div style={{fontWeight:900, fontSize:'1.1rem', color:'#1e293b', marginBottom:4}}>🗺️ 選擇關卡</div>
+        {Object.values(ZONES).map(zone => (
+          <button key={zone.id} onClick={()=>{
+            if (player.hp <= 0) { showMsg('🚑','HP不足','先補血再出發！'); return; }
+            startBattle(zone);
+          }} style={{background:`linear-gradient(135deg,${zone.bg},white)`, border:`2px solid ${zone.color}`, borderRadius:16, padding:'14px 16px', textAlign:'left', cursor:'pointer', display:'flex', alignItems:'center', gap:12}}>
+            <div style={{fontSize:'2rem'}}>{zone.emoji}</div>
+            <div>
+              <div style={{fontWeight:900, fontSize:'1rem', color:'#1e293b'}}>{zone.name}</div>
+              <div style={{fontSize:'0.8rem', color:'#64748b', marginTop:2}}>📚 {zone.subject}</div>
+            </div>
+            <div style={{marginLeft:'auto', fontSize:'0.8rem', fontWeight:700, color:zone.color}}>→</div>
+          </button>
+        ))}
+      </div>
+      {msg && <MsgModal {...msg} onClose={()=>{const f=msg.onOk; setMsg(null); f&&f();}} />}
+    </div>
+  );
+
+  // ── Scene: Battle ──
+  if (scene === 'battle' && battle) {
+    const { zone, wave, monster, question, options } = battle;
+    const monsterHpPct = Math.max(0,(monster.hp/monster.maxHp)*100);
+    return (
+      <div className="app" style={{display:'flex', flexDirection:'column', minHeight:'100dvh', background: zone.bg}}>
+        {/* Header */}
+        <div style={{background: zone.color, color:'#fff', padding:'10px 16px'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+            <div style={{fontWeight:800, fontSize:'0.85rem'}}>Wave {wave}/3</div>
+            <div style={{fontWeight:800, fontSize:'0.85rem'}}>❤️{player.hp}/{stats.maxHp} | 💰{player.gold}G</div>
+          </div>
+          <div className="hp-bar" style={{background:'rgba(255,255,255,0.3)'}}><div className="hp-fill" style={{width:`${(player.hp/stats.maxHp)*100}%`, background:'#fff'}}></div></div>
+        </div>
+
+        {/* Monster */}
+        <div style={{padding:'16px', textAlign:'center'}}>
+          <div style={{fontSize:'4rem', marginBottom:4}}>{monster.icon}</div>
+          <div style={{fontWeight:800, fontSize:'1rem', color:'#1e293b', marginBottom:8}}>{monster.name} (HP: {monster.hp}/{monster.maxHp})</div>
+          <div className="monster-hp-bar"><div className="monster-hp-fill" style={{width:`${monsterHpPct}%`}}></div></div>
+        </div>
+
+        {/* Question */}
+        <div style={{margin:'0 16px', background:'#fff', borderRadius:16, padding:'16px', boxShadow:'0 2px 12px rgba(0,0,0,0.1)', border:`2px solid ${zone.color}`, textAlign:'center', minHeight:64, display:'flex', alignItems:'center', justifyContent:'center'}}>
+          <div style={{fontWeight:800, fontSize:'1.15rem', color:'#1e293b', lineHeight:1.4}}>{question || '載入中...'}</div>
+        </div>
+
+        {/* Options */}
+        <div style={{padding:'12px 16px 24px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+          {options.map((opt, i) => (
+            <button key={i} className="btn-option" onClick={()=>handleAnswer(opt)} disabled={battle.isProcessing}
+              style={{opacity: battle.isProcessing ? 0.6 : 1}}>{opt}</button>
+          ))}
+        </div>
+
+        {/* Flee */}
+        <div style={{padding:'0 16px 24px'}}>
+          <button className="btn btn-ghost" style={{width:'100%', padding:'12px', fontSize:'0.9rem'}} onClick={()=>{setBattle(null); setScene('map');}}>🏃 逃跑（放棄此次戰鬥）</button>
+        </div>
+        {msg && <MsgModal {...msg} onClose={()=>{const f=msg.onOk; setMsg(null); f&&f();}} />}
+      </div>
+    );
+  }
+
+  // ── Scene: Shop ──
+  if (scene === 'shop') return (
+    <div className="app" style={{display:'flex', flexDirection:'column', minHeight:'100dvh'}}>
+      <StatusBar />
+      <BackBtn to="village" />
+      <div style={{padding:'12px 16px 24px', display:'flex', flexDirection:'column', gap:10}}>
+        <div style={{fontWeight:900, fontSize:'1.1rem', color:'#1e293b', marginBottom:4}}>🛒 村莊商店</div>
+        <div style={{fontSize:'0.8rem', color:'#64748b', marginBottom:4}}>💰 持有金幣：{player.gold}G</div>
+        {SHOP_ITEMS.map(id => {
+          const item = ITEMS[id];
+          const equipped = player.equipped?.weapon === id;
+          const owned = player.inventory.some(i=>i.id===id);
+          return (
+            <div key={id} style={{background:'#fff', border:'2px solid #e2e8f0', borderRadius:16, padding:'14px', display:'flex', alignItems:'center', gap:12}}>
+              <div style={{fontSize:'2rem'}}>{item.icon}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:800, fontSize:'0.95rem', color:'#1e293b'}}>{item.name} {equipped&&<span className="tag" style={{background:'#dcfce7',color:'#15803d'}}>裝備中</span>}</div>
+                <div style={{fontSize:'0.75rem', color:'#64748b', marginTop:2}}>{item.desc}</div>
+              </div>
+              <button className="btn btn-primary" style={{padding:'10px 14px', fontSize:'0.85rem', flexShrink:0, opacity: player.gold < item.price ? 0.5 : 1}}
+                onClick={()=>buyItem(id)} disabled={player.gold < item.price}>
+                {item.price}G
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {msg && <MsgModal {...msg} onClose={()=>{const f=msg.onOk; setMsg(null); f&&f();}} />}
+    </div>
+  );
+
+  // ── Scene: Bag ──
+  if (scene === 'bag') return (
+    <div className="app" style={{display:'flex', flexDirection:'column', minHeight:'100dvh'}}>
+      <StatusBar />
+      <BackBtn to="village" />
+      <div style={{padding:'12px 16px 24px', display:'flex', flexDirection:'column', gap:10}}>
+        <div style={{fontWeight:900, fontSize:'1.1rem', color:'#1e293b', marginBottom:4}}>🎒 冒險背包</div>
+        <div style={{background:'#f1f5f9', borderRadius:12, padding:'10px 14px', fontSize:'0.85rem', color:'#475569'}}>
+          裝備中：⚔️ {player.equipped?.weapon ? ITEMS[player.equipped.weapon]?.name : '（無）'} | ATK {stats.atk}
+        </div>
+        {player.inventory.length === 0 && <div style={{textAlign:'center', color:'#94a3b8', padding:32}}>背包是空的</div>}
+        {player.inventory.map((slot, i) => {
+          const item = ITEMS[slot.id];
+          if (!item) return null;
+          const equipped = player.equipped?.weapon === slot.id;
+          return (
+            <div key={i} style={{background:'#fff', border:`2px solid ${equipped?'#4f46e5':'#e2e8f0'}`, borderRadius:16, padding:'14px', display:'flex', alignItems:'center', gap:12}}>
+              <div style={{fontSize:'2rem'}}>{item.icon}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:800, fontSize:'0.95rem', color:'#1e293b'}}>
+                  {item.name} {slot.qty>1 && <span style={{color:'#64748b'}}>×{slot.qty}</span>}
+                  {equipped && <span className="tag" style={{background:'#ede9fe',color:'#6d28d9',marginLeft:6}}>裝備中</span>}
+                </div>
+                <div style={{fontSize:'0.75rem', color:'#64748b', marginTop:2}}>{item.desc}</div>
+              </div>
+              <button className="btn" style={{padding:'10px 14px', fontSize:'0.85rem', flexShrink:0, background: equipped?'#ede9fe':'#dbeafe', color: equipped?'#6d28d9':'#1d4ed8', boxShadow: equipped?'0 4px 0 #c4b5fd':'0 4px 0 #93c5fd'}}
+                onClick={()=>useItem(slot.id)}>
+                {item.type==='weapon' ? (equipped?'卸下':'裝備') : '使用'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {msg && <MsgModal {...msg} onClose={()=>{const f=msg.onOk; setMsg(null); f&&f();}} />}
+    </div>
+  );
+
+  return <div className="app" style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100dvh'}}><div style={{color:'#64748b'}}>載入中...</div></div>;
+}
+
+// ── Message Modal ──
+function MsgModal({ icon, title, body, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:'2.5rem', marginBottom:8}}>{icon}</div>
+        <div style={{fontWeight:900, fontSize:'1.2rem', color:'#1e293b', marginBottom:8}}>{title}</div>
+        <div style={{color:'#475569', fontSize:'0.9rem', whiteSpace:'pre-wrap', marginBottom:20, lineHeight:1.6}}>{body}</div>
+        <button className="btn btn-primary" style={{width:'100%', padding:'14px', fontSize:'1rem'}} onClick={onClose}>確認</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
