@@ -709,7 +709,10 @@
             };
             const fetchCsv = async (url) => {
                 try {
-                    const r = await fetch(url); const text = await r.text(); const res = [];
+                    const r = await fetch(url);
+                    const buf = await r.arrayBuffer();
+                    const text = new TextDecoder('utf-8').decode(buf);
+                    const res = [];
                     text.split('\n').forEach(row => { const c = parseCSVRow(row); if (c.length >= 2 && c[0] !== "題目" && c[0] !== "Question" && c[0] !== 'A欄 (題目)') res.push({ q: c[0], a: c[1], wrong: [c[2], c[3], c[4]].filter(Boolean) }); });
                     return res;
                 } catch (e) { return []; }
