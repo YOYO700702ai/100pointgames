@@ -471,11 +471,11 @@
                     setStoryDisplayed('');
                     setStorySlideReady(false);
                 } else {
-                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！\n\n⚠️ 注意：請牢記你的帳號密碼並且隨時存檔！！', '🌟', () => setScene('map'));
+                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！\n\n⚠️ 注意：請牢記你的帳號密碼並且隨時存檔！！', '🌟', () => setScene('village'));
                 }
             };
 
-            const storySkip = () => setScene('map');
+            const storySkip = () => setScene('village');
 
             // 結尾故事打字機
             useEffect(() => {
@@ -703,7 +703,7 @@
                 setLoadingMsg('正在讀取雲端題庫...');
                 const [chi, eng, soc, sci] = await Promise.all([ fetchCsv(CHINESE_CSV_URL), fetchCsv(ENGLISH_CSV_URL), fetchCsv(SOCIAL_CSV_URL), fetchCsv(SCIENCE_CSV_URL) ]);
                 QUESTION_BANKS.chinese_csv = chi; QUESTION_BANKS.english_csv = eng; QUESTION_BANKS.social_csv = soc; QUESTION_BANKS.science_csv = sci; QUESTION_BANKS.mixed = [...chi, ...eng, ...soc, ...sci];
-                setLoadingMsg(''); if (isNewCharRef.current) { isNewCharRef.current = false; setScene('story'); } else { setScene('map'); }
+                setLoadingMsg(''); if (isNewCharRef.current) { isNewCharRef.current = false; setScene('story'); } else { setScene('village'); }
             };
 
             const handleStart = async () => {
