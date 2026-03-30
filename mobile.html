@@ -301,8 +301,7 @@ function App() {
         if (wave >= 3) {
           // battle won
           setTimeout(() => {
-            setBattle(null);
-            showMsg('🏆','過關！',`你打敗了所有怪物！\n獲得 ${ws.exp}EXP + ${ws.gold}G`, () => setScene('map'));
+            showMsg('🏆','過關！',`你打敗了所有怪物！\n獲得 ${ws.exp}EXP + ${ws.gold}G`, () => { setBattle(null); setScene('map'); });
           }, 400);
         } else {
           // next wave
@@ -327,8 +326,7 @@ function App() {
       if (newPlayerHp <= 0) {
         setPlayer(prev => ({ ...prev, hp: 0 }));
         setTimeout(() => {
-          setBattle(null);
-          showMsg('💀','敗北...','HP 歸零了！\n先補血再來挑戰吧！', () => setScene('village'));
+          showMsg('💀','敗北...','HP 歸零了！\n先補血再來挑戰吧！', () => { setBattle(null); setScene('village'); });
         }, 600);
       } else {
         setPlayer(prev => ({ ...prev, hp: Math.max(0, prev.hp - monster.atk) }));
