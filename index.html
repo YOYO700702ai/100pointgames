@@ -1775,6 +1775,15 @@
                             </div>
                         )}
 
+                        {tutorialStep === 'bag' && scene === 'village' && (
+                            <div className="absolute inset-0 z-[200] pointer-events-none">
+                                <div className="absolute flex flex-col items-center gap-1 animate-bounce" style={{left:'30px', bottom:'80px'}}>
+                                    <div className="bg-[#FF9F1C] text-white font-black text-sm px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap" style={{textShadow:'1px 1px 2px rgba(0,0,0,0.4)'}}>打開包包</div>
+                                    <div className="text-2xl">👇</div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex-1 relative overflow-hidden flex bg-white">
 
                             {TEACHER_CONFIG_ERROR && (
@@ -2185,14 +2194,6 @@
                                     <div className="absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}></div>
                                     <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
                                     <button className="absolute bottom-5 right-5 z-100 bg-transparent text-[#FFAB91] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('chicken_farm')}>往雞舍 ➡</button>
-                                    {tutorialStep === 'bag' && (
-                                        <div className="absolute inset-0 z-[150] pointer-events-none flex items-end justify-start pl-6 pb-24">
-                                            <div className="flex flex-col items-center gap-1 animate-bounce">
-                                                <div className="bg-[#FF9F1C] text-white font-black text-base px-3 py-1.5 rounded-xl shadow-lg" style={{textShadow:'1px 1px 2px rgba(0,0,0,0.4)'}}>打開包包</div>
-                                                <div className="text-3xl">👇</div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
