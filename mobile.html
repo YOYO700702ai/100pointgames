@@ -132,7 +132,7 @@ const genMath = () => {
   ans=Math.round(ans*100)/100;
   let wrongs=[],_t=0;
   while(wrongs.length<3&&_t++<50){let w=Math.round((ans+(Math.random()>0.5?0.1:-0.1)*(Math.floor(Math.random()*5)+1))*100)/100;if(w!==ans&&!wrongs.includes(w)&&w>=0)wrongs.push(w);}
-  while(wrongs.length<3){const fb=Math.round((ans+(wrongs.length+1)*0.1)*100)/100;if(!wrongs.includes(fb))wrongs.push(fb);}
+  for(let k=1;wrongs.length<3;k++){const fb=Math.round((ans+k*0.1)*100)/100;if(fb!==ans&&!wrongs.includes(fb))wrongs.push(fb);}
   return { q:`${n1} ${op} ${n2} = ?`, a:String(ans), wrong:wrongs.map(String) };
 };
 
