@@ -802,13 +802,13 @@
                     else if (op === '×') { ansN = n1*n2; ansD = d1*d2; } else { ansN = n1*d2; ansD = d1*n2; }
                     const gcd = (a, b) => b ? gcd(b, a % b) : a; const common = gcd(ansN, ansD); ansN /= common; ansD /= common;
                     const qStr = `${n1}/${d1} ${op} ${n2}/${d2} = ?`; const aStr = `${ansN}/${ansD}`;
-                    let wrongs = []; while(wrongs.length < 3) { let wN = ansN + Math.floor(Math.random()*5) - 2; let wD = ansD + Math.floor(Math.random()*5) - 2; if(wN<=0) wN=1; if(wD<=0) wD=2; let wStr = `${wN}/${wD}`; if(wStr !== aStr && !wrongs.includes(wStr)) wrongs.push(wStr); }
+                    let wrongs = []; let _t1 = 0; while(wrongs.length < 3 && _t1++ < 50) { let wN = ansN + Math.floor(Math.random()*5) - 2; let wD = ansD + Math.floor(Math.random()*5) - 2; if(wN<=0) wN=1; if(wD<=0) wD=2; let wStr = `${wN}/${wD}`; if(wStr !== aStr && !wrongs.includes(wStr)) wrongs.push(wStr); } while(wrongs.length < 3) { const fb = `${ansN+wrongs.length+1}/${ansD+1}`; if(!wrongs.includes(fb)) wrongs.push(fb); }
                     return { q: qStr, a: aStr, wrong: wrongs };
                 } else {
                     let n1 = (Math.floor(Math.random() * 50) + 1) / 10; let n2 = (Math.floor(Math.random() * 50) + 1) / 10; let ans;
                     if (op === '+') ans = n1 + n2; else if (op === '-') { if(n1 < n2) { let t=n1; n1=n2; n2=t; } ans = n1 - n2; } else if (op === '×') ans = n1 * n2; else { n2 = Math.floor(Math.random() * 5) + 1; n1 = n2 * (Math.floor(Math.random() * 5) + 1); ans = n1 / n2; }
                     ans = Math.round(ans * 100) / 100; const qStr = `${n1} ${op} ${n2} = ?`;
-                    let wrongs = []; while(wrongs.length < 3) { let w = ans + (Math.random() > 0.5 ? 0.1 : -0.1) * Math.floor(Math.random()*5 + 1); w = Math.round(w * 100) / 100; if(w !== ans && !wrongs.includes(w) && w >= 0) wrongs.push(w); }
+                    let wrongs = []; let _t2 = 0; while(wrongs.length < 3 && _t2++ < 50) { let w = Math.round((ans + (Math.random() > 0.5 ? 0.1 : -0.1) * (Math.floor(Math.random()*5) + 1)) * 100) / 100; if(w !== ans && !wrongs.includes(w) && w >= 0) wrongs.push(w); } while(wrongs.length < 3) { const fb = Math.round((ans + (wrongs.length + 1) * 0.1) * 100) / 100; if(!wrongs.includes(fb)) wrongs.push(fb); }
                     return { q: qStr, a: ans, wrong: wrongs };
                 }
             };

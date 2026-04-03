@@ -130,8 +130,9 @@ const genMath = () => {
   else if (op==='×') ans=Math.round(n1*n2*100)/100;
   else { n2=Math.floor(Math.random()*5)+1; n1=n2*(Math.floor(Math.random()*5)+1); ans=n1/n2; }
   ans=Math.round(ans*100)/100;
-  let wrongs=[];
-  while(wrongs.length<3){let w=Math.round((ans+(Math.random()>0.5?0.1:-0.1)*(Math.floor(Math.random()*5)+1))*100)/100;if(w!==ans&&!wrongs.includes(w)&&w>=0)wrongs.push(w);}
+  let wrongs=[],_t=0;
+  while(wrongs.length<3&&_t++<50){let w=Math.round((ans+(Math.random()>0.5?0.1:-0.1)*(Math.floor(Math.random()*5)+1))*100)/100;if(w!==ans&&!wrongs.includes(w)&&w>=0)wrongs.push(w);}
+  while(wrongs.length<3){const fb=Math.round((ans+(wrongs.length+1)*0.1)*100)/100;if(!wrongs.includes(fb))wrongs.push(fb);}
   return { q:`${n1} ${op} ${n2} = ?`, a:String(ans), wrong:wrongs.map(String) };
 };
 
