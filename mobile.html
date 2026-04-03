@@ -142,7 +142,7 @@ const popQuestion = (pool, zone) => {
     qObj = genMath();
   } else {
     if (newPool.length === 0) newPool = [...BANKS[zone.bank]].sort(()=>Math.random()-0.5);
-    qObj = newPool.pop() || { q:'1+1=?', a:'2', wrong:['3','4','5'] };
+    qObj = newPool.pop() || genMath();
   }
   let opts = [qObj.a];
   if (qObj.wrong && qObj.wrong.length > 0) {

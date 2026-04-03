@@ -849,8 +849,8 @@
                 if (!zone) return;
                 let qObj; const type = zone.type; let newPool = [...pool];
                 if (type === 'math_frac_dec') qObj = generateMathQuestion(); else if (type === 'mixed_all' && Math.random() > 0.5) qObj = generateMathQuestion();
-                else { if (newPool.length > 0) qObj = newPool.pop(); else { const bankKey = type === 'mixed_all' ? 'mixed' : zone.questionBank; newPool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); qObj = newPool.pop() || { q: "休息一下，1+1=?", a: "2", wrong: ["3", "4", "5"] }; } }
-                if (!qObj) qObj = { q: "休息一下，1+1=?", a: "2", wrong: ["3", "4", "5"] };
+                else { if (newPool.length > 0) qObj = newPool.pop(); else { const bankKey = type === 'mixed_all' ? 'mixed' : zone.questionBank; newPool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); qObj = newPool.pop() || generateMathQuestion(); } }
+                if (!qObj) qObj = generateMathQuestion();
                 let opts = [qObj.a];
                 if (qObj.wrong && qObj.wrong.length > 0) { opts = opts.concat(qObj.wrong.slice(0, 3)); while(opts.length < 4) opts.push("???"); } else { while(opts.length < 4) opts.push(Math.floor(Math.random()*100).toString()); }
                 opts.sort(() => Math.random() - 0.5);
