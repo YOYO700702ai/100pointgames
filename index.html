@@ -724,6 +724,8 @@
                 setLoadingMsg('正在讀取雲端題庫...');
                 const [chi, eng, soc, sci] = await Promise.all([ fetchCsv(CHINESE_CSV_URL), fetchCsv(ENGLISH_CSV_URL), fetchCsv(SOCIAL_CSV_URL), fetchCsv(SCIENCE_CSV_URL) ]);
                 QUESTION_BANKS.chinese_csv = chi; QUESTION_BANKS.english_csv = eng; QUESTION_BANKS.social_csv = soc; QUESTION_BANKS.science_csv = sci; QUESTION_BANKS.mixed = [...chi, ...eng, ...soc, ...sci];
+                const failedBanks = [['國語', chi], ['英語', eng], ['社會', soc], ['自然', sci]].filter(([, b]) => b.length === 0).map(([n]) => n);
+                if (failedBanks.length > 0) { setLoadingMsg(''); setTimeout(() => showMessage('⚠️ 題庫載入失敗', `以下科目的題目沒有載入成功：\n${failedBanks.join('、')}\n\n請重新整理頁面再進入遊戲！`, '⚠️'), 100); return; }
                 setLoadingMsg(''); if (isNewCharRef.current) { isNewCharRef.current = false; setScene('story'); } else { setScene('village'); }
             };
 

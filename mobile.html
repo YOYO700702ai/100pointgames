@@ -185,6 +185,8 @@ function App() {
     setLoading('載入題庫中...');
     const [ch, en, so, sc] = await Promise.all([fetchBank(CSV.chinese), fetchBank(CSV.english), fetchBank(CSV.social), fetchBank(CSV.science)]);
     BANKS.chinese = ch; BANKS.english = en; BANKS.social = so; BANKS.science = sc;
+    const failedBanks = [['國語', ch], ['英語', en], ['社會', so], ['自然', sc]].filter(([, b]) => b.length === 0).map(([n]) => n);
+    if (failedBanks.length > 0) { setLoading(''); setTimeout(() => showMsg('⚠️', '題庫載入失敗', `以下科目的題目沒有載入成功：\n${failedBanks.join('、')}\n\n請重新整理頁面再進入遊戲！`), 100); return; }
     setLoading('');
   };
 
