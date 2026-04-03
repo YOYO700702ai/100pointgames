@@ -2739,8 +2739,8 @@
 
                             {faqOpen && (() => {
                                 const FAQ = [
-                                    { q: '如何開始遊戲？', a: '點開包包 → 裝備武器 → 離開村子 → 點擊五大地區開始答題打怪！！！' },
-                                    { q: '轉蛋雞鑰匙在哪裡？', a: '在沙漠區域通關有機會拿到！（第二次通關必定獲得）' },
+                                    { q: '如何開始遊戲？', a: '點開包包 → 裝備武器 → 前往大地圖 → 點擊五大地區開始答題打怪！！！' },
+                                    { q: '轉蛋雞鑰匙在哪裡？', a: '在沙漠區域通關有機會拿到！' },
                                     { q: '星願永恆宮怎麼進入？', a: '拿到五個關卡的通關證明後，去找哥布林商人買鑰匙，就能打開永恆宮的門！' },
                                     { q: '星願永恆宮的關卡好難！', a: '因為沒有裝備對應的神獸寵物是沒辦法通關的喔！神獸寵物都藏在轉蛋雞裡！' },
                                     { q: '抽到寵物蛋要怎麼孵化？', a: '到養雞場把蛋放進去，並且餵食營養劑唷！' },
@@ -2749,26 +2749,27 @@
                                     { q: '通關證明要幹嗎？', a: '集齊五個通關證明 → 去找哥布林商人 → 可以換錢或換取「奇怪的鑰匙」進入星願永恆宮！' },
                                     { q: '死掉剩一滴血怎麼辦？', a: '去商店購買紅藥水 → 打開包包 → 喝水補血！記得存檔唷！' },
                                 ];
+                                const sel = faqExpanded !== null ? faqExpanded : 0;
                                 return (
                                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={() => setFaqOpen(false)}>
-                                    <div className="bg-white rounded-[20px] shadow-[0_10px_25px_rgba(0,0,0,0.3)] w-[90%] max-w-[360px] max-h-[80vh] flex flex-col overflow-hidden anim-popIn" onClick={e => e.stopPropagation()}>
-                                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                                    <div className="bg-white rounded-[20px] shadow-[0_10px_25px_rgba(0,0,0,0.3)] w-[92%] max-w-[420px] max-h-[80vh] flex flex-col overflow-hidden anim-popIn" onClick={e => e.stopPropagation()}>
+                                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
                                             <h2 className="text-lg font-black text-[#333]">📖 新手教學</h2>
                                             <button className="text-gray-400 text-xl font-bold" onClick={() => setFaqOpen(false)}>✕</button>
                                         </div>
-                                        <div className="overflow-y-auto flex-1 p-3 flex flex-col gap-2">
-                                            {FAQ.map((item, i) => (
-                                                <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-                                                    <button className="w-full text-left px-4 py-3 font-bold text-[0.9rem] text-[#333] flex justify-between items-center bg-gray-50 active:bg-gray-100"
-                                                        onClick={() => setFaqExpanded(faqExpanded === i ? null : i)}>
-                                                        <span>{item.q}</span>
-                                                        <span className="text-gray-400 ml-2 shrink-0">{faqExpanded === i ? '▲' : '▼'}</span>
+                                        <div className="flex flex-1 overflow-hidden min-h-0">
+                                            <div className="w-[42%] border-r border-gray-100 overflow-y-auto flex flex-col shrink-0">
+                                                {FAQ.map((item, i) => (
+                                                    <button key={i}
+                                                        className={`w-full text-left px-3 py-3 text-[0.75rem] font-bold border-b border-gray-100 leading-snug ${sel === i ? 'bg-indigo-50 text-indigo-700' : 'text-[#444] bg-white active:bg-gray-50'}`}
+                                                        onClick={() => setFaqExpanded(i)}>
+                                                        {item.q}
                                                     </button>
-                                                    {faqExpanded === i && (
-                                                        <div className="px-4 py-3 text-[0.85rem] text-[#555] leading-relaxed bg-white border-t border-gray-100">{item.a}</div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto p-4 text-[0.85rem] text-[#555] leading-relaxed">
+                                                {FAQ[sel].a}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
