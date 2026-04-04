@@ -1607,7 +1607,7 @@
                             removeSpecificItem('exam_zero');
                             if (player.equipped.weapon === 'exam_zero') setPlayer(prev => ({ ...prev, equipped: { ...prev.equipped, weapon: null } }));
                             addItem('exam_hundred', 1);
-                            showMessage('升級成功！', '「0分考卷」已升級為「100分考卷」！\n攻擊力 +30！', '📝');
+                            showMessage('升級成功！', '「0分考卷」已升級為「100分考卷」！\n攻擊力 +30！\n\n🏅 成就解鎖：「進步神速」', '📝');
                         }), 200);
                     }
                     const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
