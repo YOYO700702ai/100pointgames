@@ -918,7 +918,7 @@
                 const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold);
                 playCoinSound();
                 if (currentWave < 3) {
-                    if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\nHP 全滿！`, '🎉'), 100);
+                    if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\n最大 HP 上升！`, '🎉'), 100);
                     if (currentWave === 1 && Math.random() < 0.3) {
                         const types = ['chest', 'animal', 'woodcutter'];
                         const eventType = types[Math.floor(Math.random() * 3)];
