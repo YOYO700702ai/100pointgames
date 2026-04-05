@@ -640,7 +640,7 @@
                 const hasPet = id => inv.some(i=>i.id===id) || p.equipped?.pet===id;
                 return {
                     exam_zero_master: (p.examZeroClears||0)>=5,
-                    fast_learner:     inv.some(i=>i.id==='exam_hundred'),
+                    fast_learner:     inv.some(i=>i.id==='exam_hundred') || p.equipped?.weapon==='exam_hundred',
                     no_wrong:         p.achNoWrong===true,
                     pet_master:       ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(hasPet),
                     hero:             (p.level||1)>=10,
