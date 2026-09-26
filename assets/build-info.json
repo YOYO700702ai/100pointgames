@@ -1,0 +1,29 @@
+{
+  "entry": "src/game.jsx",
+  "sourceHashes": {
+    "src/base.css": "6e5f52d59b42",
+    "src/game-utils.mjs": "9b83edeb5a88",
+    "src/game.jsx": "1239a8ba5f0c",
+    "src/index.template.html": "7789c513c727",
+    "src/react-shim.js": "f1fb27dd8ff2",
+    "src/ui.css": "c7b645308972",
+    "tailwind.config.cjs": "d0a24c55d67b",
+    "package-lock.json": "b5c9fed8fe6d"
+  },
+  "javascript": {
+    "file": "assets/game.js",
+    "bytes": 282889,
+    "hash": "6c104d6f7315"
+  },
+  "stylesheet": {
+    "file": "assets/game.css",
+    "bytes": 65638,
+    "hash": "e525beb37eee"
+  },
+  "htmlBytes": 1958,
+  "externalImports": [
+    "firebase/app",
+    "firebase/auth",
+    "firebase/firestore"
+  ]
+}

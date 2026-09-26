@@ -1,0 +1,104 @@
+[
+  {
+    "source": "0.jpg",
+    "output": "assets/art/world-map.webp",
+    "before": 195776,
+    "after": 147728
+  },
+  {
+    "source": "11.jpg",
+    "output": "assets/art/village.webp",
+    "before": 210178,
+    "after": 161558
+  },
+  {
+    "source": "unnamed.jpg",
+    "output": "assets/art/welcome.webp",
+    "before": 159170,
+    "after": 109822
+  },
+  {
+    "source": "星願永恆宮.png",
+    "output": "assets/art/palace.webp",
+    "before": 10536932,
+    "after": 401338
+  },
+  {
+    "source": "養雞場.jpg",
+    "output": "assets/art/hatchery.webp",
+    "before": 231474,
+    "after": 184164
+  },
+  {
+    "source": "1.jpg",
+    "output": "assets/art/story-1.webp",
+    "before": 309678,
+    "after": 271140
+  },
+  {
+    "source": "2.jpg",
+    "output": "assets/art/story-2.webp",
+    "before": 234944,
+    "after": 165064
+  },
+  {
+    "source": "3.jpg",
+    "output": "assets/art/story-3.webp",
+    "before": 423156,
+    "after": 387196
+  },
+  {
+    "source": "4.jpg",
+    "output": "assets/art/story-4.webp",
+    "before": 413201,
+    "after": 358072
+  },
+  {
+    "source": "5..jpg",
+    "output": "assets/art/story-5.webp",
+    "before": 362719,
+    "after": 328068
+  },
+  {
+    "source": "END1.jpg",
+    "output": "assets/art/ending-1.webp",
+    "before": 340989,
+    "after": 213350
+  },
+  {
+    "source": "END2.jpg",
+    "output": "assets/art/ending-2.webp",
+    "before": 168597,
+    "after": 117462
+  },
+  {
+    "source": "unnamed (1).png",
+    "output": "assets/art/egg-amethyst.webp",
+    "before": 379482,
+    "after": 48034
+  },
+  {
+    "source": "unnamed.png",
+    "output": "assets/art/egg-stardust.webp",
+    "before": 415593,
+    "after": 56746
+  },
+  {
+    "source": "unnamed (2).png",
+    "output": "assets/art/egg-vine.webp",
+    "before": 525100,
+    "after": 91274
+  },
+  {
+    "source": "unnamed (3).png",
+    "output": "assets/art/egg-amber.webp",
+    "before": 322755,
+    "after": 40038
+  },
+  {
+    "source": "unname.png",
+    "output": "assets/art/egg-obsidian.webp",
+    "before": 473391,
+    "after": 62188
+  }
+]

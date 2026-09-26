@@ -1,0 +1,2850 @@
+
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInAnonymously } from 'firebase/auth';
+        import { getFirestore, doc, setDoc, getDocFromServer } from 'firebase/firestore';
+        import { fetchQuestionCsv, addInventoryItem, removeInventoryItem, createActionGate, validateCloudPlayer, canSavePlayer, getGameplayScene } from './game-utils.mjs';
+
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // ==========================================
+        // ★ Firebase 初始化 (請填入您的設定) ★
+        // ==========================================
+        let app, auth, db;
+        const appId = 'my-math-rpg'; // 自訂 ID
+
+        // 從 URL hash 讀取老師設定（教師版模式）
+        let _teacherConfig = null;
+        try {
+            if (location.hash && location.hash.length > 1)
+                _teacherConfig = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+        } catch(e) {}
+        const IS_TEACHER_MODE = _teacherConfig !== null;
+        const TEACHER_CONFIG_ERROR = IS_TEACHER_MODE && !(_teacherConfig?.firebase?.apiKey);
+
+        const _defaultFirebaseConfig = {
+          apiKey: "AIzaSyBnHKkNtvQdSoCywSCZKkwPI_dRLJNXvXg",
+          authDomain: "rpggame-7ae09.firebaseapp.com",
+          projectId: "rpggame-7ae09",
+          storageBucket: "rpggame-7ae09.firebasestorage.app",
+          messagingSenderId: "766489842525",
+          appId: "1:766489842525:web:75a6ca54772ee659854eb4",
+          measurementId: "G-74W13YB5H4"
+        };
+        const firebaseConfig = IS_TEACHER_MODE ? (_teacherConfig?.firebase || {}) : _defaultFirebaseConfig;
+
+        try {
+            if (!TEACHER_CONFIG_ERROR && Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            }
+        } catch (e) {
+            console.error("Firebase init error", e);
+        }
+
+        let authRequest = null;
+        async function ensureAuth() {
+            if (!auth) throw new Error("Firebase 未設定");
+            if (auth.currentUser) return auth.currentUser;
+            if (!authRequest) authRequest = signInAnonymously(auth).then(result => result.user).finally(() => { authRequest = null; });
+            return authRequest;
+        }
+
+        // ==========================================
+        // ★ 遊戲設定與資料庫 (常數) ★
+        // ==========================================
+
+        const CHINESE_CSV_URL = _teacherConfig?.csvChinese || "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkJiMnZSApC9QGpRkUajkGpB4zu3_vlRRJUnnYqQUT8mwpVC9p5feKEqv0c24OjdnWyW9BBaCv_AEp/pub?output=csv";
+        const ENGLISH_CSV_URL = _teacherConfig?.csvEnglish || "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYawqE63-aJdaU9HGx3R2hZ3gXHvQpCTXOMqW9uordFM944NwST6a06u30rj-CSTGT8JpYhynbx-Py/pub?output=csv";
+        const SOCIAL_CSV_URL  = _teacherConfig?.csvSocial  || "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDucdYQZqNCJiBoFnl8aJZhQpHwLnotubA4vALBeh_ckKQQtu2xRXjb6W2cebPWpzi9a53zRZ665y0/pub?output=csv";
+        const SCIENCE_CSV_URL = _teacherConfig?.csvScience || "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuoTtan8hFBbXnaumdMOmqDsQrhlkGJlvEdgchTHxdG5G63utIpW1jtyKhkdPMT_rTaB28YWQIP3uk/pub?output=csv";
+
+        let QUESTION_BANKS = { chinese_csv: [], english_csv: [], social_csv: [], science_csv: [], mixed: [] };
+
+        const NPC_DEFAULT_LINES = [
+            "啊！我把轉蛋機鑰匙掉到沙漠裡了...",
+            "歡迎光臨。",
+            "隨便看看吧。",
+            "如果沒有要買東西的話，不要擋在路中間。",
+            "買不起沒關係啦。",
+            "那把弓？喔，那是給有實力的人用的。",
+            "最近天氣真差，害我都想打烊了。",
+            "不要亂碰商品，弄壞要賠十倍。",
+            "聽說沙漠深處有奇怪的機器，不知道是真的假的。",
+            "唉...人生好難，還是睡覺最實在。"
+        ];
+
+        const NPC_PURCHASE_LINES = [
+            "喔，拿去吧。",
+            "多謝惠顧。",
+            "還有要買的嗎？",
+            "慢慢走，不送。"
+        ];
+
+        const NPC_PROFILES = {
+            shopkeeper: {
+                name: "商店老闆",
+                img: "🧔",
+                defaultLines: NPC_DEFAULT_LINES,
+                purchaseLines: NPC_PURCHASE_LINES
+            },
+            merchant: {
+                name: "哥布林商人",
+                img: "👳‍♂️",
+                defaultLines: ["嘿嘿，你找對人了...", "我從遠方帶來的東西，市面上根本買不到。", "金幣到位，好東西自然到你手。"],
+                purchaseLines: ["識貨的人才懂這東西的價值，好好利用吧！", "哈哈，交易愉快！這種貨，下次可不知道還有沒有了。", "聰明的選擇，勇者。願它在戰場上為你添光。"]
+            }
+        };
+
+        const ITEMS = {
+            potion_s: { id: 'potion_s', name: '小紅藥水', price: 20, type: 'consumable', value: 10, icon: '🧪', desc: '恢復 10 點 HP' },
+            potion_l: { id: 'potion_l', name: '大紅藥水', price: 50, type: 'consumable', value: 30, icon: '🍷', desc: '恢復 30 點 HP' },
+            sword_wood: { id: 'sword_wood', name: '木劍', price: 100, type: 'weapon', atk: 5, icon: '🗡️', desc: '攻擊力 +5' },
+            sword_iron: { id: 'sword_iron', name: '鐵劍', price: 350, type: 'weapon', atk: 7, icon: '⚔️', desc: '攻擊力 +7' },
+            bow_hunter: { id: 'bow_hunter', name: '獵人長弓', price: 200, type: 'weapon', atk: 0, icon: '🏹', desc: '連對2題，第3下+25傷' },
+            sword_hero: { id: 'sword_hero', name: '勇者之劍', price: 999, type: 'weapon', atk: 12, icon: '💎', desc: '攻擊力 +12' },
+            pet_slime: { id: 'pet_slime', name: '史萊姆寶寶', price: 100, type: 'pet', hp: 20, icon: '💧', desc: 'HP上限 +20' },
+            pet_bat: { id: 'pet_bat', name: '小蝙蝠', price: 250, type: 'pet', atk: 7, icon: '🦇', desc: '攻擊力 +7' },
+            pet_wolf: { id: 'pet_wolf', name: '戰狼', price: 600, type: 'pet', atk: 8, icon: '🐺', desc: '攻擊力 +8' },
+            frag_north: { id: 'frag_north', name: '冰霜之語', type: 'material', icon: '❄️', desc: '北方凍原的通關證明' },
+            frag_south: { id: 'frag_south', name: '元素之心', type: 'material', icon: '🔥', desc: '南方港灣的通關證明' },
+            frag_east:  { id: 'frag_east',  name: '千古墨韻', type: 'material', icon: '🎋', desc: '東方墨林的通關證明' },
+            frag_west:  { id: 'frag_west',  name: '真理之砂', type: 'material', icon: '⏳', desc: '西方荒漠的通關證明' },
+            frag_outer: { id: 'frag_outer', name: '時光之輪', type: 'material', icon: '🏺', desc: '編年廢墟的通關證明' },
+            frag_exchange: { id: 'frag_exchange', name: '五證換金', type: 'special', icon: '💱', desc: '五種通關證明各一份，換取 1000G！' },
+            key_strange: { id: 'key_strange', name: '奇怪的鑰匙', price: 1000, type: 'key', icon: '🗝️', desc: '開啟永恆宮的神秘鑰匙' },
+            key_gacha: { id: 'key_gacha', name: '轉蛋機鑰匙', type: 'key', icon: '🔑', desc: '可以啟動村莊裡的轉蛋機' },
+            coin_gacha: { id: 'coin_gacha', name: '轉蛋幣', price: 100, type: 'material', icon: '🪙', desc: '可用於轉蛋機' },
+            cert_clear: { id: 'cert_clear', name: '通關證明', price: 9999, type: 'trophy', icon: '📜', desc: '傳說中的勇者證明' },
+            sword_god: { id: 'sword_god', name: '一擊必殺的神劍', price: 99999, type: 'weapon', icon: '🗡️', atk: 99999, desc: '神明賜予的武器，無視一切直接秒殺。' },
+            potion_nutri: { id: 'potion_nutri', name: '營養劑', price: 30, type: 'consumable_hatch', icon: '🌿', desc: '孵蛋需要的藥劑' },
+            egg_1: { id: 'egg_1', name: '紫晶符文蛋', type: 'egg', icon: '<img src="assets/art/egg-amethyst.webp" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【真理之眼貓頭鷹】' },
+            egg_2: { id: 'egg_2', name: '蔚藍星塵蛋', type: 'egg', icon: '<img src="assets/art/egg-stardust.webp" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【幻變時空水母】' },
+            egg_3: { id: 'egg_3', name: '翡翠藤蔓蛋', type: 'egg', icon: '<img src="assets/art/egg-vine.webp" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【撼地藤蔓甲龍】' },
+            egg_4: { id: 'egg_4', name: '琥珀金沙蛋', type: 'egg', icon: '<img src="assets/art/egg-amber.webp" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【貪婪尋寶鼠】' },
+            egg_5: { id: 'egg_5', name: '虛空黑曜蛋', type: 'egg', icon: '<img src="assets/art/egg-obsidian.webp" class="w-10 h-10 object-contain rounded-full shadow-sm" />', desc: '神秘蛋，孵化後可得【踏踏（虛空小象）】' },
+            pet_owl: { id: 'pet_owl', name: '真理之眼貓頭鷹', type: 'pet', atk: 10, hp: 0, icon: '🦉', desc: '攻擊力 +10｜【技能：迷霧破除】成語關卡的亂碼符號變回中文！' },
+            pet_jellyfish: { id: 'pet_jellyfish', name: '幻變時空水母', type: 'pet', atk: 10, hp: 0, icon: '🪼', desc: '攻擊力 +10｜【技能：緩慢時間流速】進入紙牌關卡時，翻牌展示時間延長至 30 秒！' },
+            pet_ankylo: { id: 'pet_ankylo', name: '撼地藤蔓甲龍', type: 'pet', atk: 10, hp: 0, icon: '🦕', desc: '攻擊力 +10｜【技能：藤蔓變身】打地精關卡槌子變成 2×2 範圍攻擊！' },
+            pet_rat: { id: 'pet_rat', name: '貪婪尋寶鼠', type: 'pet', atk: 10, hp: 0, icon: '🐭', desc: '攻擊力 +10｜【技能：尋寶】小丑關卡能聞到正確的寶箱位置！' },
+            pet_hound: { id: 'pet_hound', name: '虛空獵犬', type: 'pet', atk: 8, hp: 0, icon: '🐕‍🦺', desc: '攻擊力 +8' },
+            pet_stompy: { id: 'pet_stompy', name: '踏踏（虛空小象）', type: 'pet', atk: 10, hp: 0, icon: '🐘', desc: '攻擊力 +10｜【技能：踏破虛空】動物大逃亡關卡中，踩碎入口大岩石與一塊隨機障礙物，讓關卡更容易過！' },
+            gem_red: { id: 'gem_red', name: '圖書管理員寶石', type: 'material', icon: '❤️', desc: '魔法圖書館的通關證明，閃耀著紅色的光芒。' },
+            gem_blue: { id: 'gem_blue', name: '小丑的藍寶石', type: 'material', icon: '💙', desc: '尋寶遊戲的通關證明，閃耀著藍色的光芒。' },
+            gem_yellow: { id: 'gem_yellow', name: '紙牌大師的黃寶石', type: 'material', icon: '💛', desc: '記憶遊戲的通關證明，閃耀著黃色的光芒。' },
+            gem_green: { id: 'gem_green', name: '地精工頭的翡翠', type: 'material', icon: '💚', desc: '翡翠礦坑的通關證明，閃耀著綠色的光芒。' },
+            gem_purple: { id: 'gem_purple', name: '動物園長的紫寶石', type: 'material', icon: '💜', desc: '動物大逃亡的通關證明，閃耀著紫色的光芒。' },
+            gem_tycoon: { id: 'gem_tycoon', name: '神秘大寶石', price: 15000, type: 'special', icon: '💎', desc: '哥布林不知道從哪裡弄來的超級大寶石，似乎沒什麼用...但很貴。' },
+            sword_dual: { id: 'sword_dual', name: '影舞雙刀', price: 1500, type: 'weapon', atk: 20, icon: '🗡️', desc: '攻擊力 +20' },
+            pet_monkey: { id: 'pet_monkey', name: '神偷猴', price: 1500, type: 'pet', atk: 0, hp: 0, icon: '🐒', desc: '金幣加倍' },
+            potion_rainbow: { id: 'potion_rainbow', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
+            potion_exp: { id: 'potion_exp', name: '藍波藥劑', price: 1000, type: 'consumable_special', icon: '💉', desc: '永久增加攻擊力 +3！一次性效果。' },
+            exam_zero: { id: 'exam_zero', name: '0分考卷', type: 'weapon', atk: 2, icon: '📋', desc: '從異世界帶來的0分考卷。也許它還有別的用途？' },
+            exam_hundred: { id: 'exam_hundred', name: '100分考卷', type: 'weapon', atk: 30, icon: '📝', desc: '哥布林商人神奇地把0分考卷改造成了滿分！攻擊力大幅提升。' },
+            sword_paper_kill: { id: 'sword_paper_kill', name: '一擊必殺紙劍', price: 1000, type: 'weapon', atk: 0, icon: '📜', desc: '【技能：一擊必殺】答對直接秒殺怪物！打死 3 隻怪後消失。' },
+            sword_paper_gold: { id: 'sword_paper_gold', name: '金幣加倍紙劍', price: 1000, type: 'weapon', atk: 20, icon: '💰', desc: '攻擊力+20，打怪金幣×2！打死6隻後消失。\n聽說有某個小寵物特別喜歡他!?\n一起裝備的話有意想不到的效果!!!' }
+        };
+
+        const IDIOMS = [
+            "學無止境", "廢寢忘食", "勤能補拙", "半途而廢", "名落孫山",
+            "手不釋卷", "溫故知新", "持之以恆", "日積月累", "聚沙成塔",
+            "捨己為人", "大公無私", "光明正大", "助人為樂", "飲水思源",
+            "誠實守信", "謙虛好學", "見義勇為", "以身作則", "知錯能改",
+            "眉開眼笑", "目瞪口呆", "垂頭喪氣", "文質彬彬", "一表人才",
+            "心驚肉跳", "怒氣沖沖", "小心翼翼", "胸有成竹", "自高自大",
+            "垂涎三尺", "昂首闊步", "神采奕奕", "悠然自得", "驚慌失措",
+            "專心致志", "樂不可支", "悶悶不樂", "忘恩負義", "虛懷若谷",
+            "春色滿園", "鳥語花香", "山明水秀", "世外桃源", "烈日當空",
+            "冰天雪地", "依山傍水", "萬紫千紅", "風平浪靜", "綠意盎然",
+            "煙霧繚繞", "傾盆大雨", "漫山遍野", "豁然開朗", "烏雲密佈",
+            "氣象萬千", "斷垣殘壁", "人山人海", "門庭若市", "荒無人煙",
+            "狐假虎威", "井底之蛙", "畫蛇添足", "亡羊補牢", "掩耳盜鈴",
+            "守株待兔", "拔苗助長", "刻舟求劍", "驚弓之鳥", "畫龍點睛",
+            "班門弄斧", "志同道合", "患難與共", "情同手足", "同心協力",
+            "對牛彈琴", "塞翁失馬", "愚公移山", "望梅止渴", "自相矛盾",
+            "一日千里", "突飛猛進", "數不勝數", "千軍萬馬", "瞬息萬變",
+            "光明磊落", "滔滔不絕", "出類拔萃", "一鳴驚人", "博學多才",
+            "光陰似箭", "日月如梭", "爭分奪秒", "千載難逢", "迫不及待",
+            "萬無一失", "勇往直前", "再接再厲", "百折不撓", "欣欣向榮"
+        ];
+
+        const SHOP_ITEMS = ['potion_s', 'potion_l', 'potion_nutri', 'coin_gacha', 'sword_wood', 'bow_hunter', 'pet_slime', 'sword_iron', 'pet_bat', 'sword_dual', 'pet_monkey'];
+        const LEVEL_EXP_TABLE = [0, 50, 80, 120, 130, 150, 170, 400, 800, 1500];
+        const MAX_LEVEL = 10;
+
+        const ZONES = {
+            east_forest: { id: 'east_forest', name: '千卷墨林 (國)', bg: '#EFEBE9', type: 'custom_csv', questionBank: 'chinese_csv', dropItem: 'frag_east', monsters: [{ name: '竹簡怪', icon: '🎋', hp: 30, exp: 20, gold: 25 }, { name: '毛筆精', icon: '🖌️', hp: 40, exp: 30, gold: 50 }, { name: '古詩魔', icon: '📜', hp: 60, exp: 50, gold: 80 }] },
+            west_desert: { id: 'west_desert', name: '炎熱荒漠 (數)', bg: '#FFF3E0', type: 'math_frac_dec', dropItem: 'frag_west', monsters: [{ name: '沙塵怪', icon: '🌫️', hp: 35, exp: 25, gold: 25 }, { name: '蠍子王', icon: '🦂', hp: 50, exp: 40, gold: 50 }, { name: '仙人掌戰士', icon: '🌵', hp: 70, exp: 60, gold: 80 }] },
+            south_harbor: { id: 'south_harbor', name: '元素港灣 (自)', bg: '#E8F5E9', type: 'custom_csv', questionBank: 'science_csv', dropItem: 'frag_south', monsters: [{ name: '水元素', icon: '💧', hp: 25, exp: 15, gold: 25 }, { name: '火焰靈', icon: '🔥', hp: 45, exp: 35, gold: 50 }, { name: '雷電球', icon: '⚡', hp: 55, exp: 45, gold: 80 }] },
+            north_tundra: { id: 'north_tundra', name: '單字凍原 (英)', bg: '#E3F2FD', type: 'custom_csv', questionBank: 'english_csv', dropItem: 'frag_north', monsters: [{ name: '雪狼', icon: '🐺', hp: 30, exp: 20, gold: 25 }, { name: '冰巨人', icon: '⛄', hp: 60, exp: 50, gold: 50 }, { name: '極地熊', icon: '🐻‍❄️', hp: 80, exp: 70, gold: 80 }] },
+            outer_ruins: { id: 'outer_ruins', name: '編年廢墟 (社)', bg: '#F3E5F5', type: 'custom_csv', questionBank: 'social_csv', dropItem: 'frag_outer', monsters: [{ name: '石像鬼', icon: '🗿', hp: 40, exp: 30, gold: 25 }, { name: '考古幽靈', icon: '👻', hp: 50, exp: 40, gold: 50 }, { name: '時光守護者', icon: '⏳', hp: 75, exp: 65, gold: 80 }] },
+            magic_library: { id: 'magic_library', name: '魔法圖書館', bg: '#EFEBE9', type: 'minigame', dropItem: 'gem_red', monsters: [] }
+        };
+
+        // ==========================================
+        // ★ 華容道關卡資料 (橫向 5×4 棋盤) ★
+        // ==========================================
+        // 棋盤：5欄(x:0-4) × 4列(y:0-3)，出口在右側 y=1~2
+        // 勝利條件：大象(2×2) 移動到 x=3, y=1
+        const SLIDING_LEVELS = [
+            {
+                name: '動物集結',
+                difficulty: '經典',
+                pieces: [
+                    { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 0, y: 0, name: '🦒' },
+                    { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
+                    { id: 'zebra',     type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦓' },
+                    { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 0, y: 2, name: '🦘' },
+                    { id: 'crocodile', type: 'h', w: 2, h: 1, x: 1, y: 2, name: '🐊' },
+                    { id: 'alpaca',    type: 'v', w: 1, h: 2, x: 3, y: 2, name: '🦙' },
+                    { id: 'p1',        type: 'p', w: 1, h: 1, x: 1, y: 3, name: '🐥' },
+                    { id: 'p2',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐣' },
+                    { id: 'rock',      type: 'rock', w: 1, h: 2, x: 4, y: 1, name: '大岩石', immovable: true },
+                ]
+                // 空格: (4,0)(4,3)｜岩石封住出口(4,1)(4,2)｜踏踏能力後: 岩石消失→斑馬→右, 大象→右×2
+            },
+            {
+                name: '排隊出發',
+                difficulty: '進階',
+                pieces: [
+                    { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 0, y: 0, name: '🦒' },
+                    { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
+                    { id: 'zebra',     type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦓' },
+                    { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 0, y: 2, name: '🦘' },
+                    { id: 'alpaca',    type: 'v', w: 1, h: 2, x: 1, y: 2, name: '🦙' },
+                    { id: 'crocodile', type: 'h', w: 2, h: 1, x: 2, y: 2, name: '🐊' },
+                    { id: 'p1',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐥' },
+                    { id: 'p2',        type: 'p', w: 1, h: 1, x: 3, y: 3, name: '🐣' },
+                    { id: 'rock',      type: 'rock', w: 1, h: 2, x: 4, y: 1, name: '大岩石', immovable: true },
+                ]
+                // 空格: (4,0)(4,3)｜岩石封住出口(4,1)(4,2)
+            },
+            {
+                name: '迷路危機',
+                difficulty: '困難',
+                pieces: [
+                    { id: 'p1',        type: 'p', w: 1, h: 1, x: 0, y: 0, name: '🐥' },
+                    { id: 'elephant',  type: 'elephant', w: 2, h: 2, x: 1, y: 0, name: '🐘' },
+                    { id: 'giraffe',   type: 'v', w: 1, h: 2, x: 3, y: 0, name: '🦒' },
+                    { id: 'zebra',     type: 'v', w: 1, h: 2, x: 0, y: 1, name: '🦓' },
+                    { id: 'crocodile', type: 'h', w: 2, h: 1, x: 1, y: 2, name: '🐊' },
+                    { id: 'kangaroo',  type: 'v', w: 1, h: 2, x: 3, y: 2, name: '🦘' },
+                    { id: 'alpaca',    type: 'h', w: 2, h: 1, x: 0, y: 3, name: '🦙' },
+                    { id: 'p3',        type: 'p', w: 1, h: 1, x: 2, y: 3, name: '🐱' },
+                    { id: 'rock',      type: 'rock', w: 1, h: 2, x: 4, y: 1, name: '大岩石', immovable: true },
+                ]
+                // 空格: (4,0)(4,3)｜岩石封住出口(4,1)(4,2)
+            }
+        ];
+
+        // 亂碼符號池（用於成語關卡）
+        const GLYPH_POOL_CHINESE = ['⦬','⊢','▦','◆','✶','▲','★','⛀','✔','▶','♥','♠','♣','♦','⋆','✕','✨','✴','❉','✿','✹','✯','✦','✣','✮','✰','✱','✲','✳','✴','✵'];
+        const GLYPH_POOL_ENGLISH = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','!','@','#','$','%','^','&','*','(',')','-','_','=','+','[',']','{','}','|',';',':','\'','"',',','.','/','<','>','?','`','~'];
+
+        const charToGlyph = (char) => {
+            if (!char) return '?';
+            const code = char.charCodeAt(0);
+            // 判斷是否為中文字符
+            if (code >= 0x4E00 && code <= 0x9FFF) {
+                return GLYPH_POOL_CHINESE[code % GLYPH_POOL_CHINESE.length];
+            } else {
+                return GLYPH_POOL_ENGLISH[code % GLYPH_POOL_ENGLISH.length];
+            }
+        };
+
+        const EGG_TO_PET = { egg_1: 'pet_owl', egg_2: 'pet_jellyfish', egg_3: 'pet_ankylo', egg_4: 'pet_rat', egg_5: 'pet_stompy' };
+        const GACHA_PET_HINT = { pet_owl: '📍 在【星願永恆宮・魔法圖書館】關卡可能有幫助！', pet_jellyfish: '📍 在【星願永恆宮・釣魚小遊戲】關卡可能有幫助！', pet_ankylo: '📍 在【星願永恆宮・礦坑打地鼠】關卡可能有幫助！', pet_rat: '📍 在【星願永恆宮・小丑猜寶箱】關卡可能有幫助！', pet_stompy: '📍 在【星願永恆宮・動物大逃亡】關卡可能有幫助！' };
+
+        // ==========================================
+        // ★ 開場故事 ★
+        // ==========================================
+        const STORY_SLIDES = [
+            { img: 'assets/art/story-1.webp',
+              lines: ['媽媽：「你看看這張數學考卷！又是0分！你到底有沒有在用心啊？」', '（可惡……我也想考好啊，但數學真的好無聊……）'] },
+            { img: 'assets/art/story-2.webp',
+              lines: ['（唉……如果學習能像打電動一樣就好了。不用死背課本，而是去打怪、尋寶、拿裝備，那該有多好玩？）'] },
+            { img: null,
+              lines: ['你迷迷糊糊地睡著了....', '恍惚間，好像有地震，你睜開眼睛'] },
+            { img: 'assets/art/story-3.webp',
+              lines: ['（咦？房間怎麼會出現這麼大的彩色漩渦！）', '「哇啊啊啊——救命啊！」', '（為什麼連0分考卷也一起跟著被吸進來了啦！）'] },
+            { img: 'assets/art/story-4.webp',
+              lines: ['「好痛……這裡是哪裡？發光蘑菇？還有城堡？」', '（難道……我真的帶著0分考卷，掉進遊戲世界裡了嗎？）'] }
+        ];
+
+        const ACHIEVEMENTS = [
+            { id: 'exam_zero_master', title: '零分考卷大師',   cond: '裝備0分考卷，成功通關任意5個地圖關卡' },
+            { id: 'fast_learner',     title: '進步神速',       cond: '獲得100分考卷武器' },
+            { id: 'no_wrong',         title: '挖賽！！天才神童', cond: '購買魔王關鑰匙前，從未答錯任何題目' },
+            { id: 'pet_master',       title: '神奇寶貝大師',   cond: '收集並孵化所有5種寵物蛋' },
+            { id: 'hero',             title: '勇者',           cond: '達到最高等級 LV.10' },
+            { id: 'gacha_king',       title: '轉蛋天王',       cond: '在轉蛋機累計花費超過 5000 元' },
+            { id: 'rich',             title: '天生我材必有用', cond: '遊戲中累計賺超過一萬金幣' },
+            { id: 'desert_5',         title: '法老也瘋狂',     cond: '炎熱荒漠（數學科）通關 5 次' },
+            { id: 'tundra_5',         title: '北極熊好冷喔',   cond: '北凍原（英語科）通關 5 次' },
+            { id: 'harbor_5',         title: '烏龜烏龜～碰',   cond: '元素港灣（自然科）通關 5 次' },
+            { id: 'ruins_5',          title: '資源回收大師',   cond: '編年廢墟（社會科）通關 5 次' },
+            { id: 'forest_5',         title: '竹林第八賢',     cond: '千卷墨林（國語科）通關 5 次' },
+            { id: 'card_god',         title: '賭神',           cond: '在猜大小遊戲中連續猜對五關到底' },
+            { id: 'tycoon',           title: '土豪是你!!!!',   cond: '在哥布林商人處購買神秘大寶石' },
+        ];
+
+        const END_SLIDES = [
+            { img: 'assets/art/story-5.webp',
+              lines: ['能量充滿', '時空機啟動......目的地，地球'] },
+            { img: 'assets/art/ending-1.webp',
+              lines: ['打怪好累唷...以後還是乖乖念書好了....'] },
+            { img: 'assets/art/ending-2.webp',
+              lines: ['媽媽：起床啦！！！太陽都曬屁股啦！！！', '（咦？媽媽的聲音？）', '（難道那些冒險．．．都是夢嗎？）'] }
+        ];
+
+        // ==========================================
+        // ★ 核心組件 (App) ★
+        // ==========================================
+        function App() {
+            const [scene, setScene] = useState('start');
+            const [overlay, setOverlay] = useState(null);
+            const [loadingMsg, setLoadingMsg] = useState('');
+            const [loginBusy, setLoginBusy] = useState(false);
+            const loginGateRef = useRef(createActionGate());
+            const saveGateRef = useRef(createActionGate());
+            const saveSessionRef = useRef(null);
+            const pendingCheatsRef = useRef([]);
+            const answerGateRef = useRef(createActionGate());
+            const battleActionTimerRef = useRef(null);
+            const battleSessionRef = useRef(0);
+            const audioContextRef = useRef(null);
+            const [prevScene, setPrevScene] = useState('map');
+            const gameplayScene = getGameplayScene(scene, prevScene);
+
+            const [player, setPlayerState] = useState({
+                name: '', accountId: '', level: 1, exp: 0, maxExp: 50, gold: 100, hp: 15, baseMaxHp: 15, baseAtk: 8, streak: 0,
+                inventory: [{ id: 'exam_zero', qty: 1 }], equipped: { weapon: null, pet: null }, gachaUnlocked: false,
+                zoneClears: { east_forest:0, west_desert:0, south_harbor:0, north_tundra:0, outer_ruins:0 },
+                totalGoldEarned: 100, totalWrong: 0, gachaSpent: 0, examZeroClears: 0, neverWrong: true, villageTalked: false, shopVisited: false
+            });
+            // Event handlers and delayed saves always see the newest committed update.
+            const playerRef = useRef(player);
+            const initialPlayerRef = useRef(player);
+            const setPlayer = update => {
+                const next = typeof update === 'function' ? update(playerRef.current) : update;
+                playerRef.current = next;
+                setPlayerState(next);
+            };
+
+            const [battle, setBattleState] = useState({
+                active: false, zone: null, wave: 1, monster: null, question: null, options: [], answer: null, questionPool: [], isShaking: false, flashRed: false, wrongShake: false, eliminateWrong: false
+            });
+            const battleRef = useRef(battle);
+            const setBattle = update => {
+                const next = typeof update === 'function' ? update(battleRef.current) : update;
+                battleRef.current = next;
+                setBattleState(next);
+            };
+            const [randomEvent, setRandomEvent] = useState(null);
+
+            const [damageFloats, setDamageTexts] = useState([]);
+            const [npcMessage, setNpcMessage] = useState('');
+            const [currentNpc, setCurrentNpc] = useState('shopkeeper');
+            const [isSaving, setIsSaving] = useState(false);
+
+            // --- 魔法圖書館成語小遊戲狀態 ---
+            const [idiomGame, setIdiomGame] = useState({
+                active: false,
+                score: 0,
+                maxScore: 10,
+                currentIdiom: null,
+                options: [],
+                slots: [null, null, null, null], // 存放選中的字，null 代表未解鎖或未填寫
+                blanks: [] // 記錄哪兩個位置是空格的 index
+            });
+
+            // --- 魔法圖書館小醜寶箱遊戲狀態 ---
+            const [clownGame, setClownGame] = useState({
+                active: false,
+                round: 1,
+                maxRound: 5,
+                targetChest: 0, // 0~4, 代表有鑰匙的寶箱
+                chests: [0, 1, 2, 3, 4], // 固定 5 個寶箱
+                revealed: null // 記錄玩家翻開的內容，如果是青蛙就記下選錯的 index 以便顯示動畫
+            });
+
+            // --- 魔法圖書館紙牌遊戲狀態 ---
+            const [memoryGame, setMemoryGameState] = useState({
+                active: false,
+                cards: [],
+                flippedIndices: [],
+                matchedPairs: 0,
+                phase: 'peek', // peek, play, win
+                countdown: 0.3
+            });
+            const memoryGameRef = useRef(memoryGame);
+            const memoryTimersRef = useRef(new Set());
+            const memoryIntervalRef = useRef(null);
+            const memorySessionRef = useRef(0);
+            const setMemoryGame = update => {
+                const next = typeof update === 'function' ? update(memoryGameRef.current) : update;
+                memoryGameRef.current = next;
+                setMemoryGameState(next);
+            };
+            const clearMemoryTimers = () => {
+                memorySessionRef.current += 1;
+                clearInterval(memoryIntervalRef.current);
+                memoryTimersRef.current.forEach(timer => clearTimeout(timer));
+                memoryTimersRef.current.clear();
+            };
+            const scheduleMemory = (callback, delay) => {
+                const session = memorySessionRef.current;
+                const timer = setTimeout(() => {
+                    memoryTimersRef.current.delete(timer);
+                    if (session === memorySessionRef.current) callback();
+                }, delay);
+                memoryTimersRef.current.add(timer);
+            };
+            useEffect(() => {
+                if (gameplayScene === 'minigame_memory') return clearMemoryTimers;
+            }, [gameplayScene]);
+
+            // --- 孵蛋場狀態 ---
+            const [hatchSlot, setHatchSlot] = useState({ eggId: null, progress: 0 });
+            const [showHatchUI, setShowHatchUI] = useState(false);
+
+            // --- 打地精小遊戲狀態 ---
+            const [moleGame, setMoleGame] = useState({
+                active: false,
+                score: 0,
+                targetScore: 55,
+                timeLeft: 15,
+                holes: Array(9).fill(false), // 9個洞，true = 地精出現
+                is2x2: false // 甲龍技能啟動
+            });
+            const [moleHitCells, setMoleHitCells] = useState([]);
+            const [tutorialStep, setTutorialStep] = useState(null);
+            const [faqOpen, setFaqOpen] = useState(false);
+            const [faqExpanded, setFaqExpanded] = useState(null);
+
+            // --- 動物大逃亡華容道狀態 ---
+            const [slidingGame, setSlidingGame] = useState({
+                active: false,
+                currentLevel: 0,
+                pieces: [],
+                moves: 0,
+                isWon: false
+            });
+            const [slidingDragState, setSlidingDragState] = useState(null);
+            const [slidingPetUsed, setSlidingPetUsed] = useState(false);
+            const slidingPiecesRef = useRef([]);
+
+            // --- 開場故事狀態 ---
+            const [storySlide, setStorySlide] = useState(0);
+            const [storyDisplayed, setStoryDisplayed] = useState('');
+            const [storyLineIdx, setStoryLineIdx] = useState(0);
+            const [storyDoneLines, setStoryDoneLines] = useState([]);
+            const [storySlideReady, setStorySlideReady] = useState(false);
+            const [merchantItems, setMerchantItems] = useState([]);
+            const [endSlide, setEndSlide] = useState(0);
+            const [endDisplayed, setEndDisplayed] = useState('');
+            const [endLineIdx, setEndLineIdx] = useState(0);
+            const [endDoneLines, setEndDoneLines] = useState([]);
+            const [endSlideReady, setEndSlideReady] = useState(false);
+            const isNewCharRef = useRef(false);
+            const storyTimerRef = useRef(null);
+            const endTimerRef = useRef(null);
+
+            useEffect(() => () => {
+                clearTimeout(battleActionTimerRef.current);
+                audioContextRef.current?.close().catch(() => {});
+            }, []);
+
+            useEffect(() => {
+                if (gameplayScene !== 'battle') {
+                    clearTimeout(battleActionTimerRef.current);
+                    battleSessionRef.current += 1;
+                    answerGateRef.current.release();
+                }
+                if (gameplayScene === 'start') { saveSessionRef.current = null; pendingCheatsRef.current = []; }
+            }, [gameplayScene]);
+
+            useEffect(() => { slidingPiecesRef.current = slidingGame.pieces; }, [slidingGame.pieces]);
+
+
+            // 開場故事打字機
+            useEffect(() => {
+                if (scene !== 'story') return;
+                const slide = STORY_SLIDES[storySlide];
+                const line = slide.lines[storyLineIdx];
+                if (!line) { setStorySlideReady(true); return; }
+                setStoryDisplayed('');
+                setStorySlideReady(false);
+                let i = 0;
+                storyTimerRef.current = setInterval(() => {
+                    i++;
+                    setStoryDisplayed(line.slice(0, i));
+                    if (i >= line.length) {
+                        clearInterval(storyTimerRef.current);
+                        setTimeout(() => {
+                            setStoryDoneLines(prev => [...prev, line]);
+                            setStoryLineIdx(prev => prev + 1);
+                            setStoryDisplayed('');
+                        }, 600);
+                    }
+                }, 75);
+                return () => clearInterval(storyTimerRef.current);
+            }, [scene, storySlide, storyLineIdx]);
+
+            const storyNext = () => {
+                if (storySlide < STORY_SLIDES.length - 1) {
+                    setStorySlide(prev => prev + 1);
+                    setStoryLineIdx(0);
+                    setStoryDoneLines([]);
+                    setStoryDisplayed('');
+                    setStorySlideReady(false);
+                } else {
+                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！\n\n⚠️ 注意：請牢記你的帳號密碼並且隨時存檔！！', '🌟', () => setScene('village'));
+                }
+            };
+
+            const storySkip = () => setScene('village');
+
+            // 結尾故事打字機
+            useEffect(() => {
+                if (scene !== 'end_story') return;
+                const slide = END_SLIDES[endSlide];
+                const line = slide.lines[endLineIdx];
+                if (!line) { setEndSlideReady(true); return; }
+                setEndDisplayed('');
+                setEndSlideReady(false);
+                let i = 0;
+                endTimerRef.current = setInterval(() => {
+                    i++;
+                    setEndDisplayed(line.slice(0, i));
+                    if (i >= line.length) {
+                        clearInterval(endTimerRef.current);
+                        setTimeout(() => {
+                            setEndDoneLines(prev => [...prev, line]);
+                            setEndLineIdx(prev => prev + 1);
+                            setEndDisplayed('');
+                        }, 600);
+                    }
+                }, 90);
+                return () => clearInterval(endTimerRef.current);
+            }, [scene, endSlide, endLineIdx]);
+
+            // --- 新手教學 ---
+            useEffect(() => {
+                if (scene === 'village' && !player.tutorialDone && tutorialStep === null) setTutorialStep('bag');
+            }, [scene]);
+            useEffect(() => {
+                if (scene === 'equipment' && tutorialStep === 'bag') setTutorialStep('equip');
+            }, [scene]);
+            useEffect(() => {
+                if (tutorialStep === 'equip' && player.equipped?.weapon) {
+                    setTutorialStep(null);
+                    setPlayer(prev => ({ ...prev, tutorialDone: true }));
+                    setTimeout(() => showMessage('🎉 出發！', '開始冒險啦！！！\n\n去大地圖探索世界吧！', '⚔️', () => setScene('village')), 300);
+                }
+            }, [player.equipped?.weapon]);
+
+            const endStoryNext = () => {
+                if (endSlide < END_SLIDES.length - 1) {
+                    setEndSlide(prev => prev + 1);
+                    setEndLineIdx(0);
+                    setEndDoneLines([]);
+                    setEndDisplayed('');
+                    setEndSlideReady(false);
+                } else {
+                    setPlayer(prev => ({ ...prev, gameCleared: true }));
+                    const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
+                    const ach = getAchievements(player); const earned = ACHIEVEMENTS.filter(a=>ach[a.id]).map(a=>a.title);
+                    const achText = earned.length>0 ? earned.map(t=>`【${t}】`).join('　') : '（尚未解鎖）';
+                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：\n${achText}\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
+                }
+            };
+
+            const endStorySkip = () => {
+                clearInterval(endTimerRef.current);
+                setPlayer(prev => ({ ...prev, gameCleared: true }));
+                const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
+                showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
+            };
+
+            const stats = useMemo(() => {
+                let atk = player.baseAtk + (player.level - 1) * 2;
+                let maxHp = player.baseMaxHp + (player.level - 1) * 10;
+                if (player.equipped.weapon && ITEMS[player.equipped.weapon]) { atk += (ITEMS[player.equipped.weapon].atk || 0); maxHp += (ITEMS[player.equipped.weapon].hp || 0); }
+                if (player.equipped.pet && ITEMS[player.equipped.pet]) { atk += (ITEMS[player.equipped.pet].atk || 0); maxHp += (ITEMS[player.equipped.pet].hp || 0); }
+                return { atk, maxHp };
+            }, [player.level, player.baseAtk, player.baseMaxHp, player.equipped]);
+
+            const showMessage = (title, desc, icon, callback = null) => { setOverlay({ title, desc, icon, action: callback }); };
+
+            const showDamage = (amount, target) => {
+                const id = Date.now() + Math.random();
+                setDamageTexts(prev => [...prev, { id, amount, target }]);
+                setTimeout(() => setDamageTexts(prev => prev.filter(d => d.id !== id)), 800);
+            };
+
+            const triggerFlashRed = () => { setBattle(prev => ({ ...prev, flashRed: true })); setTimeout(() => setBattle(prev => ({ ...prev, flashRed: false })), 400); };
+            const triggerMonsterShake = () => { setBattle(prev => ({ ...prev, isShaking: true })); setTimeout(() => setBattle(prev => ({ ...prev, isShaking: false })), 400); };
+            const triggerWrongShake = () => { setBattle(prev => ({ ...prev, wrongShake: true })); setTimeout(() => setBattle(prev => ({ ...prev, wrongShake: false })), 500); };
+            const triggerCorrectAnim = () => { setBattle(prev => ({ ...prev, showCorrect: true })); setTimeout(() => setBattle(prev => ({ ...prev, showCorrect: false })), 700); };
+            const playTones = (notes, duration) => {
+                try {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextClass) return;
+                    if (!audioContextRef.current || audioContextRef.current.state === 'closed') audioContextRef.current = new AudioContextClass();
+                    const ctx = audioContextRef.current;
+                    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+                    notes.forEach(([delay, freq, vol]) => {
+                        const oscillator = ctx.createOscillator(), gain = ctx.createGain();
+                        oscillator.connect(gain); gain.connect(ctx.destination);
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+                        gain.gain.setValueAtTime(vol, ctx.currentTime + delay);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+                        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+                        oscillator.start(ctx.currentTime + delay); oscillator.stop(ctx.currentTime + delay + duration);
+                    });
+                } catch (e) { /* Audio is optional on browsers that do not support it. */ }
+            };
+            const playCorrectSound = () => playTones([[0, 660, 0.2], [0.1, 880, 0.18], [0.2, 1100, 0.15]], 0.15);
+            const playCoinSound = () => playTones([[0, 1200, 0.25], [0.12, 1500, 0.2], [0.22, 1000, 0.15]], 0.18);
+
+            const persistPlayer = async (overrides = {}) => {
+                const player = playerRef.current;
+                if (!player.accountId) { showMessage("存檔失敗", "您目前是訪客模式，無法存檔。\n請重新登入並輸入「冒險帳號」！", "⚠️"); return; }
+                if (!canSavePlayer(player, saveSessionRef.current)) { showMessage('存檔未開放', '尚未成功確認此帳號的雲端存檔。請回首頁重新登入，以保護原本的冒險進度。', '🔒'); return false; }
+                if (!auth?.currentUser || !db) { showMessage("存檔失敗", "網路未連線或尚未設定 Firebase。", "⚠️"); return false; }
+                if (!saveGateRef.current.acquire()) return false;
+                setIsSaving(true);
+                try {
+                    const saveRef = doc(db, 'saves', player.accountId);
+                    await setDoc(saveRef, { ...player, ...overrides, savedAt: new Date().toISOString() });
+                    return true;
+                } catch (e) { console.error(e); showMessage("存檔失敗", "雲端存檔發生錯誤：" + e.message, "⚠️"); return false; }
+                finally { setIsSaving(false); saveGateRef.current.release(); }
+            };
+
+            const saveToCloud = async () => {
+                if (await persistPlayer()) showMessage("存檔成功", "您的冒險進度已安全保存在雲端！", "💾");
+            };
+
+            const handleCompleteGame = async (allReady) => {
+                if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
+                if (!await persistPlayer({ gameCleared: true })) return;
+                setPlayer(prev => ({ ...prev, gameCleared: true }));
+                showMessage('存檔完成！', '你的冒險已永久記錄在雲端！\n按確認進入結局～', '💾', () => {
+                    setEndSlide(0); setEndLineIdx(0); setEndDoneLines([]); setEndDisplayed(''); setEndSlideReady(false);
+                    setScene('end_story');
+                });
+            };
+
+            const updatePlayer = (updates) => setPlayer(prev => ({ ...prev, ...updates }));
+
+            const addItem = (itemId, count = 1) => {
+                setPlayer(prev => {
+                    const itemDef = ITEMS[itemId];
+                    if (!itemDef) return prev;
+                    const isStackable = itemDef.type !== 'weapon' && itemDef.type !== 'pet';
+                    const newInv = addInventoryItem(prev.inventory, itemId, count, isStackable);
+                    return { ...prev, inventory: newInv };
+                });
+            };
+
+            const removeItemAt = (index, count = 1) => {
+                setPlayer(prev => { const slot = prev.inventory[index]; if (!slot || count <= 0) return prev; const newInv = prev.inventory.flatMap((value, i) => i !== index ? [value] : value.qty > count ? [{ ...value, qty: value.qty - count }] : []); return { ...prev, inventory: newInv }; });
+            };
+
+            const removeItemById = (itemId, count = 1) => {
+                setPlayer(prev => ({ ...prev, inventory: removeInventoryItem(prev.inventory, itemId, count) }));
+            };
+
+            const removeSpecificItem = (itemId) => { setPlayer(prev => ({ ...prev, inventory: prev.inventory.filter(s => s.id !== itemId) })); };
+            const hasItem = (itemId) => playerRef.current.inventory.some(slot => slot.id === itemId && slot.qty > 0);
+
+            const gainExpAndGold = (expAmt, goldAmt) => {
+                const player = playerRef.current;
+                let didLevelUp = false; let newLvl = player.level;
+                let testExp = player.exp + expAmt; let testMax = player.maxExp;
+                while (newLvl < MAX_LEVEL && testExp >= testMax) { testExp -= testMax; newLvl++; testMax = newLvl < MAX_LEVEL ? LEVEL_EXP_TABLE[newLvl] : 99999; didLevelUp = true; }
+
+                setPlayer(prev => {
+                    let newExp = prev.exp + expAmt; let newLevel = prev.level; let newMaxExp = prev.maxExp; let leveledUp = false;
+                    while (newLevel < MAX_LEVEL && newExp >= newMaxExp) { newExp -= newMaxExp; newLevel++; newMaxExp = newLevel < MAX_LEVEL ? LEVEL_EXP_TABLE[newLevel] : 99999; leveledUp = true; }
+                    let newMaxHp = prev.baseMaxHp + (newLevel - 1) * 10;
+                    if (prev.equipped.weapon && ITEMS[prev.equipped.weapon]) newMaxHp += (ITEMS[prev.equipped.weapon].hp || 0);
+                    if (prev.equipped.pet && ITEMS[prev.equipped.pet]) newMaxHp += (ITEMS[prev.equipped.pet].hp || 0);
+                    const monkeyMult = prev.equipped.pet === 'pet_monkey' ? 2 : 1;
+                    const swordGoldMult = prev.equipped.weapon === 'sword_paper_gold' ? 2 : 1;
+                    const goldDoubleMult = (prev.equipped.pet === 'pet_monkey' && prev.equipped.weapon === 'sword_paper_gold') ? 10 : monkeyMult * swordGoldMult;
+                    return { ...prev, exp: newExp, level: newLevel, maxExp: newMaxExp, gold: prev.gold + goldAmt * goldDoubleMult, totalGoldEarned: (prev.totalGoldEarned||0) + goldAmt * goldDoubleMult };
+                });
+                return { leveledUp: didLevelUp, newLevel: newLvl };
+            };
+
+            const getAchievements = (p) => {
+                const inv = p.inventory||[];
+                const hasPet = id => inv.some(i=>i.id===id) || p.equipped?.pet===id;
+                return {
+                    exam_zero_master: (p.examZeroClears||0)>=5,
+                    fast_learner:     inv.some(i=>i.id==='exam_hundred') || p.equipped?.weapon==='exam_hundred',
+                    no_wrong:         p.achNoWrong===true,
+                    pet_master:       ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(hasPet),
+                    hero:             (p.level||1)>=10,
+                    gacha_king:       (p.gachaSpent||0)>=5000,
+                    rich:             (p.totalGoldEarned||0)>=10000,
+                    desert_5:         ((p.zoneClears||{}).west_desert||0)>=5,
+                    tundra_5:         ((p.zoneClears||{}).north_tundra||0)>=5,
+                    harbor_5:         ((p.zoneClears||{}).south_harbor||0)>=5,
+                    ruins_5:          ((p.zoneClears||{}).outer_ruins||0)>=5,
+                    forest_5:         ((p.zoneClears||{}).east_forest||0)>=5,
+                    card_god:         p.cardGodWon===true,
+                    tycoon:           inv.some(i=>i.id==='gem_tycoon'),
+                };
+            };
+
+            const heal = (amount) => setPlayer(prev => ({ ...prev, hp: Math.min(prev.hp + amount, stats.maxHp) }));
+            const takeDamage = (amount) => { triggerFlashRed(); showDamage(amount, 'player'); const isDead = (playerRef.current.hp - amount) <= 0; setPlayer(prev => ({ ...prev, hp: Math.max(0, prev.hp - amount) })); return isDead; };
+
+            const useItem = (index) => {
+                const player = playerRef.current;
+                const slot = player.inventory[index]; const item = slot && ITEMS[slot.id];
+                if (!item) return;
+                if (item.type === 'consumable_special') {
+                    if (item.id === 'potion_rainbow') {
+                        removeItemAt(index, 1);
+                        setPlayer(prev => ({ ...prev, baseAtk: prev.baseAtk + 3 }));
+                        showMessage('💉 藍波藥劑！', '永久攻擊力 +3！這股力量已刻入靈魂...！', '💉');
+                    } else if (item.id === 'potion_exp') {
+                        removeItemAt(index, 1);
+                        setPlayer(prev => ({ ...prev, baseAtk: prev.baseAtk + 3 }));
+                        showMessage('💉 藍波藥劑！', '永久攻擊力 +3！這股力量已刻入靈魂...！', '💉');
+                    }
+                    return;
+                } else if (item.type === 'consumable') {
+                    if (player.hp >= stats.maxHp) { showMessage('提示', 'HP 已經滿了！', '⚠️'); return; }
+                    heal(item.value); removeItemAt(index, 1); showMessage('使用物品', `恢復了 ${item.value} 點 HP`, item.icon);
+                } else if (item.type === 'weapon' || item.type === 'pet') {
+                    const slotType = item.type; const currentEquipId = player.equipped[slotType];
+                    setPlayer(prev => {
+                        let newInv = prev.inventory.map(value => ({ ...value }));
+                        if (newInv[index].qty > 1) { newInv[index].qty -= 1; } else { newInv.splice(index, 1); }
+                        if (currentEquipId) newInv.push({id: currentEquipId, qty: 1});
+                        return { ...prev, inventory: newInv, equipped: { ...prev.equipped, [slotType]: slot.id } };
+                    });
+                    if (slotType === 'weapon' && (slot.id === 'sword_paper_kill' || slot.id === 'sword_paper_gold')) {
+                        paperKillsRef.current[slot.id] = 0;
+                    }
+                    const newWeapon = slotType === 'weapon' ? slot.id : player.equipped.weapon;
+                    const newPet = slotType === 'pet' ? slot.id : player.equipped.pet;
+                    if (newWeapon === 'sword_paper_gold' && newPet === 'pet_monkey') {
+                        setTimeout(() => showMessage('超強組合！', '🐒 神偷猴對紙劍愛不釋手\n金幣獲得 ×10！', '💰'), 300);
+                    }
+                }
+            };
+
+            const unequipItem = (slotType) => {
+                const itemId = playerRef.current.equipped[slotType]; if (!itemId) return;
+                setPlayer(prev => { let newInv = [...prev.inventory]; newInv.push({id: itemId, qty: 1}); return { ...prev, inventory: newInv, equipped: { ...prev.equipped, [slotType]: null } }; });
+            };
+
+            const loadAllDatabases = async () => {
+                setLoadingMsg('正在讀取雲端題庫...');
+                const results = await Promise.allSettled([CHINESE_CSV_URL, ENGLISH_CSV_URL, SOCIAL_CSV_URL, SCIENCE_CSV_URL].map(url => fetchQuestionCsv(url)));
+                const names = ['國語', '英語', '社會', '自然'];
+                const failedBanks = results.flatMap((result, index) => result.status === 'rejected' ? [`${names[index]}：${result.reason.message}`] : []);
+                if (failedBanks.length) {
+                    showMessage('⚠️ 題庫載入失敗', `以下題庫暫時無法使用：\n${failedBanks.join('\n')}\n\n請檢查網路後再按一次「開始冒險」。`, '⚠️');
+                    return false;
+                }
+                const [chi, eng, soc, sci] = results.map(result => result.value);
+                QUESTION_BANKS.chinese_csv = chi; QUESTION_BANKS.english_csv = eng; QUESTION_BANKS.social_csv = soc; QUESTION_BANKS.science_csv = sci; QUESTION_BANKS.mixed = [...chi, ...eng, ...soc, ...sci];
+                if (isNewCharRef.current) { isNewCharRef.current = false; setScene('story'); } else { setScene('village'); }
+                return true;
+            };
+
+            const handleStart = async () => {
+                const player = playerRef.current;
+                if (!/[a-zA-Z\u4e00-\u9fa5]+/.test(player.name) || player.name.length < 1) { showMessage('提示', '名字格式錯誤！\n請輸入至少1個中文字或英文字母。', '⚠️'); return; }
+                if (player.accountId && !/^[a-zA-Z0-9]{6,}$/.test(player.accountId)) { showMessage('提示', '帳號格式錯誤！\n請輸入至少6碼的英文或數字。', '⚠️'); return; }
+                if (!loginGateRef.current.acquire()) return;
+                setLoginBusy(true);
+                saveSessionRef.current = null;
+                isNewCharRef.current = false;
+                setLoadingMsg('連線中...');
+                const freshPlayer = { ...initialPlayerRef.current, name: player.name, accountId: player.accountId,
+                    inventory: initialPlayerRef.current.inventory.map(slot => ({ ...slot })),
+                    equipped: { ...initialPlayerRef.current.equipped }, zoneClears: { ...initialPlayerRef.current.zoneClears } };
+                try {
+                    let restoredPlayer = freshPlayer;
+                    if (player.accountId) {
+                        if (!db) throw new Error('雲端服務尚未設定，請聯絡老師');
+                        await ensureAuth();
+                        const docRef = doc(db, 'saves', player.accountId);
+                        // Only a server-confirmed missing document can create a new character.
+                        const docSnap = await getDocFromServer(docRef);
+                        if (docSnap.exists()) {
+                            restoredPlayer = { ...freshPlayer, ...validateCloudPlayer(docSnap.data(), player.name, player.accountId) };
+                        } else isNewCharRef.current = true;
+                    } else isNewCharRef.current = true;
+                    setPlayer(restoredPlayer);
+                    setHatchSlot({ eggId: null, progress: 0 });
+                    paperKillsRef.current = { sword_paper_kill: 0, sword_paper_gold: 0 };
+                    const isNewCharacter = isNewCharRef.current;
+                    if (isNewCharacter) pendingCheatsRef.current.forEach(code => applyCheat(code, false));
+                    if (!await loadAllDatabases()) return;
+                    pendingCheatsRef.current = [];
+                    if (player.accountId) saveSessionRef.current = { accountId: player.accountId, name: player.name };
+                    if (!isNewCharacter) showMessage('讀取成功', `歡迎回來，${restoredPlayer.name}！\n(目前等級 ${restoredPlayer.level})`, '🎉');
+                    else if (player.accountId) showMessage('建立新檔', `帳號 ${player.accountId} 不存在，已為您建立全新進度。`, '📝');
+                } catch (error) {
+                    console.error(error);
+                    saveSessionRef.current = null;
+                    isNewCharRef.current = false;
+                    if (error.message === 'ACCOUNT_NAME_MISMATCH') showMessage('帳號已被使用', `帳號「${player.accountId}」已被其他人使用。\n請換一個帳號再試試！`, '🔒');
+                    else showMessage('連線失敗', `無法確認雲端進度，原存檔不會被覆寫。\n請檢查網路後重試。\n\n${error.message}`, '⚠️');
+                } finally {
+                    setLoadingMsg('');
+                    setLoginBusy(false);
+                    loginGateRef.current.release();
+                }
+            };
+
+            const applyCheat = (code, rememberForNewCharacter = true) => {
+                if (scene === 'start' && rememberForNewCharacter && ['YOYOLOVE', 'BLADESTORM', 'RICHRICH3000', 'RAINBOWDROP'].includes(code)) pendingCheatsRef.current.push(code);
+                if (code === 'YOYOLOVE') {
+                    setPlayer(p => {
+                        const newInventory = p.inventory.map(slot => ({ ...slot }));
+                        if (!newInventory.some(item => item.id === 'sword_god')) {
+                            newInventory.push({ id: 'sword_god', qty: 1 });
+                        }
+                        return { ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999, inventory: newInventory };
+                    });
+                    showMessage('秘技', '✨ 金手指生效：獲得一擊必殺的神劍、等級 MAX、10000 金幣！', '✨');
+                }
+                if (code === 'BLADESTORM') {
+                    setPlayer(p => {
+                        const newInventory = [...p.inventory];
+                        if (!newInventory.some(item => item.id === 'sword_god')) {
+                            newInventory.push({ id: 'sword_god', qty: 1 });
+                        }
+                        return { ...p, inventory: newInventory };
+                    });
+                    showMessage('秘技', '🗡️ 獲得【一擊必殺的神劍】！', '🗡️');
+                }
+                if (code === 'RICHRICH3000') {
+                    setPlayer(p => ({ ...p, gold: p.gold + 3000 }));
+                    showMessage('秘技', '💰 獲得 3000 金幣！', '💰');
+                }
+                if (code === 'RAINBOWDROP') {
+                    setPlayer(p => {
+                        const newInventory = addInventoryItem(p.inventory, 'potion_rainbow');
+                        return { ...p, inventory: newInventory };
+                    });
+                    showMessage('秘技', '🌈 獲得【藍波藥劑】×1！', '🌈');
+                }
+            };
+
+            const generateMathQuestion = () => {
+                const isFraction = Math.random() > 0.5; const ops = ['+', '-', '×', '÷']; const op = ops[Math.floor(Math.random() * 4)];
+                if (isFraction) {
+                    let n1 = Math.floor(Math.random() * 5) + 1; let d1 = Math.floor(Math.random() * 5) + 2; let n2 = Math.floor(Math.random() * 5) + 1; let d2 = Math.floor(Math.random() * 5) + 2;
+                    if(n1>=d1) d1=n1+1; if(n2>=d2) d2=n2+1;
+                    let ansN, ansD;
+                    if (op === '+') { ansN = n1*d2 + n2*d1; ansD = d1*d2; }
+                    else if (op === '-') { let v1 = n1/d1; let v2 = n2/d2; if(v1 < v2) { let t1=n1; n1=n2; n2=t1; let t2=d1; d1=d2; d2=t2; } ansN = n1*d2 - n2*d1; ansD = d1*d2; }
+                    else if (op === '×') { ansN = n1*n2; ansD = d1*d2; } else { ansN = n1*d2; ansD = d1*n2; }
+                    const gcd = (a, b) => b ? gcd(b, a % b) : a; const common = gcd(ansN, ansD); ansN /= common; ansD /= common;
+                    const qStr = `${n1}/${d1} ${op} ${n2}/${d2} = ?`; const aStr = `${ansN}/${ansD}`;
+                    let wrongs = []; let _t1 = 0; while(wrongs.length < 3 && _t1++ < 50) { let wN = ansN + Math.floor(Math.random()*5) - 2; let wD = ansD + Math.floor(Math.random()*5) - 2; if(wN<=0) wN=1; if(wD<=0) wD=2; let wStr = `${wN}/${wD}`; if(wStr !== aStr && !wrongs.includes(wStr)) wrongs.push(wStr); } for(let k=1; wrongs.length < 3; k++) { const fb = `${ansN+k}/${ansD+1}`; if(fb !== aStr && !wrongs.includes(fb)) wrongs.push(fb); }
+                    return { q: qStr, a: aStr, wrong: wrongs };
+                } else {
+                    let n1 = (Math.floor(Math.random() * 50) + 1) / 10; let n2 = (Math.floor(Math.random() * 50) + 1) / 10; let ans;
+                    if (op === '+') ans = n1 + n2; else if (op === '-') { if(n1 < n2) { let t=n1; n1=n2; n2=t; } ans = n1 - n2; } else if (op === '×') ans = n1 * n2; else { n2 = Math.floor(Math.random() * 5) + 1; n1 = n2 * (Math.floor(Math.random() * 5) + 1); ans = n1 / n2; }
+                    ans = Math.round(ans * 100) / 100; const qStr = `${n1} ${op} ${n2} = ?`;
+                    let wrongs = []; let _t2 = 0; while(wrongs.length < 3 && _t2++ < 50) { let w = Math.round((ans + (Math.random() > 0.5 ? 0.1 : -0.1) * (Math.floor(Math.random()*5) + 1)) * 100) / 100; if(w !== ans && !wrongs.includes(w) && w >= 0) wrongs.push(w); } for(let k=1; wrongs.length < 3; k++) { const fb = Math.round((ans + k * 0.1) * 100) / 100; if(fb !== ans && !wrongs.includes(fb)) wrongs.push(fb); }
+                    return { q: qStr, a: ans, wrong: wrongs };
+                }
+            };
+
+            const startBattle = (zoneKey) => {
+                clearTimeout(battleActionTimerRef.current);
+                battleSessionRef.current += 1;
+                answerGateRef.current.release();
+                if (zoneKey === 'magic_library' && !hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的哥布林商人吧)', '🔒'); return; }
+                const zone = ZONES[zoneKey];
+
+                if (zone && zone.type === 'minigame') {
+                    if (zone.id === 'magic_library') {
+                        setScene('library_lobby'); // 進入大廳，不直接開始成語
+                    }
+                    return;
+                }
+
+                if (player.hp <= 0) { showMessage('體力不足', '請先使用藥水恢復 HP！', '🚑'); return; }
+                const zoneFragMap = { east_forest: 'frag_east', west_desert: 'frag_west', south_harbor: 'frag_south', north_tundra: 'frag_north', outer_ruins: 'frag_outer' };
+                const fragId = zoneFragMap[zoneKey];
+                if (fragId) { const fragSlot = player.inventory.find(i => i.id === fragId); if (fragSlot && fragSlot.qty >= 3) { showMessage('怪物逃跑了！', '這裡的怪都被嚇走了，\n把通關證明用掉再來吧！', '👻'); return; } }
+                let pool = [];
+                if (zone.type === 'custom_csv' || zone.type === 'mixed_all') { const bankKey = zone.type === 'mixed_all' ? 'mixed' : zone.questionBank; pool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); }
+                setBattle({ active: true, zone, wave: 1, questionPool: pool, monster: null, question: null, options: [], answer: null, isShaking: false, flashRed: false, wrongShake: false, isProcessing: false });
+                setScene('battle');
+            };
+
+            useEffect(() => { if (scene === 'battle' && battle.active && !battle.monster) spawnMonsterAndQuestion(battle.wave, battle.questionPool, battle.zone); }, [scene, battle.active, battle.wave, battle.monster]);
+
+            const spawnMonsterAndQuestion = (wave, currentPool, zone) => {
+                if (!zone) return;
+                const list = zone.monsters; const template = list[Math.floor(Math.random() * list.length)];
+                const waveStats = [{ hp: 30, atk: 5, exp: 20 }, { hp: 50, atk: 5, exp: 40 }, { hp: 80, atk: 10, exp: 80 }]; const ws = waveStats[wave - 1] || waveStats[2];
+                const waveIndicator = wave === 3 ? " (BOSS)" : ` (第${wave}/3隻)`;
+                const newMonster = { ...template, name: template.name + waveIndicator, maxHp: ws.hp, hp: ws.hp, atk: ws.atk, gold: wave === 3 ? 80 : template.gold, exp: ws.exp };
+                setupNextQuestion(currentPool, newMonster, zone);
+            };
+
+            const setupNextQuestion = (pool, currentMonster, zone) => {
+                if (!zone) return;
+                let qObj; const type = zone.type; let newPool = [...pool];
+                if (type === 'math_frac_dec') qObj = generateMathQuestion(); else if (type === 'mixed_all' && Math.random() > 0.5) qObj = generateMathQuestion();
+                else { if (newPool.length > 0) qObj = newPool.pop(); else { const bankKey = type === 'mixed_all' ? 'mixed' : zone.questionBank; newPool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); qObj = newPool.pop() || generateMathQuestion(); } }
+                if (!qObj) qObj = generateMathQuestion();
+                let opts = [qObj.a];
+                if (qObj.wrong && qObj.wrong.length > 0) { opts = opts.concat(qObj.wrong.slice(0, 3)); while(opts.length < 4) opts.push("???"); } else { while(opts.length < 4) opts.push(Math.floor(Math.random()*100).toString()); }
+                opts.sort(() => Math.random() - 0.5);
+                setBattle(prev => { const wrong = opts.filter(o => o !== qObj.a); const finalOpts = prev.eliminateWrong ? [qObj.a, wrong[0]].sort(() => Math.random() - 0.5) : opts; return { ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: finalOpts, isProcessing: false, eliminateWrong: false }; });
+                answerGateRef.current.release();
+            };
+
+            const handleAnswer = (selectedVal, btnEvent) => {
+                const battle = battleRef.current;
+                const player = playerRef.current;
+                if (!battle.active || !battle.monster || battle.isProcessing || !answerGateRef.current.acquire()) return;
+                const sessionId = battleSessionRef.current;
+                const scheduleBattleAction = (callback, delay) => {
+                    clearTimeout(battleActionTimerRef.current);
+                    battleActionTimerRef.current = setTimeout(() => {
+                        if (battleSessionRef.current === sessionId) callback();
+                    }, delay);
+                };
+                setBattle(prev => ({ ...prev, isProcessing: true }));
+                if (String(selectedVal) === String(battle.answer)) {
+                    playCorrectSound(); triggerCorrectAnim();
+                    const currentStreak = player.streak + 1; let dmg = stats.atk; let isCrit = false;
+                    if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 3) { dmg += 25; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
+                    const newHp = battle.monster.hp - dmg;
+                    showDamage(isCrit ? `蓄力一擊! -${dmg}` : dmg, isCrit ? 'monster-crit' : 'monster'); triggerMonsterShake();
+                    if (player.equipped.weapon === 'sword_paper_kill') {
+                        // 一擊必殺：直接擊殺這波怪物
+                        setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 }, isProcessing: true }));
+                        scheduleBattleAction(() => handleWinWave(battle.monster, battle.wave), 800);
+                    } else if (newHp <= 0) {
+                        setBattle(prev => ({ ...prev, active: false, monster: { ...prev.monster, hp: 0 }, isProcessing: true }));
+                        scheduleBattleAction(() => handleWinWave(battle.monster, battle.wave), 800);
+                    } else {
+                        setBattle(prev => ({ ...prev, monster: { ...prev.monster, hp: newHp } }));
+                        scheduleBattleAction(() => { const b = battleRef.current; if (b.active) setupNextQuestion(b.questionPool, null, b.zone); }, 400);
+                    }
+                } else {
+                    setPlayer(prev => ({ ...prev, streak: 0, totalWrong: (prev.totalWrong||0)+1, neverWrong: false })); const dmg = battle.monster.atk;
+                    const btns = Array.from(btnEvent?.currentTarget?.parentElement?.children || []); for(let b of btns) { if(b.textContent === String(battle.answer)) b.classList.add('bg-green-400'); }
+                    triggerWrongShake(); showDamage('❌ 答錯了！', 'wrong-answer');
+                    const isDead = takeDamage(dmg);
+                    if (isDead) {
+                        setBattle(prev => ({ ...prev, isProcessing: false }));
+                        handleLose();
+                    } else {
+                        scheduleBattleAction(() => { for(let b of btns) b.classList.remove('bg-green-400'); const b = battleRef.current; if (b.active) setupNextQuestion(b.questionPool, null, b.zone); }, 1000);
+                    }
+                }
+            };
+
+            const handleWinWave = (monsterDef, currentWave) => {
+                const player = playerRef.current;
+                // 紙劍耐久度機制：用 ref 追蹤，避免 stale closure
+                const papersToCheck = ['sword_paper_kill', 'sword_paper_gold'];
+                papersToCheck.forEach(swordId => {
+                    if (player.equipped.weapon === swordId) {
+                        paperKillsRef.current[swordId] = (paperKillsRef.current[swordId] || 0) + 1;
+                        const killLimit = swordId === 'sword_paper_gold' ? 6 : 3;
+                        if (paperKillsRef.current[swordId] >= killLimit) {
+                            paperKillsRef.current[swordId] = 0;
+                            setPlayer(prev => ({
+                                ...prev,
+                                // The equipped sword already left the bag when equipped.
+                                equipped: { ...prev.equipped, weapon: null }
+                            }));
+                            showMessage('📜 紙劍毀了！', `「${ITEMS[swordId].name}」已經打死 ${killLimit} 隻怪物而消失了！`, '📜');
+                        }
+                    }
+                });
+                const { leveledUp, newLevel } = gainExpAndGold(monsterDef.exp, monsterDef.gold);
+                playCoinSound();
+                if (currentWave < 3) {
+                    if (leveledUp) setTimeout(() => showMessage('升級了！', `等級提升到 LV.${newLevel}！\n最大 HP 上升！`, '🎉'), 100);
+                    if (currentWave === 1 && Math.random() < 0.3) {
+                        const types = ['chest', 'animal', 'woodcutter'];
+                        const eventType = types[Math.floor(Math.random() * 3)];
+                        const chestPrizes = ['coin_gacha', 'potion_l', 'gold200'].sort(() => Math.random() - 0.5);
+                        setRandomEvent({ type: eventType, chestPrizes, onComplete: () => { setRandomEvent(null); showDamage("下一隻怪物出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 2 })); } });
+                    } else if (currentWave === 2 && Math.random() < 0.35) {
+                        const goW3 = () => { setRandomEvent(null); showDamage("BOSS 出現！", "monster-crit"); setBattle(prev => ({ ...prev, active: true, monster: null, wave: 3 })); };
+                        setRandomEvent({ type: 'cardgame', phase: 'offer', leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1, round: 1, prize: 0, onComplete: goW3 });
+                    } else {
+                        showDamage("下一隻怪物出現！", "monster-crit");
+                        setBattle(prev => ({ ...prev, active: true, monster: null, wave: prev.wave + 1 }));
+                    }
+                } else {
+                    handleWinBattle(monsterDef, leveledUp, newLevel);
+                }
+            };
+
+            const handleChestPick = (idx) => {
+                const prize = (randomEvent.chestPrizes || [])[idx];
+                if (prize === 'coin_gacha') { addItem('coin_gacha', 1); showMessage('🎉 打開了！', '獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
+                else if (prize === 'potion_l') { addItem('potion_l', 1); showMessage('🎉 打開了！', '獲得大紅藥水 ×1！', '🧪', randomEvent.onComplete); }
+                else { setPlayer(prev => ({ ...prev, gold: prev.gold + 200 })); showMessage('🎉 打開了！', '獲得金幣 +200G！', '💰', randomEvent.onComplete); }
+            };
+            const handleAnimalHelp = (help) => {
+                if (!help) { showMessage('...', '你選擇離開，小動物眼神有些落寞。', '🦊', randomEvent.onComplete); return; }
+                if (Math.random() < 0.5) { addItem('coin_gacha', 1); showMessage('🐾 救援成功！', '小動物感激地舔了你的手！\n獲得轉蛋幣 ×1！', '🪙', randomEvent.onComplete); }
+                else { const bite = Math.max(1, Math.floor(player.hp / 2)); setPlayer(prev => ({ ...prev, hp: Math.max(1, prev.hp - bite) })); showMessage('😖 被咬了！', `小動物驚慌地咬了你一口\n失去 ${bite} HP！`, '🩸', randomEvent.onComplete); }
+            };
+            const handleWoodcutterChoice = (choice) => {
+                if (choice === 'eliminate') { setBattle(prev => ({ ...prev, eliminateWrong: true })); showMessage('✨ 樵夫的禮物', '下一題將消除兩個錯誤答案！', '🪓', randomEvent.onComplete); }
+                else { setPlayer(prev => ({ ...prev, hp: stats.maxHp })); showMessage('💚 樵夫的禮物', 'HP 已恢復至最大值！', '🪓', randomEvent.onComplete); }
+            };
+
+            const handleCardGame = (action) => {
+                const ev = randomEvent;
+                if (action === 'decline') { ev.onComplete(); return; }
+                if (action === 'accept') {
+                    if (player.gold < 10) { showMessage('金幣不足', '需要 10G 才能參加遊戲！', '💸'); return; }
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 10 }));
+                    setRandomEvent(prev => ({ ...prev, phase: 'guess' })); return;
+                }
+                if (action === 'big' || action === 'small') {
+                    const correct = (action === 'big' && ev.rightCard > ev.leftCard) || (action === 'small' && ev.rightCard < ev.leftCard);
+                    const prizes = [50, 100, 200, 250, 350]; const prize = prizes[ev.round - 1];
+                    // 先翻開右牌讓玩家看到，再顯示結果
+                    const isTie = ev.rightCard === ev.leftCard;
+                    if (isTie) { setRandomEvent(prev => ({ ...prev, phase: 'reveal', isCorrect: false, isTie: true, revealedCard: ev.rightCard, prize: 0 })); return; }
+                    setRandomEvent(prev => ({ ...prev, phase: 'reveal', isCorrect: correct, isTie: false, revealedCard: ev.rightCard, prize: correct ? prize : 0 }));
+                    return;
+                }
+                if (action === 'confirm_win') {
+                    if (ev.round === 5) {
+                        setPlayer(prev => ({ ...prev, gold: prev.gold + ev.prize, cardGodWon: true }));
+                        showMessage('🎉 賭神降臨！', `五關全過！傳說中的賭神就是你！\n獲得最高獎金 ${ev.prize}G！\n🏅 成就解鎖：「賭神」`, '🏆', ev.onComplete);
+                    } else {
+                        setRandomEvent(prev => ({ ...prev, phase: 'guess', round: prev.round + 1, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 }));
+                    }
+                    return;
+                }
+                if (action === 'confirm_loss') {
+                    if (ev.isTie) { setRandomEvent(prev => ({ ...prev, phase: 'guess', isTie: false, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 })); return; }
+                    showMessage('😭 猜錯了！', `右邊是 ${ev.revealedCard}，什麼都沒有...`, '💸', ev.onComplete); return;
+                }
+                if (action === 'take') {
+                    setPlayer(prev => ({ ...prev, gold: prev.gold + ev.prize }));
+                    showMessage('😊 不貪心！', `帶走 ${ev.prize}G，明智的選擇！`, '💰', ev.onComplete); return;
+                }
+                if (action === 'continue') {
+                    setRandomEvent(prev => ({ ...prev, phase: 'guess', round: prev.round + 1, leftCard: Math.floor(Math.random()*9)+1, rightCard: Math.floor(Math.random()*9)+1 }));
+                }
+            };
+
+            const handleWinBattle = (monsterDef, leveledUp, newLevel) => {
+                setBattle(prev => ({ ...prev, active: false }));
+                const zoneId = battle.zone?.id;
+                if (zoneId) setPlayer(prev => ({
+                    ...prev,
+                    zoneClears: { ...(prev.zoneClears||{}), [zoneId]: ((prev.zoneClears||{})[zoneId]||0)+1 },
+                    examZeroClears: prev.equipped?.weapon === 'exam_zero' ? (prev.examZeroClears||0)+1 : (prev.examZeroClears||0)
+                }));
+                let msg = `獲得 EXP +${monsterDef.exp}，金幣 +${monsterDef.gold}`;
+                if (leveledUp) { msg += `\n\n🎉 恭喜升級到 LV.${newLevel}！最大 HP 上升！`; }
+                let icon = '🏆'; let dropMsgParts = [];
+                if (battle.zone.dropItem) { const dropId = battle.zone.dropItem; if (dropId.startsWith('frag_') || !hasItem(dropId)) { addItem(dropId, 1); dropMsgParts.push(`✨ 區域秘寶：${ITEMS[dropId].name}`); icon = ITEMS[dropId].icon; } }
+                if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && !player.gachaUnlocked && ((player.zoneClears||{}).west_desert||0) >= 1) {
+                    addItem('key_gacha', 1);
+                    dropMsgParts.push(`🔑 驚喜掉落：${ITEMS['key_gacha'].name}`);
+                    if (icon === '🏆') icon = ITEMS['key_gacha'].icon;
+                } else if (battle.zone.id === 'west_desert' && !hasItem('key_gacha') && !player.gachaUnlocked && Math.random() < 0.5) {
+                    addItem('key_gacha', 1);
+                    dropMsgParts.push(`🔑 驚喜掉落：${ITEMS['key_gacha'].name}`);
+                    if (icon === '🏆') icon = ITEMS['key_gacha'].icon;
+                }
+                if (battle.zone.id === 'magic_library') {
+                    // This is handled by startIdiomGame, handled via Map clicking.
+                    return;
+                }
+                const roll = Math.random();
+                if (roll < 0.3) { addItem('coin_gacha', 1); dropMsgParts.push(`🪙 額外獎勵：轉蛋幣 x1`); if (icon === '🏆') icon = '🪙'; }
+                else if (roll < 0.6) { const isLarge = Math.random() > 0.7; const potionId = isLarge ? 'potion_l' : 'potion_s'; addItem(potionId, 1); dropMsgParts.push(`🎁 額外獎勵：${ITEMS[potionId].name}`); if (icon === '🏆') icon = ITEMS[potionId].icon; }
+                else { dropMsgParts.push(`💨 運氣不好，什麼都沒掉...`); }
+                if (dropMsgParts.length > 0) msg += "\n\n" + dropMsgParts.join("\n");
+                showMessage('戰鬥勝利！', msg, icon, () => setScene('map'));
+            };
+
+            const startIdiomGame = () => {
+                const initRound = (currentScore) => {
+                    const idiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+                    const chars = idiom.split('');
+
+                    // 隨機選兩個要挖空的位置
+                    let b1 = Math.floor(Math.random() * 4);
+                    let b2 = Math.floor(Math.random() * 4);
+                    while (b1 === b2) { b2 = Math.floor(Math.random() * 4); }
+
+                    const blanks = [b1, b2].sort();
+                    const correctAnswers = [chars[b1], chars[b2]];
+
+                    // 從其他成語中抽取 8 個干擾字
+                    let distractors = [];
+                    while (distractors.length < 8) {
+                        const randomIdiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+                        const randomChar = randomIdiom.split('')[Math.floor(Math.random() * 4)];
+                        if (!correctAnswers.includes(randomChar) && !distractors.includes(randomChar)) {
+                            distractors.push(randomChar);
+                        }
+                    }
+
+                    // 組合所有選項並打亂
+                    const allOptions = [...correctAnswers, ...distractors];
+                    for (let i = allOptions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+                    }
+
+                    // 建立初始 slots
+                    const initialSlots = [null, null, null, null];
+                    for (let i = 0; i < 4; i++) {
+                        if (!blanks.includes(i)) initialSlots[i] = chars[i];
+                    }
+
+                    setIdiomGame({
+                        active: true,
+                        score: currentScore,
+                        maxScore: 10,
+                        currentIdiom: chars,
+                        options: allOptions,
+                        slots: initialSlots,
+                        blanks: blanks
+                    });
+                };
+
+                setCurrentNpc('librarian');
+                setScene('magic_library');
+
+                // 初次對話
+                let introText = "歡迎來到魔法圖書館，勇者！\n這裡是知識的殿堂，只要你能連續答對 10 題成語，就能獲得管理員的認可！";
+                setNpcMessage(introText);
+
+                initRound(0);
+            };
+
+            const handleIdiomSelect = (optChar, optIndex) => {
+                setIdiomGame(prev => {
+                    // 找尋第一個空位
+                    const newSlots = [...prev.slots];
+                    const gameBlanks = prev.blanks;
+
+                    let targetBlankIndex = -1;
+                    for (let bIdx of gameBlanks) {
+                        if (newSlots[bIdx] === null) {
+                            newSlots[bIdx] = optChar;
+                            targetBlankIndex = bIdx;
+                            break;
+                        }
+                    }
+
+                    if (targetBlankIndex === -1) return prev; // 沒空位了不要理他
+
+                    // 檢查是否答錯
+                    if (optChar !== prev.currentIdiom[targetBlankIndex]) {
+                        setTimeout(() => {
+                            setIdiomGame(p => ({ ...p, active: false }));
+                            showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '😤', () => {
+                                setScene('library_lobby');
+                            });
+                        }, 500);
+                        return { ...prev, slots: newSlots };
+                    }
+
+                    // 移除選項
+                    const newOptions = [...prev.options];
+                    newOptions.splice(optIndex, 1);
+
+                    // 檢查是否填滿
+                    let isFull = true;
+                    for (let bIdx of gameBlanks) {
+                        if (newSlots[bIdx] === null) isFull = false;
+                    }
+
+                    if (isFull) {
+                        // 延遲驗證讓 UI 先更新
+                        setTimeout(() => verifyIdiomResult(newSlots, prev), 300);
+                    }
+
+                    return { ...prev, slots: newSlots, options: newOptions };
+                });
+            };
+
+            const verifyIdiomResult = (currentSlots, stateRef) => {
+                const answerStr = stateRef.currentIdiom.join('');
+                const userStr = currentSlots.join('');
+
+                if (answerStr === userStr) {
+                    const newScore = stateRef.score + 1;
+                    if (newScore >= stateRef.maxScore) {
+                        // 贏了！
+                        setIdiomGame(prev => ({ ...prev, active: false }));
+                        showMessage('恭喜通關！', '圖書管理員對你刮目相看！\n(獲得「圖書管理員寶石」)', '💎', () => {
+                            if (!hasItem('gem_red')) addItem('gem_red', 1);
+                            setScene('library_lobby');
+                        });
+                    } else {
+                        // 下一題
+                        showDamage("正確！", "player"); // 借用飄字效果
+                        setTimeout(() => {
+                            startIdiomGame_nextRound(newScore);
+                        }, 800);
+                    }
+                }
+            };
+
+            const startIdiomGame_nextRound = (currentScore) => {
+                const idiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+                const chars = idiom.split('');
+                let b1 = Math.floor(Math.random() * 4);
+                let b2 = Math.floor(Math.random() * 4);
+                while (b1 === b2) { b2 = Math.floor(Math.random() * 4); }
+                const blanks = [b1, b2].sort();
+                const correctAnswers = [chars[b1], chars[b2]];
+                let distractors = [];
+                while (distractors.length < 8) {
+                    const randomIdiom = IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+                    const randomChar = randomIdiom.split('')[Math.floor(Math.random() * 4)];
+                    if (!correctAnswers.includes(randomChar) && !distractors.includes(randomChar)) distractors.push(randomChar);
+                }
+                const allOptions = [...correctAnswers, ...distractors];
+                for (let i = allOptions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+                }
+                const initialSlots = [null, null, null, null];
+                for (let i = 0; i < 4; i++) { if (!blanks.includes(i)) initialSlots[i] = chars[i]; }
+                setIdiomGame(prev => ({ ...prev, active: true, score: currentScore, currentIdiom: chars, options: allOptions, slots: initialSlots, blanks: blanks }));
+            };
+
+            const startClownGame = () => {
+                const newTarget = Math.floor(Math.random() * 5);
+                setClownGame({
+                    active: true,
+                    round: 1,
+                    maxRound: 5,
+                    targetChest: newTarget,
+                    chests: [0, 1, 2, 3, 4],
+                    revealed: null
+                });
+                setScene('minigame_clown');
+                if (player.equipped.pet === 'pet_rat') {
+                    setTimeout(() => {
+                        showMessage('🐭 貪婪尋寶鼠發動技能！', `「尋寶」\n我聞到了...鑰匙藏在第 ${newTarget + 1} 個寶箱裡！\n（由左到右數）`, '🐭');
+                    }, 200);
+                }
+            };
+
+            const placeEgg = (eggId) => {
+                if (hatchSlot.eggId) { showMessage('孵蛋槽已有蛋', '請先把現有的蛋孵化完畢！', '🥚'); return; }
+                if (!hasItem(eggId)) return;
+                removeItemById(eggId, 1);
+                setHatchSlot({ eggId, progress: 0 });
+                showMessage('放入孵蛋槽', `${ITEMS[eggId].name} 已放入孵化槽！\n請餵食「營養劑」來提升孵化進度。`, ITEMS[eggId].icon.startsWith('<') ? '🥚' : ITEMS[eggId].icon);
+            };
+
+            const feedEgg = () => {
+                if (!hatchSlot.eggId) { showMessage('沒有蛋', '請先把一顆蛋放進孵化槽！', '🥚'); return; }
+                if (!hasItem('potion_nutri')) { showMessage('沒有營養劑', '背包裡沒有營養劑了！\n可以去商店購買（30G/顆）。', '🌿'); return; }
+                removeItemById('potion_nutri', 1);
+                const gain = Math.floor(Math.random() * 21) + 10; // 10~30%
+                const newProgress = Math.min(100, hatchSlot.progress + gain);
+                if (newProgress >= 100) {
+                    const petId = EGG_TO_PET[hatchSlot.eggId];
+                    const eggName = ITEMS[hatchSlot.eggId].name;
+                    setHatchSlot({ eggId: null, progress: 0 });
+                    if (hasItem(petId) || player.equipped.pet === petId) {
+                        addItem('coin_gacha', 1);
+                        showMessage('孵化失敗...', `你已經擁有【${ITEMS[petId].name}】了！\n${eggName} 無法再孵出一隻。\n獲得轉蛋幣 ×1 作為補償。`, '🥚');
+                    } else {
+                        addItem(petId, 1);
+                        showMessage('✨ 孵化成功！', `${eggName} 孵化出了\n【${ITEMS[petId].name}】${ITEMS[petId].icon}！\n\n${GACHA_PET_HINT[petId]}\n\n快去背包裝備牠吧！`, '✨');
+                    }
+                } else {
+                    setHatchSlot(prev => ({ ...prev, progress: newProgress }));
+                    showDamage(`+${gain}%`, 'player');
+                }
+            };
+
+
+            const handleChestSelect = (chestIndex) => {
+                if (!clownGame.active || clownGame.revealed !== null) return;
+
+                setClownGame(prev => ({ ...prev, revealed: chestIndex }));
+
+                setTimeout(() => {
+                    if (chestIndex === clownGame.targetChest) {
+                        // 猜對了
+                        if (clownGame.round >= clownGame.maxRound) {
+                            // 贏得遊戲
+                            setClownGame(prev => ({ ...prev, active: false }));
+                            showMessage('恭喜過關！', '小丑不可置信的看著你：\n「這...這不可能！你居然全猜對了！」\n(獲得「小丑的藍寶石」)', '💎', () => {
+                                if (!hasItem('gem_blue')) addItem('gem_blue', 1);
+                                setScene('library_lobby');
+                            });
+                        } else {
+                            // 下一回合
+                            showDamage("運氣不錯嘛！", "player");
+                            setTimeout(() => {
+                                const nextTarget = Math.floor(Math.random() * 5);
+                                setClownGame(prev => ({
+                                    ...prev,
+                                    round: prev.round + 1,
+                                    targetChest: nextTarget,
+                                    revealed: null
+                                }));
+                                if (player.equipped.pet === 'pet_rat') {
+                                    setTimeout(() => {
+                                        showMessage('🐭 貪婪尋寶鼠發動技能！', `「尋寶」\n我聞到了...鑰匙藏在第 ${nextTarget + 1} 個寶箱裡！\n（由左到右數）`, '🐭');
+                                    }, 200);
+                                }
+                            }, 800);
+                        }
+                    } else {
+                        // 猜錯了
+                        setClownGame(prev => ({ ...prev, active: false }));
+                        showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🐸', () => {
+                            setScene('library_lobby');
+                        });
+                    }
+                }, 1000);
+            };
+
+            const startMemoryGame = () => {
+                clearMemoryTimers();
+                const session = memorySessionRef.current;
+                const emojis = ['🍄', '🍓', '🍀', '🍎', '🥕', '🍉', '🍇', '🍌'];
+                let deck = [];
+                for (let i = 0; i < emojis.length; i++) {
+                    deck.push({ id: i * 2, emoji: emojis[i], isFlipped: true, isMatched: false });
+                    deck.push({ id: i * 2 + 1, emoji: emojis[i], isFlipped: true, isMatched: false });
+                }
+                // Shuffle
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+
+                setMemoryGame({
+                    active: true,
+                    cards: deck,
+                    flippedIndices: [],
+                    matchedPairs: 0,
+                    phase: 'peek',
+                    countdown: 0.3
+                });
+                setScene('minigame_memory');
+
+                if (player.equipped.pet === 'pet_jellyfish') {
+                    // 水母技能：30秒倒數
+                    setMemoryGame(prev => ({ ...prev, countdown: 30 }));
+                    showMessage('🪼 幻變時空水母發動技能！', '「緩慢時間流速」\n時間在此刻凝滯... 你有 30 秒來記憶牌的位置！', '🪼', () => {
+                        if (session !== memorySessionRef.current) return;
+                        let t = 30;
+                        memoryIntervalRef.current = setInterval(() => {
+                            t--;
+                            setMemoryGame(prev => ({ ...prev, countdown: t }));
+                            if (t <= 0) {
+                                clearInterval(memoryIntervalRef.current);
+                                setMemoryGame(prev => ({
+                                    ...prev,
+                                    phase: 'play',
+                                    cards: prev.cards.map(c => ({ ...c, isFlipped: false }))
+                                }));
+                            }
+                        }, 1000);
+                    });
+                } else {
+                    // 正常 0.3秒後蓋牌
+                    scheduleMemory(() => {
+                        setMemoryGame(prev => ({
+                            ...prev,
+                            phase: 'play',
+                            cards: prev.cards.map(c => ({ ...c, isFlipped: false }))
+                        }));
+                    }, 300);
+                }
+            };
+
+            // --- 打地精小遊戲 ---
+            const moleTimerRef = useRef(null);
+            const moleSpawnRef = useRef(null);
+            const paperKillsRef = useRef({ sword_paper_kill: 0, sword_paper_gold: 0 });
+
+            const startMoleGame = () => {
+                const use2x2 = player.equipped.pet === 'pet_ankylo';
+                if (use2x2) {
+                    showMessage('\ud83e\udd95 \u64bc\u5730\u85e4\u8513\u7532\u9f8d\u8b8a\u8eab\u4e86!!', '\u85e4\u8513\u7532\u9f8d\u8b8a\u6210\u5de8\u5927\u7684 2\u00d72 \u69cc\u5b50\uff01\n\u73fe\u5728\u6bcf\u6b21\u653b\u64ca\u53ef\u4ee5\u780d\u4e2d\u4e00\u7247\u5340\u57df\uff01', '\ud83e\udd95', () => {
+                        actualStartMole(true);
+                    });
+                } else {
+                    actualStartMole(false);
+                }
+            };
+
+            const actualStartMole = (is2x2) => {
+                clearInterval(moleTimerRef.current);
+                clearInterval(moleSpawnRef.current);
+                setMoleGame({
+                    active: true, score: 0, targetScore: 55, timeLeft: 15,
+                    holes: Array(9).fill(false), is2x2
+                });
+                setScene('minigame_mole');
+
+                // 每0.5秒同時出現5隻地精
+                moleSpawnRef.current = setInterval(() => {
+                    setMoleGame(prev => {
+                        if (!prev.active) return prev;
+                        const newHoles = Array(9).fill(false);
+                        const indices = [];
+                        while (indices.length < 5) {
+                            const r = Math.floor(Math.random() * 9);
+                            if (!indices.includes(r)) indices.push(r);
+                        }
+                        indices.forEach(i => newHoles[i] = true);
+                        return { ...prev, holes: newHoles };
+                    });
+                }, 500);
+
+                // 倒數計時
+                moleTimerRef.current = setInterval(() => {
+                    setMoleGame(prev => {
+                        const newTime = prev.timeLeft - 1;
+                        if (newTime <= 0) {
+                            clearInterval(moleTimerRef.current);
+                            clearInterval(moleSpawnRef.current);
+                            setTimeout(() => {
+                                setMoleGame(p => ({ ...p, active: false, holes: Array(9).fill(false) }));
+                                if (prev.score >= prev.targetScore) {
+                                    showMessage('\u904e\u95dc\uff01', `\u8caa\u5a6a\u5730\u7cbe\u5de5\u982d\u4e0d\u6562\u7f6e\u4fe1\uff1a\n\u300c\u7adf\u7136\u6709\u4eba\u80fd\u6253\u9019\u9ebc\u5feb\uff01\u300d\n(\u7372\u5f97\u300c\u5730\u7cbe\u5de5\u982d\u7684\u7fe1\u7fe0\u300d)`, '\ud83d\udc9a', () => {
+                                        if (!hasItem('gem_green')) addItem('gem_green', 1);
+                                        setScene('library_lobby');
+                                    });
+                                } else {
+                                    showMessage('\u6311\u6230\u5931\u6557', `\u53ea\u6253\u5230 ${prev.score} \u96bb\uff0c\u9700\u8981 55 \u96bb\u624d\u80fd\u904e\u95dc\uff01\n\u5e36\u8457\u80fd\u904e\u95dc\u7684\u5c0f\u5925\u4f34\u518d\u4f86\u5427\uff01`, '\ud83d\udc7a', () => {
+                                        setScene('library_lobby');
+                                    });
+                                }
+                            }, 100);
+                            return { ...prev, timeLeft: 0 };
+                        }
+                        return { ...prev, timeLeft: newTime };
+                    });
+                }, 1000);
+            };
+
+            const handleMoleWhack = (index) => {
+                if (!moleGame.active) return;
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+
+                // 顯示槌子動畫
+                const hitCells = [];
+                if (moleGame.is2x2) {
+                    for (let r = row; r <= Math.min(row + 1, 2); r++)
+                        for (let c = col; c <= Math.min(col + 1, 2); c++)
+                            hitCells.push(r * 3 + c);
+                } else {
+                    hitCells.push(index);
+                }
+                setMoleHitCells(hitCells);
+                setTimeout(() => setMoleHitCells([]), 250);
+
+                setMoleGame(prev => {
+                    const newHoles = [...prev.holes];
+                    let hits = 0;
+
+                    if (prev.is2x2) {
+                        // 2x2 範圍：以點擊格為左上角
+                        for (let r = row; r <= Math.min(row + 1, 2); r++) {
+                            for (let c = col; c <= Math.min(col + 1, 2); c++) {
+                                const idx = r * 3 + c;
+                                if (newHoles[idx]) { newHoles[idx] = false; hits++; }
+                            }
+                        }
+                    } else {
+                        // 1x1 單格
+                        if (newHoles[index]) { newHoles[index] = false; hits++; }
+                    }
+
+                    const newScore = prev.score + hits;
+                    // 提前過關
+                    if (newScore >= prev.targetScore) {
+                        clearInterval(moleTimerRef.current);
+                        clearInterval(moleSpawnRef.current);
+                        setTimeout(() => {
+                            setMoleGame(p => ({ ...p, active: false, holes: Array(9).fill(false) }));
+                            showMessage('\u904e\u95dc\uff01', `\u8caa\u5a6a\u5730\u7cbe\u5de5\u982d\u4e0d\u6562\u7f6e\u4fe1\uff1a\n\u300c\u7adf\u7136\u6709\u4eba\u80fd\u6253\u9019\u9ebc\u5feb\uff01\u300d\n(\u7372\u5f97\u300c\u5730\u7cbe\u5de5\u982d\u7684\u7fe1\u7fe0\u300d)`, '\ud83d\udc9a', () => {
+                                if (!hasItem('gem_green')) addItem('gem_green', 1);
+                                setScene('library_lobby');
+                            });
+                        }, 100);
+                    }
+
+                    return { ...prev, holes: newHoles, score: newScore };
+                });
+            };
+
+            // ==========================================
+            // ★ 動物大逃亡（華容道）函式 ★
+            // ==========================================
+            const loadSlidingLevel = (levelIndex, withPetDialog = false) => {
+                const levelPieces = JSON.parse(JSON.stringify(SLIDING_LEVELS[levelIndex].pieces));
+                setSlidingGame({ active: true, currentLevel: levelIndex, pieces: levelPieces, moves: 0, isWon: false });
+                setSlidingDragState(null);
+                setSlidingPetUsed(false);
+                if (withPetDialog && player.equipped.pet === 'pet_stompy') {
+                    setTimeout(() => {
+                        showMessage('🐘 踏踏要出手嗎？', `偵測到【踏踏（虛空小象）】！\n要發動【踏破虛空】嗎？\n大岩石碎裂 + 一塊隨機障礙物消除！\n（點確定發動，關閉則跳過）`, '🐘', () => useSlidingPetAbility());
+                    }, 250);
+                }
+            };
+
+            const startSlidingGame = () => {
+                setScene('minigame_sliding');
+                loadSlidingLevel(0, true);
+            };
+
+            const useSlidingPetAbility = () => {
+                setSlidingGame(prev => {
+                    // 移除大岩石
+                    let newPieces = prev.pieces.filter(p => p.id !== 'rock');
+                    // 隨機踩碎一塊非大象的障礙物
+                    const removable = newPieces.filter(p => p.id !== 'elephant');
+                    if (removable.length > 0) {
+                        const target = removable[Math.floor(Math.random() * removable.length)];
+                        newPieces = newPieces.filter(p => p.id !== target.id);
+                    }
+                    return { ...prev, pieces: newPieces };
+                });
+                setSlidingPetUsed(true);
+            };
+
+            const canSlidingMove = (pieceId, dx, dy, currentPieces) => {
+                const piece = currentPieces.find(p => p.id === pieceId);
+                if (!piece) return false;
+                if (piece.immovable) return false;
+                const nx = piece.x + dx;
+                const ny = piece.y + dy;
+                if (nx < 0 || nx + piece.w > 5 || ny < 0 || ny + piece.h > 4) return false;
+                for (const other of currentPieces) {
+                    if (other.id === pieceId) continue;
+                    if (nx < other.x + other.w && nx + piece.w > other.x && ny < other.y + other.h && ny + piece.h > other.y) return false;
+                }
+                return true;
+            };
+
+            const moveSlidingPiece = (id, dx, dy) => {
+                setSlidingGame(prev => {
+                    const piece = prev.pieces.find(p => p.id === id);
+                    if (!piece || piece.immovable) return prev;
+                    const nx = piece.x + dx, ny = piece.y + dy;
+                    if (nx < 0 || nx + piece.w > 5 || ny < 0 || ny + piece.h > 4) return prev;
+                    for (const other of prev.pieces) {
+                        if (other.id === id) continue;
+                        if (nx < other.x + other.w && nx + piece.w > other.x &&
+                            ny < other.y + other.h && ny + piece.h > other.y) return prev;
+                    }
+                    const newPieces = prev.pieces.map(p => p.id === id ? { ...p, x: nx, y: ny } : p);
+                    if (id === 'elephant' && nx === 3 && ny === 1) {
+                        setTimeout(() => setSlidingGame(p => ({ ...p, isWon: true })), 300);
+                    }
+                    return { ...prev, pieces: newPieces, moves: prev.moves + 1 };
+                });
+            };
+
+            const handleSlidingPointerDown = (e, id) => {
+                if (slidingGame.isWon) return;
+                e.target.setPointerCapture(e.pointerId);
+                setSlidingDragState({ id, startX: e.clientX, startY: e.clientY, moved: false });
+            };
+
+            const handleSlidingPointerMove = (e) => {
+                if (!slidingDragState || slidingDragState.moved || slidingGame.isWon) return;
+                const dx = e.clientX - slidingDragState.startX;
+                const dy = e.clientY - slidingDragState.startY;
+                if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                    let moveDx = 0, moveDy = 0;
+                    if (Math.abs(dx) > Math.abs(dy)) moveDx = dx > 0 ? 1 : -1;
+                    else moveDy = dy > 0 ? 1 : -1;
+                    if (canSlidingMove(slidingDragState.id, moveDx, moveDy, slidingPiecesRef.current)) {
+                        moveSlidingPiece(slidingDragState.id, moveDx, moveDy);
+                    }
+                    setSlidingDragState(prev => ({ ...prev, moved: true }));
+                }
+            };
+
+            const handleSlidingPointerUp = (e) => {
+                if (!slidingDragState || slidingGame.isWon) return;
+                if (!slidingDragState.moved) {
+                    const dx = e.clientX - slidingDragState.startX;
+                    const dy = e.clientY - slidingDragState.startY;
+                    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                        const validMoves = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }]
+                            .filter(m => canSlidingMove(slidingDragState.id, m.dx, m.dy, slidingPiecesRef.current));
+                        if (validMoves.length === 1) moveSlidingPiece(slidingDragState.id, validMoves[0].dx, validMoves[0].dy);
+                    }
+                }
+                setSlidingDragState(null);
+            };
+
+            const handleCardClick = (index) => {
+                const memoryGame = memoryGameRef.current;
+                if (memoryGame.phase !== 'play') return;
+                const card = memoryGame.cards[index];
+                if (!card || card.isFlipped || card.isMatched) return;
+                if (memoryGame.flippedIndices.length >= 2) return;
+
+                const newFlipped = [...memoryGame.flippedIndices, index];
+                setMemoryGame(prev => ({
+                    ...prev,
+                    flippedIndices: newFlipped,
+                    cards: prev.cards.map((c, i) => i === index ? { ...c, isFlipped: true } : c)
+                }));
+
+                if (newFlipped.length === 2) {
+                    const c1 = memoryGame.cards[newFlipped[0]];
+                    const c2 = memoryGame.cards[newFlipped[1]]; // c2 hasn't updated in this closure yet, we use emoji direct check
+
+                    if (c1.emoji === memoryGame.cards[index].emoji) {
+                        // Match!
+                        scheduleMemory(() => {
+                            setMemoryGame(prev => {
+                                const newMatchedPairs = prev.matchedPairs + 1;
+                                const isWin = newMatchedPairs === 8;
+
+                                if (isWin) {
+                                    scheduleMemory(() => {
+                                        setMemoryGame(p => ({ ...p, active: false }));
+                                        showMessage('恭喜過關！', '紙牌大師點頭稱讚：\n「好久沒見過這等驚人的記憶力了...這顆寶石你實至名歸！」\n(獲得「紙牌大師的黃寶石」)', '💎', () => {
+                                            if (!hasItem('gem_yellow')) addItem('gem_yellow', 1);
+                                            setScene('library_lobby');
+                                        });
+                                    }, 300);
+                                }
+
+                                return {
+                                    ...prev,
+                                    flippedIndices: [],
+                                    matchedPairs: newMatchedPairs,
+                                    cards: prev.cards.map((c, i) => newFlipped.includes(i) ? { ...c, isMatched: true } : c)
+                                };
+                            });
+                        }, 400);
+                    } else {
+                        // Mismatch!
+                        setMemoryGame(prev => ({ ...prev, phase: 'fail' }));
+                        scheduleMemory(() => {
+                            setMemoryGame(p => ({ ...p, active: false }));
+                            showMessage('測試失敗', '你還差的遠呢!!! 下次帶著能過關的小夥伴再來吧', '🃏', () => {
+                                setScene('library_lobby');
+                            });
+                        }, 600);
+                    }
+                }
+            };
+
+            const handleLose = () => { setBattle(prev => ({ ...prev, active: false })); showMessage('戰鬥失敗', '勇者倒下了...\n但是女神眷顧了你！\n(HP 恢復為 1，趕快去喝藥水吧)', '👼', () => { setPlayer(prev => ({ ...prev, hp: 1 })); setScene('map'); }); };
+            const fleeBattle = () => { setBattle(prev => ({ ...prev, active: false })); setScene('map'); };
+
+            const openShop = (npcId) => {
+                setCurrentNpc(npcId);
+                if (npcId === 'merchant') {
+                    // 零分考卷大師 → 升級成100分考卷
+                    const ach = getAchievements(player);
+                    if (ach.exam_zero_master && hasItem('exam_zero') && !hasItem('exam_hundred')) {
+                        setTimeout(() => showMessage('哥布林商人', '嘿嘿...等一下！\n你這張考卷...我研究了很久了！\n我用特殊藥水幫你把0分考卷改造成了100分考卷！\n攻擊力足足提升到了 +30！', '🏕️', () => {
+                            removeSpecificItem('exam_zero');
+                            if (player.equipped.weapon === 'exam_zero') setPlayer(prev => ({ ...prev, equipped: { ...prev.equipped, weapon: null } }));
+                            addItem('exam_hundred', 1);
+                            showMessage('升級成功！', '「0分考卷」已升級為「100分考卷」！\n攻擊力 +30！\n\n🏅 成就解鎖：「進步神速」', '📝');
+                        }), 200);
+                    }
+                    const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer']; const collectedCount = fragments.filter(id => hasItem(id)).length;
+                    let introText = hasItem('key_strange') ? "嘿嘿，鑰匙已經到了對的人手裡，不枉我保管多年。\n說起來...我還有些壓箱底的好東西，市面上根本找不到的。\n你要不要瞧瞧？每樣 1000G。" : collectedCount === 5 ? "喔喔！你竟然真的收集齊了五大碎片！\n這把傳說中的「奇怪的鑰匙」，就用碎片加一點手續費跟你交換吧！" : `嘿，冒險者！我在尋找散落在世界各地的 5 個古老碎片。\n(目前收集: ${collectedCount}/5)`;
+                    const snapshot = hasItem('key_strange') ? ['potion_rainbow', 'sword_paper_gold', 'frag_exchange', 'gem_tycoon'] : collectedCount === 5 ? ['key_strange'] : [];
+                    setMerchantItems(snapshot);
+                    setNpcMessage(introText);
+                } else {
+                    const profile = NPC_PROFILES[npcId];
+                    if (!player.shopVisited) {
+                        setPlayer(prev => ({ ...prev, shopVisited: true }));
+                        setNpcMessage("啊！我把轉蛋機鑰匙掉到沙漠裡了...");
+                    } else {
+                        const others = profile.defaultLines.filter(l => !l.includes('轉蛋機鑰匙掉到沙漠'));
+                        setNpcMessage(others[Math.floor(Math.random() * others.length)]);
+                    }
+                }
+                setScene('shop');
+            };
+
+            const buyItem = (itemId) => {
+                const player = playerRef.current;
+                const item = ITEMS[itemId];
+                if (!item) return;
+                if (itemId === 'key_strange') {
+                    if (hasItem('key_strange')) { setNpcMessage('鑰匙已經交給你了，好好保管！'); return; }
+                    const fragments = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
+                    if (!fragments.every(hasItem)) { setNpcMessage('需要集齊五種通關證明，才能交換鑰匙。'); return; }
+                    if (player.gold < 1000) { setNpcMessage("金幣不足...需要 1000G 才能換鑰匙。"); return; }
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 1000, achNoWrong: prev.neverWrong === true,
+                        inventory: addInventoryItem(prev.inventory.filter(slot => !fragments.includes(slot.id)), 'key_strange') }));
+                    setNpcMessage("成交！這把鑰匙交給你了！");
+                    if (canSavePlayer(playerRef.current, saveSessionRef.current)) void saveToCloud();
+                    return;
+                }
+                if (itemId === 'frag_exchange') {
+                    const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
+                    const missingFrags = allFrags.filter(id => !hasItem(id));
+                    if (missingFrags.length > 0) { setNpcMessage(`還差 ${missingFrags.length} 種通關證明！五種都要有才行。`); return; }
+                    allFrags.forEach(id => removeItemById(id, 1));
+                    setPlayer(prev => ({ ...prev, gold: prev.gold + 1000 }));
+                    setNpcMessage("哈哈！五種通關證明，換你 1000G！下次繼續努力！"); return;
+                }
+                if (itemId === 'sword_paper_kill') {
+                    const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
+                    const missingFrags = allFrags.filter(id => (player.inventory.find(i => i.id === id)?.qty || 0) < 2);
+                    if (missingFrags.length > 0) { setNpcMessage(`通關證明各需要兩份！還差 ${missingFrags.length} 種沒湊到兩份。`); return; }
+                    if (player.gold < 3000) { setNpcMessage('金幣不夠！需要 3000G 才能買。'); return; }
+                    allFrags.forEach(fid => removeItemById(fid, 2));
+                    setPlayer(prev => ({ ...prev, gold: prev.gold - 3000 }));
+                    addItem('sword_paper_kill', 1); setNpcMessage('嘿嘿，一擊必殺！好好利用吧！'); return;
+                }
+                if (itemId === 'sword_paper_gold') {
+                    const allFrags = ['frag_north', 'frag_south', 'frag_east', 'frag_west', 'frag_outer'];
+                    const missingFrags = allFrags.filter(id => !hasItem(id));
+                    if (missingFrags.length > 0) { setNpcMessage(`還差 ${missingFrags.length} 種通關證明！五大地區都要跑過才行。`); return; }
+                    allFrags.forEach(fid => removeItemById(fid, 1)); addItem('sword_paper_gold', 1); setNpcMessage("嘿嘿，跑遍五大地區才換到的稀有貨！好好珍惜！"); return;
+                }
+                if (player.gold < item.price) { setNpcMessage("錢不夠喔，再去賺多一點吧！"); return; }
+                setPlayer(prev => ({ ...prev, gold: prev.gold - item.price })); addItem(itemId, 1);
+                if (itemId === 'gem_tycoon') { setNpcMessage("哇嗚！你真的買了！土豪！！！"); return; }
+                const _pl = NPC_PROFILES[currentNpc].purchaseLines; setNpcMessage(_pl[Math.floor(Math.random() * _pl.length)]);
+            };
+
+
+            const rollGacha = () => {
+                const player = playerRef.current;
+                if (!player.gachaUnlocked) {
+                    if (hasItem('key_gacha')) {
+                        showMessage('發現鎖孔', '轉蛋機上鎖了，但你手上的「轉蛋機鑰匙」形狀剛好吻合！\n要使用鑰匙打開嗎？', '🔑', () => {
+                            setPlayer(prev => ({ ...prev, gachaUnlocked: true }));
+                            showMessage('解鎖成功！', '轉蛋機發出「嗶嗶」聲，可以使用了！\n(鑰匙留作紀念，已收回背包)', '🔓');
+                        });
+                        return;
+                    }
+                    showMessage('上鎖的轉蛋機', '轉蛋機被鎖住了...\n孔洞形狀很特別，需要一把專屬的「轉蛋機鑰匙」！\n好像有人看到沙漠裡有一把閃閃發光的鑰匙？', '🔒');
+                    return;
+                }
+                if (!hasItem('coin_gacha')) { showMessage('轉蛋幣不足', `轉蛋一次需要 1 枚轉蛋幣！可以去商店購買哦。`, '🐔'); return; }
+
+                removeItemById('coin_gacha', 1);
+                setPlayer(prev => ({ ...prev, gachaSpent: (prev.gachaSpent||0)+100 }));
+
+                // 篩除已擁有或已裝備的蛋
+                const allEggs = ['egg_1', 'egg_2', 'egg_3', 'egg_4', 'egg_5'];
+                const unownedEggs = allEggs.filter(eggId => {
+                    const petId = EGG_TO_PET[eggId];
+                    return !hasItem(eggId) && !hasItem(petId) && player.equipped.pet !== petId;
+                });
+
+                // 機率表：蛋12% | 大紅15% | 一擊7% | 金幣11% | 藍波15% | 營養劑40%
+                const roll = Math.random() * 100;
+                const addGacha = (id) => { addItem(id, 1); showMessage('轉蛋結果', `咕...轉出了：\n🎁 ${ITEMS[id].name}`, ITEMS[id].icon); };
+                if (roll < 12 && unownedEggs.length > 0) { const e = unownedEggs[Math.floor(Math.random()*unownedEggs.length)]; addItem(e,1); const isLastEgg = unownedEggs.length === 1; showMessage('中大獎啦！',`咕咕！恭喜你轉到了稀有物品：\n✨ ${ITEMS[e].name} ✨`,ITEMS[e].icon, isLastEgg ? () => showMessage('村長', '你好像已經把大獎都轉完了哦！', '👴') : null); }
+                else if (roll < 27) { addGacha('potion_l'); }
+                else if (roll < 34) { addGacha('sword_paper_kill'); }
+                else if (roll < 45) { addGacha('sword_paper_gold'); }
+                else if (roll < 60) { addGacha('potion_rainbow'); }
+                else { addGacha('potion_nutri'); }
+            };
+
+            // Keep keyboard focus inside an open dialog and return it to its trigger.
+            useEffect(() => {
+                if (!overlay && !faqOpen && !showHatchUI && !randomEvent && !slidingGame.isWon) return;
+                const previousFocus = document.activeElement;
+                const root = document.querySelector('.message-backdrop') || document.querySelector('.faq-backdrop') || document.querySelector('.hatch-backdrop') || document.querySelector('.event-backdrop') || document.querySelector('.sliding-backdrop');
+                if (!root) return;
+                const focusable = () => [...root.querySelectorAll('button:not([disabled]), input:not([disabled]), a[href], [tabindex="0"]')].filter(node => node.getClientRects().length);
+                focusable()[0]?.focus();
+                const keepFocus = event => {
+                    if (event.key === 'Escape' && !overlay) {
+                        if (faqOpen) { event.preventDefault(); setFaqOpen(false); }
+                        else if (showHatchUI) { event.preventDefault(); setShowHatchUI(false); }
+                    }
+                    if (event.key !== 'Tab') return;
+                    const controls = focusable();
+                    if (!controls.length) { event.preventDefault(); return; }
+                    const first = controls[0], last = controls[controls.length - 1];
+                    if (event.shiftKey && (document.activeElement === first || !root.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+                    else if (!event.shiftKey && (document.activeElement === last || !root.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+                };
+                document.addEventListener('keydown', keepFocus);
+                return () => { document.removeEventListener('keydown', keepFocus); if (previousFocus?.isConnected) previousFocus.focus(); };
+            }, [overlay, faqOpen, showHatchUI, randomEvent, slidingGame.isWon]);
+
+            return (
+                <div className="adventure-app" data-scene={scene}>
+                    <style>{`
+                        @keyframes hitPop { 0% {transform: scale(1.4) rotate(-20deg); opacity:1;} 100% {transform: scale(0.8) rotate(10deg); opacity:0;} }
+                        @keyframes floatUp { 0% {transform: translateY(0); opacity:1;} 100% {transform: translateY(-50px); opacity:0;} }
+                        @keyframes popIn { 0% {transform: scale(0.5);} 100% {transform: scale(1);} }
+                        @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+                        @keyframes shake { 10%, 90% {transform: translate3d(-2px, 0, 0);} 20%, 80% {transform: translate3d(4px, 0, 0);} 30%, 50%, 70% {transform: translate3d(-6px, 0, 0);} 40%, 60% {transform: translate3d(6px, 0, 0);} }
+                        @keyframes flashRed { 0%, 100% {background-color: transparent;} 50% {background-color: rgba(255, 0, 0, 0.3);} }
+                        @keyframes glow { from { box-shadow: 0 0 5px #FFD700; } to { box-shadow: 0 0 15px #FFD700, 0 0 5px #FFA000; } }
+                        @keyframes savebar { 0% {transform:translateX(-100%);} 100% {transform:translateX(350%);} }
+                        @keyframes correctPop { 0% {transform:scale(0.3);opacity:0;} 50% {transform:scale(1.3);opacity:1;} 75% {transform:scale(0.95);} 100% {transform:scale(1.1);opacity:0;} }
+                        .anim-correct { animation: correctPop 0.7s ease-out forwards; }
+                        @keyframes cardFlip { 0% {transform:rotateY(90deg) scale(0.8);opacity:0;} 60% {transform:rotateY(-10deg) scale(1.1);} 100% {transform:rotateY(0deg) scale(1);opacity:1;} }
+                        .anim-card-flip { animation: cardFlip 0.5s ease-out forwards; }
+                        .anim-float { animation: float 3s ease-in-out infinite; }
+                        .anim-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+                        .anim-flash-red { animation: flashRed 0.4s; }
+                        .anim-wrong-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; border-color: #FF4444 !important; box-shadow: 0 0 0 3px rgba(255,68,68,0.5); }
+                        .text-shadow-title { text-shadow: 2px 2px 5px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+                        .custom-scroll::-webkit-scrollbar { width: 6px; } .custom-scroll::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
+                        /* Fix image icon */
+                        .item-icon img { display: inline-block; vertical-align: middle; }
+                    `}</style>
+
+                    <div className={`game-shell ${battle.flashRed ? 'anim-flash-red' : ''}`}>
+
+                        {scene !== 'start' && (
+                            <aside className="adventure-sidebar" aria-label="冒險者狀態與選單">
+                                <div className="player-identity">
+                                    <span className="sidebar-eyebrow">冒險者手冊</span>
+                                    <strong className="player-name">{player.name || '勇者'}</strong>
+                                    {player.accountId && <span className="player-account" title={player.accountId}>{player.accountId}</span>}
+                                </div>
+                                <div className="player-stats">
+                                    <div className="stat stat-level"><span>等級</span><strong>Lv. {player.level}</strong></div>
+                                    <div className="stat stat-hp"><span>生命</span><strong>{player.hp}<small> / {stats.maxHp}</small></strong><div className="stat-track" aria-hidden="true"><i style={{width: `${Math.max(0, Math.min(100, player.hp / stats.maxHp * 100))}%`}} /></div></div>
+                                    <div className="stat stat-exp"><span>經驗</span><strong>{player.exp}<small> / {player.maxExp}</small></strong><div className="stat-track" aria-hidden="true"><i style={{width: `${Math.max(0, Math.min(100, player.exp / player.maxExp * 100))}%`}} /></div></div>
+                                    <div className="stat stat-gold"><span>金幣</span><strong>{player.gold}</strong></div>
+                                    <div className="stat stat-atk"><span>攻擊</span><strong>{stats.atk}</strong></div>
+                                </div>
+                                <nav className={`player-actions ${tutorialStep === 'bag' && scene === 'village' ? 'has-bag-tutorial' : ''}`} aria-label="冒險操作">
+                                    <button className="nav-help" onClick={() => { setFaqOpen(true); setFaqExpanded(null); }}>遊戲指南</button>
+                                    {scene !== 'equipment' && (
+                                        <button className={`nav-bag ${tutorialStep === 'bag' && scene === 'village' ? 'is-tutorial-target' : ''}`} aria-label="冒險背包" aria-describedby={tutorialStep === 'bag' && scene === 'village' ? 'bag-tutorial-hint' : undefined} onClick={() => { setPrevScene(scene); setScene('equipment'); }}>
+                                            冒險背包
+                                            {tutorialStep === 'bag' && scene === 'village' && <span id="bag-tutorial-hint" className="bag-tutorial" role="tooltip">第一步：打開冒險背包</span>}
+                                        </button>
+                                    )}
+                                    <button className="nav-save" onClick={saveToCloud} disabled={isSaving} aria-busy={isSaving}>{isSaving ? '正在存檔…' : '儲存進度'}</button>
+                                </nav>
+                                <p className="sidebar-note">每一步，都讓你更接近回家的路。</p>
+                            </aside>
+                        )}
+
+                        <main className="game-stage" aria-label="亞德雷大陸遊戲畫面">
+
+                            {TEACHER_CONFIG_ERROR && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#fff0f3] z-[300] p-10 text-center">
+                                    <div className="text-5xl mb-4">⚠️</div>
+                                    <div className="text-xl font-bold text-red-700 mb-2">找不到資料庫設定</div>
+                                    <div className="text-gray-600 mb-6 text-sm leading-relaxed">此連結缺少 Firebase 資料庫設定。<br/>請重新前往設定頁面，確認已填入資料庫金鑰。</div>
+                                    <a href="https://yoyo700702ai.github.io/100pointgames-teacher/" className="bg-pink-500 text-white px-6 py-3 rounded-xl font-bold text-sm">← 回到設定頁</a>
+                                </div>
+                            )}
+
+                            {!TEACHER_CONFIG_ERROR && scene === 'start' && (
+                                <section className="welcome-scene" aria-labelledby="adventure-title" style={{backgroundImage: "url(assets/art/welcome.webp)"}}>
+                                    <div className="welcome-story">
+                                        <p className="welcome-eyebrow">一百分遊戲教育工作坊 · 知識冒險 RPG</p>
+                                        <h1 id="adventure-title">亞德雷<span>大陸</span></h1>
+                                        <p className="welcome-tagline">把知識變成力量，<br />找回回家的路。</p>
+                                        <p className="welcome-description">探索五大區域、收集神獸夥伴，<br />在每一次挑戰中，寫下你的冒險故事。</p>
+                                        <div className="welcome-chapters" aria-label="冒險內容"><span>探索世界</span><span>答題成長</span><span>神獸同行</span></div>
+                                    </div>
+                                    <form className="adventure-entry" onSubmit={e => { e.preventDefault(); handleStart(); }} aria-busy={loginBusy}>
+                                        <div className="entry-heading"><span>你的故事，從這裡開始</span><h2>冒險者登記</h2></div>
+                                        <label htmlFor="adventurer-name">冒險者名字 <span>1–5 個字</span></label>
+                                        <input id="adventurer-name" name="adventurer-name" autoComplete="nickname" type="text" maxLength="5" required placeholder="你希望大家怎麼稱呼你？" value={player.name} onChange={e => updatePlayer({name: e.target.value})} disabled={loginBusy} />
+                                        <label htmlFor="adventure-account">冒險帳號 <span>選填・至少 6 碼英數字</span></label>
+                                        <input id="adventure-account" name="adventure-account" autoComplete="username" autoCapitalize="none" spellCheck={false} type="text" minLength="6" pattern="[A-Za-z0-9]{6,}" placeholder="例如：hero2026" value={player.accountId} onChange={e => updatePlayer({accountId: e.target.value})} disabled={loginBusy} aria-describedby="account-hint" />
+                                        <p className="entry-hint" id="account-hint">不填帳號可直接試玩；填寫帳號才能雲端存檔、接續冒險。</p>
+                                        <button type="submit" className="entry-submit" disabled={loginBusy}>{loginBusy ? '正在準備你的冒險…' : '開始 / 讀取冒險'}<span aria-hidden="true">→</span></button>
+                                        <p className={`entry-status ${loadingMsg ? 'has-message' : ''}`} role="status" aria-live="polite">{loadingMsg || '新朋友與歸來的勇者，都從這裡出發。'}</p>
+                                        <details className="gm-tools"><summary>GM 測試工具</summary><div><label className="sr-only" htmlFor="cheat-input">GM 測試代碼</label><input id="cheat-input" type="password" autoComplete="off" placeholder="輸入測試代碼" /><button type="button" onClick={() => applyCheat(document.getElementById('cheat-input').value.trim().toUpperCase())}>啟用</button></div></details>
+                                    </form>
+                                </section>
+                            )}
+
+                            {scene === 'map' && (
+                                <section className="illustrated-scene map-scene"><header className="scene-heading"><div><h2>世界地圖</h2><p>選一個目的地，展開今天的冒險。</p></div><span className="scene-kicker">亞德雷探索手冊</span></header><div className="scene-art absolute inset-0 bg-[#64B5F6]">
+                                    <img src="assets/art/world-map.webp" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="地圖" />
+                                    <button type="button" aria-label="單字凍原" className="scene-hotspot absolute top-[38%] left-[38%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('north_tundra')}><span className="hotspot-label">單字凍原</span></button>
+                                    <button type="button" aria-label="元素港灣" className="scene-hotspot absolute top-[85%] left-[50%] w-[15%] h-[12%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('south_harbor')}><span className="hotspot-label">元素港灣</span></button>
+                                    <button type="button" aria-label="千卷墨林" className="scene-hotspot absolute top-[48%] left-[74%] w-[12%] h-[18%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('east_forest')}><span className="hotspot-label">千卷墨林</span></button>
+                                    <button type="button" aria-label="炎熱荒漠" className="scene-hotspot absolute top-[66%] left-[25%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('west_desert')}><span className="hotspot-label">炎熱荒漠</span></button>
+                                    <button type="button" aria-label="編年廢墟" className="scene-hotspot absolute top-[79%] left-[78%] w-[12%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => startBattle('outer_ruins')}><span className="hotspot-label">編年廢墟</span></button>
+                                    <button type="button" aria-label="星願永恆宮" className="scene-hotspot absolute top-[20%] left-[55%] w-[15%] h-[15%] cursor-pointer z-10 rounded-xl  hover:z-20 -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的哥布林商人吧)', '🔒'); return; } setScene('library_lobby'); }}><span className="hotspot-label">星願永恆宮</span></button>
+                                    <button type="button" aria-label="初心村" className="scene-hotspot absolute top-[60%] left-[50%] w-[12%] h-[15%] cursor-pointer z-12 rounded-full  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('village')}><span className="hotspot-label">初心村</span></button>
+                                </div><nav className="destination-nav" aria-label="世界地圖目的地"><button type="button" onClick={() => startBattle('north_tundra')}>單字凍原<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startBattle('south_harbor')}>元素港灣<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startBattle('east_forest')}>千卷墨林<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startBattle('west_desert')}>炎熱荒漠<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startBattle('outer_ruins')}>編年廢墟<span aria-hidden="true">↗</span></button><button type="button" onClick={() => { if (!hasItem('key_strange')) { showMessage('大門緊鎖', '這裡被一股神秘的力量封印著...\n好像需要一把「奇怪的鑰匙」才能打開。\n(去問問村莊裡的哥布林商人吧)', '🔒'); return; } setScene('library_lobby'); }}>星願永恆宮<span aria-hidden="true">↗</span></button><button type="button" onClick={() => setScene('village')}>初心村<span aria-hidden="true">↗</span></button></nav></section>
+                            )}
+
+                            {scene === 'library_lobby' && (
+                                <section className="illustrated-scene library_lobby-scene"><header className="scene-heading"><div><h2>星願永恆宮</h2><p>帶上神獸夥伴，挑戰守門人的考驗。</p></div><span className="scene-kicker">亞德雷探索手冊</span></header><div className="scene-art absolute inset-0 bg-cover bg-center" style={{backgroundImage:"url('assets/art/palace.webp')"}}>
+                                    {/* 離開按鈕 */}
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('map')}>← 離開</button>
+
+                                    {/* 星願守門人 NPC（中央天使） */}
+                                    <button type="button" aria-label="星願守門人" className="scene-hotspot absolute top-[48%] left-[50%] w-[18%] h-[26%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-transparent"
+                                        onClick={() => showMessage('星願守門人', '歡迎來到星願永恆宮！\n這裡的關卡如果沒有帶著神獸，是絕對不可能過關的喔！！\n如果還沒有神獸，去村裡的轉蛋雞看看吧～～\n要收集五隻神獸才有機會回家唷～！', '👼')}><span className="hotspot-label">星願守門人</span></button>
+
+                                    {/* 魔法圖書館（左上） */}
+                                    <button type="button" aria-label="魔法圖書館" className="scene-hotspot absolute top-[32%] left-[10%] w-[22%] h-[30%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-transparent"
+                                        onClick={() => startIdiomGame()}><span className="hotspot-label">魔法圖書館</span></button>
+
+                                    {/* 小丑猜寶箱（左下） */}
+                                    <button type="button" aria-label="小丑猜寶箱" className="scene-hotspot absolute top-[77%] left-[12%] w-[22%] h-[26%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-transparent"
+                                        onClick={() => startClownGame()}><span className="hotspot-label">小丑猜寶箱</span></button>
+
+                                    {/* 釣魚小遊戲（下中） */}
+                                    <button type="button" aria-label="記憶考驗" className="scene-hotspot absolute top-[83%] left-[48%] w-[20%] h-[22%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-transparent"
+                                        onClick={() => startMemoryGame()}><span className="hotspot-label">記憶考驗</span></button>
+
+                                    {/* 礦坑打地鼠（右上） */}
+                                    <button type="button" aria-label="礦坑打地鼠" className="scene-hotspot absolute top-[30%] left-[88%] w-[22%] h-[30%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-transparent"
+                                        onClick={() => startMoleGame()}><span className="hotspot-label">礦坑打地鼠</span></button>
+
+                                    {/* 動物大逃亡（右下） */}
+                                    <button type="button" aria-label="動物大逃亡" className="scene-hotspot absolute top-[70%] left-[87%] w-[22%] h-[26%] cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl hover:bg-transparent"
+                                        onClick={() => startSlidingGame()}><span className="hotspot-label">動物大逃亡</span></button>
+                                </div><nav className="destination-nav" aria-label="星願永恆宮目的地"><button type="button" onClick={() => showMessage('星願守門人', '歡迎來到星願永恆宮！\n這裡的關卡如果沒有帶著神獸，是絕對不可能過關的喔！！\n如果還沒有神獸，去村裡的轉蛋雞看看吧～～\n要收集五隻神獸才有機會回家唷～！', '👼')}>星願守門人<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startIdiomGame()}>魔法圖書館<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startClownGame()}>小丑猜寶箱<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startMemoryGame()}>記憶考驗<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startMoleGame()}>礦坑打地鼠<span aria-hidden="true">↗</span></button><button type="button" onClick={() => startSlidingGame()}>動物大逃亡<span aria-hidden="true">↗</span></button></nav></section>
+                            )}
+
+                            {scene === 'minigame_clown' && (
+                                <div className="minigame-scene clown-scene absolute inset-0 bg-[#FFF3E0] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
+                                    <h2 className="text-2xl font-bold text-[#E65100] mb-2 tracking-widest text-shadow-title text-white">小丑的尋寶遊戲</h2>
+                                    <div className="text-[#EF6C00] font-bold mb-8 bg-white/70 px-4 py-1 rounded-full shadow-sm">
+                                        選對 5 個寶箱拿到鑰匙！ ({clownGame.round - 1}/5)
+                                    </div>
+
+                                    <div className="flex gap-6 mt-10">
+                                        {clownGame.chests.map((chestIndex) => {
+                                            const isRevealed = clownGame.revealed === chestIndex;
+                                            const isTarget = chestIndex === clownGame.targetChest;
+                                            return (
+                                                <div
+                                                    key={`chest-${chestIndex}`}
+                                                    className={`w-[120px] h-[120px] rounded-2xl shadow-lg border-4 flex items-center justify-center text-[4rem] cursor-pointer transition-all duration-300
+                                                        ${isRevealed
+                                                            ? (isTarget ? 'bg-[#C8E6C9] border-[#4CAF50]' : 'bg-[#FFCDD2] border-[#F44336]')
+                                                            : 'bg-[#FFE082] border-[#FF9800] hover:-translate-y-2 hover:shadow-xl hover:bg-[#FFCA28]'}`}
+                                                    onClick={() => handleChestSelect(chestIndex)}
+                                                >
+                                                    {isRevealed ? (isTarget ? '🔑' : '🐸') : '🎁'}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* NPC 對話 */}
+                                    <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#FF9800] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                        <div className="min-w-[70px] h-[70px] bg-[#FFF3E0] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#FF9800] pb-1 shadow-inner shrink-0">
+                                            🤡
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#E65100] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            嘻嘻嘻...來找找看鑰匙在哪個寶箱裡吧！選錯的話就會被青蛙吃掉喔！
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+
+
+                            {scene === 'minigame_memory' && (
+                                <div className="minigame-scene memory-scene absolute inset-0 bg-[#FFFDE7] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
+                                    <h2 className="text-2xl font-bold text-[#F57F17] mb-2 tracking-widest text-shadow-title text-white">紙牌大師的記憶考驗</h2>
+                                    <div className="absolute top-4 right-4 bg-white/70 text-[#F57F17] font-bold px-4 py-2 rounded-xl shadow-sm border-2 border-[#FBC02D] text-lg">
+                                        {memoryGame.phase === 'peek' ? `👀 倒數 ${memoryGame.countdown} 秒` : `進度: ${memoryGame.matchedPairs}/8`}
+                                    </div>
+
+                                    <div className="grid grid-cols-4 gap-2 mt-6">
+                                        {memoryGame.cards.map((card, idx) => {
+                                            const isCardFlipped = card.isFlipped || memoryGame.phase === 'peek';
+                                            return (
+                                                <div
+                                                    key={card.id}
+                                                    className={`w-[65px] h-[65px] rounded-xl flex items-center justify-center text-[2rem] cursor-pointer transition-all duration-300
+                                                        ${card.isMatched ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 shadow-[0_2px_6px_rgba(0,0,0,0.2)] hover:-translate-y-0.5'}
+                                                        ${isCardFlipped ? 'bg-white border-2 border-[#FFE082]' : 'bg-[#1A237E] border-4 border-[#FBC02D]'}`}
+                                                    onClick={() => handleCardClick(idx)}
+                                                >
+                                                    <div className={`transition-opacity duration-200 ${isCardFlipped ? 'opacity-100' : 'opacity-0'}`}>
+                                                        {card.emoji}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* NPC 對話 */}
+                                    <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#FBC02D] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                        <div className="min-w-[70px] h-[70px] bg-[#FFF9C4] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#FBC02D] pb-1 shadow-inner shrink-0">
+                                            🃏
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#F57F17] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            用你銳利的雙眼記下牌的位置吧！只要翻錯一次，測驗就立刻結束！
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {scene === 'minigame_sliding' && (
+                                <div className="minigame-scene sliding-scene absolute inset-0 bg-[#E8F5E9] p-3 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
+                                    <h2 className="text-xl font-bold text-[#1B5E20] mb-1 tracking-widest">動物大逃亡</h2>
+                                    {/* 關卡資訊列 */}
+                                    <div className="flex justify-between items-center w-full max-w-[500px] mb-2 px-1">
+                                        <div>
+                                            <span className="text-sm font-bold text-[#2E7D32]">
+                                                第 {slidingGame.currentLevel + 1} 關：{SLIDING_LEVELS[slidingGame.currentLevel]?.name}
+                                            </span>
+                                            <span className="block text-[0.65rem] text-[#66BB6A] border border-[#66BB6A] bg-[#E8F5E9] rounded-full px-2 py-0.5 w-max mt-0.5">
+                                                {SLIDING_LEVELS[slidingGame.currentLevel]?.difficulty}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <span className="block text-[0.65rem] text-[#2E7D32] font-bold uppercase">步數</span>
+                                                <span className="block text-xl font-black text-[#1B5E20]">{slidingGame.moves}</span>
+                                            </div>
+                                            <button onClick={() => loadSlidingLevel(slidingGame.currentLevel)}
+                                                className="w-9 h-9 bg-[#EF9A9A] text-white rounded-full hover:bg-[#EF5350] transition-colors shadow-md active:scale-95 text-base flex items-center justify-center">
+                                                🔄
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 棋盤：橫向 5×4，出口在右 */}
+                                    <div className="relative bg-[#388E3C] rounded-2xl p-1.5 shadow-xl border-[6px] border-[#1B5E20] touch-none select-none overflow-visible"
+                                         style={{width:'min(460px,100%)', flexShrink:0, aspectRatio:'5/4'}}>
+
+                                        {/* 右側出口標示 */}
+                                        <div className="absolute -right-1 z-30 flex flex-col items-center justify-center"
+                                             style={{top:'25%', height:'50%', width:'16px'}}>
+                                            <div className="w-full h-full bg-[#FFEB3B] rounded-l-lg border-l-4 border-[#F9A825] flex flex-col items-center justify-center">
+                                                <span className="text-[7px] text-[#E65100] font-black leading-tight" style={{writingMode:'vertical-rl', textOrientation:'mixed'}}>出口</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="relative w-full h-full z-10">
+                                            {slidingGame.pieces.map((piece) => {
+                                                const pieceStyles = {
+                                                    elephant: 'bg-[#90CAF9] border-[#42A5F5] border-b-[5px] border-r-[3px] z-20',
+                                                    v:        'bg-[#FFCC80] border-[#FFA726] border-b-[5px] border-r-[3px] z-10',
+                                                    h:        'bg-[#A5D6A7] border-[#66BB6A] border-b-[5px] border-r-[3px] z-10',
+                                                    p:        'bg-[#FFF9C4] border-[#FFD54F] border-b-[4px] border-r-[2px] z-10',
+                                                    rock:     'bg-[#607D8B] border-[#37474F] border-b-[6px] border-r-[3px] z-25 cursor-not-allowed',
+                                                };
+                                                return (
+                                                    <div key={`${slidingGame.currentLevel}-${piece.id}`}
+                                                        onPointerDown={(e) => handleSlidingPointerDown(e, piece.id)}
+                                                        onPointerMove={handleSlidingPointerMove}
+                                                        onPointerUp={handleSlidingPointerUp}
+                                                        onPointerCancel={handleSlidingPointerUp}
+                                                        className="absolute p-[3px] transition-all duration-150 ease-out"
+                                                        style={{
+                                                            left: `${piece.x * 20}%`,
+                                                            top: `${piece.y * 25}%`,
+                                                            width: `${piece.w * 20}%`,
+                                                            height: `${piece.h * 25}%`,
+                                                        }}>
+                                                        <div className={`w-full h-full rounded-xl shadow-sm flex flex-col items-center justify-center transition-all border-2 ${pieceStyles[piece.type] || pieceStyles.p} ${piece.type !== 'rock' ? 'cursor-pointer hover:brightness-105 active:scale-[0.96]' : ''}`}>
+                                                            <span className={piece.type === 'elephant' ? 'text-4xl' : piece.type === 'rock' ? 'text-xl' : 'text-2xl'}>
+                                                                {piece.type === 'rock' ? '🪨' : piece.name}
+                                                            </span>
+                                                            {piece.type === 'rock' && <span className="text-[9px] font-black text-white leading-none mt-0.5">{piece.name}</span>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* 踏踏寵物能力按鈕 */}
+                                    {player.equipped.pet === 'pet_stompy' && !slidingPetUsed && !slidingGame.isWon && (
+                                        <button className="mt-2 px-5 py-2 bg-[#7B1FA2] text-white font-black rounded-xl shadow-[0_3px_0_#4A148C] active:translate-y-1 active:shadow-none text-sm flex items-center gap-1.5"
+                                            onClick={useSlidingPetAbility}>
+                                            🐘 踏踏出擊！踏破虛空
+                                        </button>
+                                    )}
+                                    {player.equipped.pet === 'pet_stompy' && slidingPetUsed && !slidingGame.isWon && (
+                                        <div className="mt-2 px-5 py-2 bg-[#9E9E9E] text-white font-bold rounded-xl text-xs opacity-60">🐘 踏踏已出手（本關限一次）</div>
+                                    )}
+
+                                    {/* 勝利 Overlay */}
+                                    {slidingGame.isWon && (
+                                        <div className="dialog-backdrop sliding-backdrop absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+                                            <div role="dialog" aria-modal="true" aria-label="動物大逃亡過關獎勵" className="bg-white rounded-[2rem] p-6 max-w-[290px] w-full text-center shadow-2xl border-4 border-[#90CAF9] animate-[popIn_0.3s]">
+                                                <div className="text-6xl mb-2">🐘</div>
+                                                <h2 className="text-2xl font-black text-[#1565C0] mb-2">
+                                                    {slidingGame.currentLevel === SLIDING_LEVELS.length - 1 ? '全部通關！' : '過關了！'}
+                                                </h2>
+                                                <p className="text-[#42A5F5] mb-4 font-bold text-sm">
+                                                    用了 <strong className="text-[#EF5350] text-xl mx-1">{slidingGame.moves}</strong> 步<br/>
+                                                    大象成功從出口逃跑了！
+                                                    {slidingGame.currentLevel === SLIDING_LEVELS.length - 1 &&
+                                                        <><br/><span className="text-[#7B1FA2] mt-1 block">獲得「動物園長的紫寶石」！</span></>
+                                                    }
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => loadSlidingLevel(slidingGame.currentLevel)}
+                                                        className="flex-1 py-2.5 bg-[#E3F2FD] text-[#1565C0] font-black rounded-2xl hover:bg-[#BBDEFB] text-sm">
+                                                        再試一次
+                                                    </button>
+                                                    {slidingGame.currentLevel < SLIDING_LEVELS.length - 1 ? (
+                                                        <button onClick={() => loadSlidingLevel(slidingGame.currentLevel + 1, true)}
+                                                            className="flex-1 py-2.5 bg-[#42A5F5] text-white font-black rounded-2xl hover:bg-[#1E88E5] shadow-md text-sm">
+                                                            下一關 ▶
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={() => { if (!hasItem('gem_purple')) addItem('gem_purple', 1); setScene('library_lobby'); }}
+                                                            className="flex-1 py-2.5 bg-[#9C27B0] text-white font-black rounded-2xl hover:bg-[#7B1FA2] shadow-md text-sm">
+                                                            領獎 💜
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* NPC 對話 */}
+                                    <div className="absolute bottom-4 w-[95%] h-[90px] bg-white rounded-2xl shadow-lg border-[3px] border-[#66BB6A] p-3 flex items-center gap-3 animate-[popIn_0.3s]">
+                                        <div className="min-w-[60px] h-[60px] bg-[#E8F5E9] rounded-xl flex items-center justify-center text-[34px] border-2 border-[#66BB6A] shrink-0">
+                                            🎩
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto text-sm text-[#1B5E20] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            動物園長：「哼！這隻大象又在搗蛋了！你能幫牠從右邊出口逃出去嗎？完成全三關就送你紫寶石！哼哼！我把入口堵起來了！都別想走！」
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {scene === 'minigame_mole' && (
+                                <div className="minigame-scene mole-scene absolute inset-0 bg-gradient-to-b from-[#1B5E20] to-[#2E7D32] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => { clearInterval(moleTimerRef.current); clearInterval(moleSpawnRef.current); setMoleGame(p => ({...p, active: false})); setScene('library_lobby'); }}>🏳️ 逃跑</button>
+                                    <h2 className="text-2xl font-bold text-white mb-2 tracking-widest" style={{textShadow:'2px 2px 4px rgba(0,0,0,0.5)'}}>暴走地精的翡翠礦坑</h2>
+
+                                    <div className="flex gap-8 mb-3">
+                                        <div className="bg-white/20 text-white font-bold px-5 py-2 rounded-xl text-lg shadow-inner">
+                                            👺 {moleGame.score}/{moleGame.targetScore}
+                                        </div>
+                                        <div className={`bg-white/20 font-bold px-5 py-2 rounded-xl text-lg shadow-inner ${moleGame.timeLeft <= 5 ? 'text-red-300 animate-pulse' : 'text-white'}`}>
+                                            ⏱ {moleGame.timeLeft}秒
+                                        </div>
+                                        {moleGame.is2x2 && <div className="bg-yellow-400/80 text-[#1B5E20] font-bold px-4 py-2 rounded-xl text-sm shadow">🦕 2×2 範圍攻擊！</div>}
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-3 mt-2" style={{width:'300px'}}>
+                                        {moleGame.holes.map((isUp, i) => (
+                                            <div key={i} className="relative w-[90px] h-[90px] rounded-full bg-[#3E2723] border-4 border-[#5D4037] shadow-[inset_0_6px_12px_rgba(0,0,0,0.5)] cursor-pointer overflow-hidden select-none"
+                                                 onClick={() => handleMoleWhack(i)}
+                                            >
+                                                <div className={`absolute left-1/2 -translate-x-1/2 w-[70%] h-[70%] transition-all duration-150 ${isUp ? 'top-[15%]' : 'top-[100%]'}`}
+                                                     style={{fontSize:'3rem', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                                    👺
+                                                </div>
+                                                {isUp && <div className="absolute inset-0 rounded-full  transition-colors"></div>}
+                                                {moleHitCells.includes(i) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
+                                                         style={{fontSize: moleGame.is2x2 ? '2.8rem' : '2.4rem', animation:'hitPop 0.25s ease-out forwards'}}>
+                                                        🔨
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#2E7D32] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                        <div className="min-w-[70px] h-[70px] bg-[#C8E6C9] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#2E7D32] pb-1 shadow-inner shrink-0">
+                                            👺
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#2E7D32] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            貪婪地精工頭：「哼！你能在 15 秒內打到 55 隻地精嗎？」
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+
+                            {scene === 'magic_library' && (
+                                <div className="minigame-scene idiom-scene absolute inset-0 bg-[#EFEBE9] p-4 flex flex-col items-center">
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={() => setScene('library_lobby')}>🏳️ 逃跑</button>
+                                    <h2 className="text-2xl font-bold text-[#5D4037] mb-2 tracking-widest text-shadow-title text-white">圖書管理員的考驗</h2>
+                                    <div className="text-[#8D6E63] font-bold mb-4 bg-white/50 px-4 py-1 rounded-full shadow-sm">
+                                        挑戰進度 ({idiomGame.score}/{idiomGame.maxScore})
+                                    </div>
+
+                                    {/* 遊戲區塊 */}
+                                    <div className="flex w-full max-w-[800px] h-[350px] gap-6 px-4">
+                                        {/* 左側：字庫選項 */}
+                                        <div className="flex-1 bg-white/80 rounded-2xl p-4 shadow-inner flex flex-wrap content-start gap-3 justify-center border-2 border-[#D7CCC8]">
+                                            <div className="w-full text-center text-sm font-bold text-[#8D6E63] mb-2 border-b-2 border-dashed border-[#D7CCC8] pb-1">
+                                                {player.equipped.pet === 'pet_owl' ? '備選字庫 🦉' : '備選字庫 （亂碼中…）'}
+                                            </div>
+                                            {idiomGame.options.map((optChar, idx) => (
+                                                <div
+                                                    key={`opt-${idx}`}
+                                                    className="w-14 h-14 bg-[#FFF8E1] border-2 border-[#FFB74D] rounded-xl flex items-center justify-center text-2xl font-bold text-[#5D4037] cursor-pointer hover:bg-[#FFE082] hover:scale-105 transition-all shadow-sm"
+                                                    onClick={() => handleIdiomSelect(optChar, idx)}
+                                                >
+                                                    {player.equipped.pet === 'pet_owl' ? optChar : charToGlyph(optChar)}
+                                                </div>
+                                            ))}
+                                            {idiomGame.options.length === 0 && (
+                                                <div className="w-full text-center text-[#BCAAA4] mt-10">已無可用字元</div>
+                                            )}
+                                        </div>
+
+                                        {/* 右側：作答區 */}
+                                        <div className="flex-1 bg-white/80 rounded-2xl p-4 shadow-inner flex flex-col items-center justify-center border-2 border-[#D7CCC8]">
+                                            <div className="text-sm font-bold text-[#8D6E63] mb-6">請依序填入正確成語</div>
+                                            <div className="flex gap-4">
+                                                {idiomGame.slots.map((char, index) => {
+                                                    const isBlank = idiomGame.blanks.includes(index);
+                                                    const rawChar = !isBlank ? idiomGame.currentIdiom?.[index] : char;
+                                                    const displayChar = rawChar ? (player.equipped.pet === 'pet_owl' ? rawChar : charToGlyph(rawChar)) : null;
+                                                    return (
+                                                        <div
+                                                            key={`slot-${index}`}
+                                                            className={`w-20 h-24 rounded-lg flex items-center justify-center text-4xl font-bold shadow-md border-b-4
+                                                                ${!isBlank
+                                                                    ? 'bg-[#E0E0E0] text-[#757575] border-[#BDBDBD]'
+                                                                    : char === null
+                                                                        ? 'bg-[#FFF3E0] border-[#FFCC80] text-transparent border-dashed'
+                                                                        : 'bg-[#C8E6C9] border-[#81C784] text-[#2E7D32]'}`}
+                                                        >
+                                                            {displayChar || '?'}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 底部 NPC 對話區 */}
+                                    <div className="absolute bottom-4 w-[95%] h-[100px] bg-white rounded-2xl shadow-lg border-[3px] border-[#D7CCC8] p-3 flex items-center gap-4 animate-[popIn_0.3s]">
+                                        <div className="min-w-[70px] h-[70px] bg-[#EFEBE9] rounded-xl flex items-center justify-center text-[40px] border-2 border-[#D7CCC8] pb-1 shadow-inner shrink-0">
+                                            🦉
+                                        </div>
+                                        <div className="flex-1 h-full overflow-y-auto custom-scroll pr-2 text-sm text-[#5D4037] font-bold leading-relaxed whitespace-pre-wrap flex items-center">
+                                            {npcMessage}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}                            {scene === 'village' && (
+                                <section className="illustrated-scene village-scene"><header className="scene-heading"><div><h2>初心村</h2><p>補給、結識夥伴，再整裝出發。</p></div><span className="scene-kicker">亞德雷探索手冊</span></header><div className="scene-art absolute inset-0">
+                                    <img src="assets/art/village.webp" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="村莊" onError={e => { if (!e.currentTarget.dataset.fallback) { e.currentTarget.dataset.fallback = '1'; e.currentTarget.src = '11.jpg'; } }} />
+                                    <button type="button" aria-label="神秘商店" className="scene-hotspot absolute top-[35%] left-[22%] w-[26%] h-[40%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('shopkeeper')}><span className="hotspot-label">神秘商店</span></button>
+                                    <button type="button" aria-label="成就教堂" className="scene-hotspot absolute top-[25%] left-[47%] w-[16%] h-[28%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('achievement_hall')}><span className="hotspot-label">成就教堂</span></button>
+                                    <button type="button" aria-label="村長" className="scene-hotspot absolute top-[62%] left-[48%] w-[10%] h-[22%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => { if (!player.villageTalked) { setPlayer(prev => ({ ...prev, villageTalked: true })); showMessage('村長', '哀呀？又是地球的客人嗎？\n想回家？我也不太清楚...\n不過聽說打倒星願永恆宮的魔王們，就會知道線索了！\n不過魔王的關卡聽說都是不可能過關的呢...\n除非，你能找到傳說中的五隻神獸．．．', '👴'); } else { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); } }}><span className="hotspot-label">村長</span></button>
+                                    <button type="button" aria-label="轉蛋雞" className="scene-hotspot absolute top-[50%] left-[66%] w-[22%] h-[45%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={rollGacha} title={player.gachaUnlocked ? "花費 1 轉蛋幣抽一次" : "上鎖的轉蛋機"}><span className="hotspot-label">轉蛋雞</span></button>
+                                    <button type="button" aria-label="哥布林商人" className="scene-hotspot absolute top-[65%] left-[82%] w-[10%] h-[25%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => openShop('merchant')}><span className="hotspot-label">哥布林商人</span></button>
+                                    <button className="absolute bottom-5 left-5 z-100 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('map')}>⬅ 離開村子</button>
+                                    <button className="absolute bottom-5 right-5 z-100 bg-transparent text-[#FFAB91] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('chicken_farm')}>往雞舍 ➡</button>
+                                </div><nav className="destination-nav" aria-label="初心村目的地"><button type="button" onClick={() => openShop('shopkeeper')}>神秘商店<span aria-hidden="true">↗</span></button><button type="button" onClick={() => setScene('achievement_hall')}>成就教堂<span aria-hidden="true">↗</span></button><button type="button" onClick={() => { if (!player.villageTalked) { setPlayer(prev => ({ ...prev, villageTalked: true })); showMessage('村長', '哀呀？又是地球的客人嗎？\n想回家？我也不太清楚...\n不過聽說打倒星願永恆宮的魔王們，就會知道線索了！\n不過魔王的關卡聽說都是不可能過關的呢...\n除非，你能找到傳說中的五隻神獸．．．', '👴'); } else { const lines = ['聽說永恆宮的關卡一般人是不可能過關的...', '聽說有神獸當寵物的話可以通過永恆宮的五個守門人關卡！', '咦？又是從異世界來的陌生人嗎？', '好像有人看到商店老闆偷偷把一些蛋塞進轉蛋機了...', '你好陌生人，歡迎來到這個考試的天堂！']; showMessage('村長', lines[Math.floor(Math.random() * lines.length)], '👴'); } }}>村長<span aria-hidden="true">↗</span></button><button type="button" onClick={rollGacha}>轉蛋雞<span aria-hidden="true">↗</span></button><button type="button" onClick={() => openShop('merchant')}>哥布林商人<span aria-hidden="true">↗</span></button></nav></section>
+                            )}
+
+                            {scene === 'chicken_farm' && (
+                                <section className="illustrated-scene farm-scene"><header className="scene-heading"><div><h2>神獸孵化雞舍</h2><p>照顧珍貴的蛋，等待新夥伴誕生。</p></div><span className="scene-kicker">亞德雷探索手冊</span></header><div className="scene-art">
+                                    <img src="assets/art/hatchery.webp" className="w-full h-full object-fill absolute top-0 left-0 z-0" alt="雞舍" onError={e => { if (!e.currentTarget.dataset.fallback) { e.currentTarget.dataset.fallback = '1'; e.currentTarget.src = '養雞場.jpg'; } }} />
+
+                                    {/* 養雞人 NPC */}
+                                    <button type="button" aria-label="養雞人" className="scene-hotspot absolute top-[62%] left-[18%] w-[14%] h-[26%] cursor-pointer z-10 rounded-xl  -translate-x-1/2 -translate-y-1/2" onClick={() => showMessage('養雞人', '怎麼有奇怪的東西砸進來？嚇我一跳！\n...你是要用孵化機嗎？把蛋放進去，用「營養劑」餵食，進度到100%就孵出來了。', '🧑‍🌾')}><span className="hotspot-label">養雞人</span></button>
+
+                                    {/* 珍貴蛋孵化室（大鳥巢） */}
+                                    <button type="button" aria-label="珍貴蛋孵化室" className="scene-hotspot absolute top-[38%] left-[32%] w-[22%] h-[38%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => setShowHatchUI(true)}><span className="hotspot-label">珍貴蛋孵化室</span></button>
+
+                                    {/* 壞掉的奇怪機器（圓頂機器） */}
+                                    <button type="button" aria-label="奇怪的機器" className="scene-hotspot absolute top-[48%] left-[70%] w-[20%] h-[40%] cursor-pointer z-10 rounded-2xl  -translate-x-1/2 -translate-y-1/2" onClick={() => setScene('time_machine')}><span className="hotspot-label">奇怪的機器</span></button>
+
+                                    {/* 孵化室 UI Modal */}
+                                    {showHatchUI && (
+                                        <div className="dialog-backdrop hatch-backdrop absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+                                            <div role="dialog" aria-modal="true" aria-label="珍貴蛋孵化室" className="bg-white rounded-2xl p-5 w-[85%] max-w-[360px] shadow-2xl border-4 border-[#A5D6A7]">
+                                                <div className="text-center font-bold text-[#388E3C] mb-3 text-base">🥚 珍貴蛋孵化室</div>
+                                                {hatchSlot.eggId ? (
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="text-5xl animate-bounce">🥚</div>
+                                                        <div className="font-bold text-[#5D4037] text-sm text-center">{ITEMS[hatchSlot.eggId]?.name}</div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-5 shadow-inner relative">
+                                                            <div className="bg-gradient-to-r from-[#81C784] to-[#4CAF50] h-5 rounded-full transition-all duration-500" style={{width:`${hatchSlot.progress}%`}}></div>
+                                                            <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow">{hatchSlot.progress}%</div>
+                                                        </div>
+                                                        <button className="px-4 py-2 bg-[#4CAF50] text-white font-bold rounded-lg shadow-[0_3px_0_#388E3C] active:translate-y-0.5 active:shadow-none text-sm w-full" onClick={feedEgg}>
+                                                            🌿 餵食營養劑（剩 x{player.inventory.find(i=>i.id==='potion_nutri')?.qty || 0}）
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="w-20 h-20 border-4 border-dashed border-[#A5D6A7] rounded-full flex items-center justify-center text-4xl text-[#A5D6A7]">+</div>
+                                                        <div className="text-sm text-[#9E9E9E] font-bold text-center">從下方選一顆蛋放入</div>
+                                                        {(() => {
+                                                            const eggs = player.inventory.filter(slot => ITEMS[slot.id]?.type === 'egg');
+                                                            if (eggs.length === 0) return <div className="text-xs text-[#BDBDBD]">背包裡沒有蛋</div>;
+                                                            return (
+                                                                <div className="flex gap-2 flex-wrap justify-center mt-1">
+                                                                    {eggs.map(slot => {
+                                                                        const item = ITEMS[slot.id];
+                                                                        return (
+                                                                            <div role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }} key={slot.id} className="flex flex-col items-center cursor-pointer hover:-translate-y-1 transition-transform bg-[#F1F8E9] rounded-xl p-2 border-2 border-[#A5D6A7] shadow-sm" onClick={() => { placeEgg(slot.id); }}>
+                                                                                {item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="w-10 h-10 flex justify-center items-center" /> : <div className="text-3xl">{item.icon}</div>}
+                                                                                <div className="text-xs font-bold text-[#5D4037] mt-1 text-center max-w-[70px]">{item.name}</div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                )}
+                                                <button className="mt-4 w-full py-2 bg-[#EF9A9A] text-white font-bold rounded-lg text-sm" onClick={() => setShowHatchUI(false)}>關閉</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button className="absolute bottom-5 left-5 z-20 bg-transparent text-[#FF5722] font-black text-2xl font-[Comic Sans MS] hover:scale-110 hover:-translate-x-1 transition-all" style={{textShadow: "2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 4px rgba(0,0,0,0.3)"}} onClick={() => setScene('village')}>⬅ 回村莊</button>
+                                </div><nav className="destination-nav" aria-label="雞舍目的地"><button type="button" onClick={() => showMessage('養雞人', '怎麼有奇怪的東西砸進來？嚇我一跳！\n...你是要用孵化機嗎？把蛋放進去，用「營養劑」餵食，進度到100%就孵出來了。', '🧑‍🌾')}>養雞人<span aria-hidden="true">↗</span></button><button type="button" onClick={() => setShowHatchUI(true)}>珍貴蛋孵化室<span aria-hidden="true">↗</span></button><button type="button" onClick={() => setScene('time_machine')}>奇怪的機器<span aria-hidden="true">↗</span></button><button type="button" onClick={() => setScene('village')}>回到初心村<span aria-hidden="true">←</span></button></nav></section>
+                            )}
+
+                            {scene === 'time_machine' && (() => {
+                                const SLOT_GEMS = [
+                                    { id: 'gem_red',    label: '紅寶石', emoji: '❤️', color: '#F44336', bg: '#FFCDD2' },
+                                    { id: 'gem_blue',   label: '藍寶石', emoji: '💙', color: '#2196F3', bg: '#BBDEFB' },
+                                    { id: 'gem_yellow', label: '黃寶石', emoji: '💛', color: '#FFC107', bg: '#FFF9C4' },
+                                    { id: 'gem_green',  label: '翡翠',   emoji: '💚', color: '#4CAF50', bg: '#C8E6C9' },
+                                    { id: 'gem_purple', label: '紫寶石', emoji: '💜', color: '#9C27B0', bg: '#F3E5F5' },
+                                ];
+                                const filledCount = SLOT_GEMS.filter(g => hasItem(g.id)).length;
+                                const allReady = filledCount === 5;
+                                return (
+                                    <div className="time-machine-scene absolute inset-0 bg-[#050010] flex flex-col items-center justify-center p-4"
+                                        style={{backgroundImage:'radial-gradient(ellipse at center, #1a0033 0%, #050010 70%)'}}>
+
+                                        <div className="text-4xl mb-1 animate-[spin_6s_linear_infinite]">⚙️</div>
+                                        <h2 className="text-2xl font-black text-[#E040FB] mb-1 tracking-widest" style={{textShadow:'0 0 20px #9C27B0'}}>壞掉的奇怪機器</h2>
+                                        <p className="text-[#9575CD] text-sm mb-8 font-bold">上面有五個心型凹槽，是做甚麼用的呢？</p>
+
+                                        {/* 五個愛心插槽 */}
+                                        <div className="flex gap-3 mb-6">
+                                            {SLOT_GEMS.map(gem => {
+                                                const has = hasItem(gem.id);
+                                                return (
+                                                    <div key={gem.id} className="flex flex-col items-center gap-1.5">
+                                                        <div className="relative w-16 h-16 flex items-center justify-center transition-all duration-500"
+                                                            style={{filter: has ? `drop-shadow(0 0 12px ${gem.color})` : 'none'}}>
+                                                            {/* 愛心插槽形狀 */}
+                                                            <svg viewBox="0 0 100 90" className="absolute inset-0 w-full h-full" fill={has ? gem.bg : '#1a1a2e'} stroke={has ? gem.color : '#333'} strokeWidth="4">
+                                                                <path d="M50 85 C50 85 5 55 5 28 C5 12 17 3 32 3 C40 3 47 7 50 13 C53 7 60 3 68 3 C83 3 95 12 95 28 C95 55 50 85 50 85Z"/>
+                                                            </svg>
+                                                            <span className="relative z-10 text-2xl">{has ? gem.emoji : '?'}</span>
+                                                        </div>
+                                                        <div className={`text-[10px] font-black ${has ? 'text-white' : 'text-[#444]'}`}>{gem.label}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* 進度 */}
+                                        <div className={`font-bold mb-5 text-sm tracking-wide ${allReady ? 'text-[#FFD700]' : 'text-[#9575CD]'}`}
+                                            style={allReady ? {textShadow:'0 0 10px #FFD700'} : {}}>
+                                            {allReady ? '✨ 五個凹槽全數就位！準備就緒！' : `${filledCount} / 5 個凹槽已就位`}
+                                        </div>
+
+                                        {/* 啟動按鈕 */}
+                                        <button
+                                            className={`px-8 py-3 font-black rounded-2xl text-lg tracking-widest transition-all ${allReady && !isSaving ? 'text-white animate-pulse hover:scale-110 active:scale-95' : 'bg-[#1a1a2e] text-[#aaa] border-2 border-[#333] cursor-not-allowed'}`}
+                                            style={allReady && !isSaving ? {background:'linear-gradient(135deg,#9C27B0,#E91E63)', boxShadow:'0 0 30px #9C27B0, 0 0 60px #E91E63'} : {}}
+                                            disabled={isSaving}
+                                            onClick={() => handleCompleteGame(allReady)}
+                                        >
+                                            {isSaving ? '⏳ 存檔中...' : '⚡ 啟動 ⚡'}
+                                        </button>
+
+                                        <button className="mt-6 px-5 py-2 bg-[#1a1a2e] text-[#9575CD] font-bold rounded-xl border border-[#333] text-sm hover:bg-[#222] transition-colors"
+                                            onClick={() => setScene('chicken_farm')}>
+                                            ← 回到雞舍
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
+                            {scene === 'game_clear' && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
+                                    style={{background:'radial-gradient(ellipse at 50% 40%, #0a1628 0%, #000008 70%)'}}>
+
+                                    {/* 掃描線效果 */}
+                                    <div className="absolute inset-0 pointer-events-none z-0"
+                                        style={{backgroundImage:'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.015) 2px, rgba(0,255,255,0.015) 4px)'}}/>
+
+                                    {/* 光暈圓圈裝飾 */}
+                                    <div className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
+                                        style={{background:'radial-gradient(circle, rgba(0,180,255,0.07) 0%, transparent 70%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)'}}/>
+
+                                    <div className="relative z-10 flex flex-col items-center gap-4 px-8 text-center">
+
+                                        {/* 副標題（英文） */}
+                                        <div className="text-[0.6rem] tracking-[0.6em] font-mono uppercase"
+                                            style={{color:'#00e5ff', textShadow:'0 0 8px #00e5ff'}}>
+                                            ── MISSION COMPLETE ──
+                                        </div>
+
+                                        {/* 主標題 */}
+                                        <h1 className="text-5xl font-black tracking-[0.2em] leading-tight"
+                                            style={{fontFamily:'monospace', color:'#ffffff',
+                                                textShadow:'0 0 10px #00e5ff, 0 0 30px #0088ff, 0 0 60px #0044aa'}}>
+                                            成功歸家
+                                        </h1>
+
+                                        {/* 英文副標 */}
+                                        <div className="text-[0.6rem] tracking-[0.6em] font-mono uppercase"
+                                            style={{color:'#00e5ff', textShadow:'0 0 8px #00e5ff'}}>
+                                            ── REALITY RESTORED ──
+                                        </div>
+
+                                        {/* 橫線分隔 */}
+                                        <div className="w-56 mt-1" style={{height:'1px', background:'linear-gradient(90deg,transparent,#00e5ff,transparent)'}}/>
+
+                                        {/* 主訊息 */}
+                                        <p className="text-sm leading-loose max-w-[300px]"
+                                            style={{color:'#a0d4ff', fontFamily:'monospace'}}>
+                                            恭喜你成功脫離亞德雷大陸，<br/>
+                                            回到了<span style={{color:'#00e5ff', textShadow:'0 0 6px #00e5ff'}}>現實世界</span>！<br/>
+                                            <br/>
+                                            <span style={{color:'#ffaacc', fontSize:'0.75rem'}}>
+                                                但別忘記現實世界的考試也都要考好唷！<br/>
+                                                免得不小心又被抓回來啦！
+                                            </span>
+                                        </p>
+
+                                        {/* 橫線分隔 */}
+                                        <div className="w-56 mb-1" style={{height:'1px', background:'linear-gradient(90deg,transparent,#00e5ff,transparent)'}}/>
+
+                                        {/* 重啟按鈕 */}
+                                        <button
+                                            className="px-10 py-3 font-black text-base tracking-[0.4em] uppercase font-mono transition-all hover:scale-105 active:scale-95"
+                                            style={{
+                                                background:'linear-gradient(135deg, #00e5ff 0%, #0055ff 100%)',
+                                                color:'#000010',
+                                                boxShadow:'0 0 20px rgba(0,229,255,0.5), 0 0 40px rgba(0,100,255,0.3)',
+                                                clipPath:'polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%)',
+                                            }}
+                                            onClick={() => {
+                                                setPlayer({ name:'', accountId:'', level:1, exp:0, maxExp:50, gold:100, hp:15, baseMaxHp:15, baseAtk:8, streak:0, inventory:[], equipped:{weapon:null, pet:null}, gachaUnlocked:false, zoneClears:{east_forest:0,west_desert:0,south_harbor:0,north_tundra:0,outer_ruins:0}, totalGoldEarned:100, totalWrong:0, gachaSpent:0, examZeroClears:0, neverWrong:true, achNoWrong:false });
+                                                setHatchSlot({ eggId: null, progress: 0 });
+                                                setScene('start');
+                                            }}>
+                                            ⟳ 重啟冒險
+                                        </button>
+
+                                        <div className="text-[0.55rem] tracking-widest font-mono mt-1"
+                                            style={{color:'rgba(0,229,255,0.35)'}}>
+                                            SYSTEM RESET · NEW ADVENTURE LOADING...
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {randomEvent && scene === 'battle' && (
+                                <div className="dialog-backdrop event-backdrop absolute inset-0 flex items-center justify-center z-50 bg-black/60">
+                                    <div role="dialog" aria-modal="true" aria-label="冒險隨機事件" className="bg-white rounded-3xl p-7 mx-4 shadow-2xl max-w-xs w-full text-center">
+                                        {randomEvent.type === 'chest' && (<>
+                                            <div className="text-5xl mb-2">👼</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">女神的恩賜！</h3>
+                                            <p className="text-gray-500 text-sm mb-5">感謝勇者幫忙清掉怪物！<br/>三個箱子通通有獎，快選一個！</p>
+                                            <div className="flex gap-3 justify-center">{[0,1,2].map(i => (<button key={i} className="text-5xl bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 active:scale-95 transition-all hover:bg-amber-100" onClick={() => handleChestPick(i)}>📦</button>))}</div>
+                                        </>)}
+                                        {randomEvent.type === 'animal' && (<>
+                                            <div className="text-5xl mb-2">🦊</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">捕獸夾事件！</h3>
+                                            <p className="text-gray-500 text-sm mb-5">有一隻小動物被捕獸夾夾住了<br/>你要幫助牠嗎？</p>
+                                            <div className="flex gap-3">
+                                                <button className="flex-1 bg-green-100 border-2 border-green-400 text-green-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleAnimalHelp(true)}>幫助牠</button>
+                                                <button className="flex-1 bg-gray-100 border-2 border-gray-300 text-gray-500 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleAnimalHelp(false)}>離開</button>
+                                            </div>
+                                        </>)}
+                                        {randomEvent.type === 'woodcutter' && (<>
+                                            <div className="text-5xl mb-2">🪓</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">遇到樵夫！</h3>
+                                            <p className="text-gray-500 text-sm mb-5">老樵夫感謝你清除附近的怪物<br/>想送你一份禮物，你選哪個？</p>
+                                            <div className="flex flex-col gap-3">
+                                                <button className="bg-purple-100 border-2 border-purple-400 text-purple-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleWoodcutterChoice('eliminate')}>✨ 下一題消除兩個錯誤答案</button>
+                                                <button className="bg-red-100 border-2 border-red-400 text-red-700 font-bold rounded-2xl py-4 active:scale-95" onClick={() => handleWoodcutterChoice('heal')}>💚 HP 補滿</button>
+                                            </div>
+                                        </>)}
+                                        {randomEvent.type === 'cardgame' && (<>
+                                            <div className="text-5xl mb-1">🎴</div>
+                                            <h3 className="font-black text-xl mb-1 text-[#5D4037]">猜大小遊戲！</h3>
+                                            {randomEvent.phase === 'offer' && (<>
+                                                <p className="text-gray-500 text-sm mb-4">花 10G 挑戰猜大小<br/>最高可贏得 <span className="text-amber-500 font-bold">200G</span>！要玩嗎？</p>
+                                                <div className="flex gap-3">
+                                                    <button className="flex-1 bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('accept')}>玩！(-10G)</button>
+                                                    <button className="flex-1 bg-gray-100 border-2 border-gray-300 text-gray-500 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('decline')}>不玩</button>
+                                                </div>
+                                            </>)}
+                                            {randomEvent.phase === 'guess' && (<>
+                                                <p className="text-xs text-gray-400 mb-3">第 {randomEvent.round} 關 ／ 左牌已翻開</p>
+                                                <div className="flex gap-4 justify-center items-center mb-4">
+                                                    <div className="w-16 h-20 bg-amber-400 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md">{randomEvent.leftCard}</div>
+                                                    <div className="text-2xl text-gray-400">VS</div>
+                                                    <div className="w-16 h-20 bg-indigo-400 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md">？</div>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-3">右邊的牌比左邊 <span className="font-bold text-amber-600">{randomEvent.leftCard}</span> 還要...</p>
+                                                <div className="flex gap-3">
+                                                    <button className="flex-1 bg-red-100 border-2 border-red-400 text-red-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('big')}>大 ⬆️</button>
+                                                    <button className="flex-1 bg-blue-100 border-2 border-blue-400 text-blue-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('small')}>小 ⬇️</button>
+                                                </div>
+                                            </>)}
+                                            {randomEvent.phase === 'reveal' && (<>
+                                                <p className="text-xs text-gray-400 mb-3">第 {randomEvent.round} 關 ／ 結果揭曉！</p>
+                                                <div className="flex gap-4 justify-center items-center mb-3">
+                                                    <div className="w-16 h-20 bg-amber-400 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md">{randomEvent.leftCard}</div>
+                                                    <div className="text-3xl">{randomEvent.isTie ? '🤝' : randomEvent.isCorrect ? '✅' : '❌'}</div>
+                                                    <div className="w-16 h-20 rounded-xl flex items-center justify-center text-4xl font-black text-white shadow-md anim-card-flip" style={{backgroundColor: randomEvent.isTie ? '#f59e0b' : randomEvent.isCorrect ? '#22c55e' : '#ef4444'}}>{randomEvent.revealedCard}</div>
+                                                </div>
+                                                {randomEvent.isCorrect ? (<>
+                                                    <p className="text-green-600 font-bold mb-1">猜對了！獲得 <span className="text-amber-500">{randomEvent.prize}G</span>！</p>
+                                                    {randomEvent.round < 5 ? (<>
+                                                        <p className="text-xs text-gray-400 mb-3">繼續可贏得 {[50,100,200,250,350][randomEvent.round]}G，但猜錯全輸！</p>
+                                                        <div className="flex flex-col gap-2">
+                                                            <button className="bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('confirm_win')}>繼續賭！（第 {randomEvent.round + 1} 關）</button>
+                                                            <button className="bg-green-100 border-2 border-green-400 text-green-700 font-bold rounded-2xl py-3 active:scale-95" onClick={() => handleCardGame('take')}>不貪心了，帶走 {randomEvent.prize}G</button>
+                                                        </div>
+                                                    </>) : (
+                                                        <button className="bg-yellow-100 border-2 border-yellow-400 text-yellow-700 font-bold rounded-2xl py-3 w-full active:scale-95" onClick={() => handleCardGame('confirm_win')}>🏆 領取最高獎金！</button>
+                                                    )}
+                                                </>) : randomEvent.isTie ? (<>
+                                                    <p className="text-amber-500 font-bold mb-3">🤝 平手！左右都是 {randomEvent.revealedCard}，重抽一次！</p>
+                                                    <button className="bg-amber-100 border-2 border-amber-400 text-amber-700 font-bold rounded-2xl py-3 w-full active:scale-95" onClick={() => handleCardGame('confirm_loss')}>重新猜！</button>
+                                                </>) : (<>
+                                                    <p className="text-red-500 font-bold mb-3">猜錯了...右牌是 {randomEvent.revealedCard}</p>
+                                                    <button className="bg-gray-100 border-2 border-gray-300 text-gray-600 font-bold rounded-2xl py-3 w-full active:scale-95" onClick={() => handleCardGame('confirm_loss')}>離開</button>
+                                                </>)}
+                                            </>)}
+                                        </>)}
+                                    </div>
+                                </div>
+                            )}
+                            {scene === 'battle' && battle.zone && (
+                                <div className="battle-scene absolute inset-0 flex flex-row p-6 gap-6 items-center transition-colors duration-500" style={{backgroundColor: battle.zone.bg}}>
+                                {battle.showCorrect && <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"><div className="anim-correct text-[10rem] drop-shadow-[0_4px_20px_rgba(0,200,0,0.6)]">✅</div></div>}
+                                    <button className="absolute top-3 left-3 bg-[#D90429] text-white px-3 py-2 rounded-lg font-bold shadow-[0_3px_0_#9d021d] active:scale-95 z-50 text-sm" onClick={fleeBattle}>🏳️ 逃跑</button>
+                                    <div className="battle-monster flex-1 flex flex-col items-center justify-center">
+                                        {battle.monster && (
+                                            <div className="text-center relative">
+                                                <div className={`text-[7rem] drop-shadow-[0_10px_5px_rgba(0,0,0,0.2)] anim-float inline-block ${battle.isShaking ? 'anim-shake' : ''}`}>{battle.monster.icon}</div>
+                                                <div className="bg-white/90 px-4 py-2 rounded-2xl mt-3 font-bold shadow-sm"><span>{battle.monster.name}</span> <br/>HP: <span className="text-[#E57373]">{battle.monster.hp}</span>/{battle.monster.maxHp}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="battle-question flex-[1.2] flex flex-col justify-center h-full relative">
+                                        <div className={`bg-white border-4 border-[#4361EE] rounded-2xl p-5 mb-4 shadow-[0_4px_0_rgba(0,0,0,0.1)] text-center relative ${battle.wrongShake ? 'anim-wrong-shake' : ''}`}><div className="text-2xl font-black text-[#333]">{battle.question || "載入中..."}</div></div>
+                                        <div className="answer-grid grid grid-cols-2 gap-4 w-full mt-2">
+                                            {battle.options.map((opt, idx) => (
+                                                <button key={idx} className="bg-white border-2 border-[#ddd] rounded-xl py-4 text-xl font-bold text-[#2B2D42] cursor-pointer shadow-[0_4px_0_#ccc] transition-all hover:border-[#4361EE] hover:bg-[#f0f8ff] active:translate-y-1 active:shadow-none" onClick={(e) => handleAnswer(opt, e)} disabled={battle.isProcessing || !battle.active || Boolean(randomEvent)}>{opt}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {scene === 'equipment' && (
+                                <div className="equipment-scene absolute inset-0 bg-[#FFFDE7] p-6 flex flex-col">
+                                    <div className="flex justify-between items-center mb-4"><h2 className="m-0 text-2xl font-bold text-[#5D4037]">🎒 冒險背包</h2><button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene(prevScene)}>關閉</button></div>
+                                    {tutorialStep === 'equip' && (
+                                        <div className="flex items-center justify-center gap-2 mb-3 bg-[#FF9F1C] text-white font-black px-4 py-2 rounded-xl shadow-lg animate-bounce text-sm">
+                                            下一步：點擊亮框中的「0分考卷」來裝備！
+                                        </div>
+                                    )}
+                                    <div className="equipment-layout flex gap-6 flex-1 overflow-hidden">
+                                        <div className="flex-[2] bg-white border-2 border-[#D7CCC8] rounded-2xl p-4 flex flex-col">
+                                            <div className="font-bold text-[#5D4037] border-b border-[#ddd] pb-2 mb-2">🎒 背包物品</div>
+                                            <div className="inventory-grid grid grid-cols-[repeat(auto-fill,minmax(70px,1fr))] gap-3 overflow-y-auto custom-scroll pb-2 content-start">
+                                                {(() => {
+                                                    const PAPER_SWORDS = ['sword_paper_kill', 'sword_paper_gold'];
+                                                    const seen = {};
+                                                    const slots = [...player.inventory].sort((a, b) => {
+                                                        const order = (id) => {
+                                                            if (id.startsWith('frag_') || id.startsWith('gem_')) return 0;
+                                                            const t = ITEMS[id]?.type;
+                                                            if (t==='key'||t==='trophy') return 1;
+                                                            if (t==='weapon') return 2;
+                                                            if (t==='pet'||t==='egg') return 3;
+                                                            if (t==='consumable'||t==='consumable_hatch'||t==='material') return 4;
+                                                            return 5;
+                                                        };
+                                                        return order(a.id) - order(b.id);
+                                                    }).reduce((acc, slot) => {
+                                                        if (PAPER_SWORDS.includes(slot.id)) {
+                                                            if (!seen[slot.id]) { seen[slot.id] = true; acc.push({ ...slot, _stack: player.inventory.filter(s => s.id === slot.id).length }); }
+                                                        } else { acc.push(slot); }
+                                                        return acc;
+                                                    }, []);
+                                                    return slots.map((slot) => {
+                                                        const stack = slot._stack || 1;
+                                                        const idx = player.inventory.findIndex(s => s.id === slot.id);
+                                                        const item = ITEMS[slot.id]; if (!item) return null; const isSpecial = (item.type === 'key' || item.type === 'trophy' || item.type === 'material'); const isGachaPet = ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].includes(item.id);
+                                                        const isTutorialTarget = tutorialStep === 'equip' && slot.id === 'exam_zero';
+                                        return (
+                                                            <button type="button" key={idx} className={`inventory-item border-2 rounded-xl p-1.5 flex flex-col items-center justify-start cursor-pointer relative bg-white w-[70px] h-[90px] hover:-translate-y-0.5 shadow-sm transition-all ${isTutorialTarget ? 'border-[#FF9F1C] border-4 animate-bounce' : 'border-[#eee] hover:border-[#4361EE]'}`} style={isTutorialTarget ? {boxShadow:'0 0 18px #FF9F1C'} : {}} onClick={() => isGachaPet ? showMessage(item.name, GACHA_PET_HINT[item.id], item.icon, () => useItem(idx)) : (!isSpecial || item.id === 'coin_gacha') ? useItem(idx) : showMessage('物品資訊', item.desc, item.icon)} title={item.desc}>
+                                                                <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">{item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}</div>
+                                                                <div className="text-[0.8rem] text-center font-bold shrink-0 w-full mb-1">{item.name}</div>
+                                                                {(slot.qty > 1 || stack > 1) && <div className="absolute bottom-0.5 right-1 text-[#5D4037] text-xs font-bold bg-white/80 rounded px-1">×{stack > 1 ? stack : slot.qty}</div>}
+                                                            </button>
+                                                        );
+                                                    });
+                                                })()}
+                                                {player.inventory.length === 0 && <div className="col-span-full text-center text-[#999] mt-10">背包是空的</div>}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 bg-[#EFEBE9] border-2 border-[#8D6E63] rounded-2xl p-4 flex flex-col items-center justify-center gap-6">
+                                            <div className="font-bold text-[#5D4037] mb-2">⚔️ 目前裝備</div>
+                                            <button type="button" className={`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.weapon ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}`} onClick={() => unequipItem('weapon')} title={player.equipped.weapon ? "點擊脫下" : "武器欄"}>
+                                                <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">武器</div>
+                                                {player.equipped.weapon ? (<><div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.weapon].icon}</div><div className="text-[0.8rem] font-bold text-center w-full shrink-0 px-1">{ITEMS[player.equipped.weapon].name}</div></>) : <div className="text-3xl text-[#ccc]">⚔️</div>}
+                                            </button>
+                                            <button type="button" className={`w-[100px] h-[100px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all relative ${player.equipped.pet ? 'border-solid border-[#4361EE] bg-white border-[3px]' : 'border-3 border-dashed border-[#BCAAA4] bg-white/50 hover:bg-white hover:border-[#FF9F1C]'}`} onClick={() => unequipItem('pet')} title={player.equipped.pet ? "點擊脫下" : "寵物欄"}>
+                                                <div className="absolute -top-3 bg-[#8D6E63] text-white px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold">寵物</div>
+                                                {player.equipped.pet ? (<><div className="text-[2.2rem] mb-1 leading-none flex justify-center items-center w-12 h-12">{ITEMS[player.equipped.pet].icon}</div><div className="text-[0.8rem] font-bold text-center w-full shrink-0 px-1">{ITEMS[player.equipped.pet].name}</div></>) : <div className="text-3xl text-[#ccc]">🐾</div>}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-[#666] mt-3 text-center">點擊背包物品穿戴或使用，點擊裝備欄可脫下。</p>
+                                </div>
+                            )}
+
+                            {scene === 'shop' && (
+                                <div className="shop-scene absolute inset-0 bg-[#FFF8F0] p-4 flex flex-row gap-4">
+                                    <div className="shop-npc w-[240px] flex flex-col items-center bg-[#fdf5e6] rounded-2xl p-3 border-2 border-[#e0c097]">
+                                        <div className="text-[6rem] mb-2 drop-shadow-[2px_4px_6px_rgba(0,0,0,0.2)]">{NPC_PROFILES[currentNpc].img}</div>
+                                        <div className="bg-white border-[3px] border-[#333] rounded-xl p-3 w-full h-[150px] text-[0.95rem] text-[#333] relative shadow-[4px_4px_0_rgba(0,0,0,0.1)] overflow-y-auto custom-scroll mb-3 flex items-center">
+                                            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-[#333]"></div>
+                                            <p className="m-0 leading-relaxed whitespace-pre-wrap text-[0.9rem]">{npcMessage}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h2 className="m-0 text-2xl font-bold text-[#5D4037]">{currentNpc === 'merchant' ? '🏕️ 哥布林商人' : '🏪 神秘商店'}</h2>
+                                            <button className="bg-[#4361EE] text-white px-4 py-2 rounded-lg font-bold shadow-[0_3px_0_#2841ac]" onClick={() => setScene('village')}>離開</button>
+                                        </div>
+                                        <div className="shop-grid grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3 overflow-y-auto custom-scroll pr-1">
+                                            {(currentNpc === 'merchant' ? merchantItems : SHOP_ITEMS).map(itemId => {
+                                                const item = ITEMS[itemId]; const isHidden = itemId === 'key_strange';
+                                                return (
+                                                    <div key={itemId} className={`bg-white border-2 rounded-xl p-2 flex flex-col items-center text-center w-full min-h-[120px] ${isHidden ? 'border-[#FFD700] bg-[#FFFDE7] [animation:glow_2s_infinite_alternate]' : 'border-[#E0D0C0]'}`}>
+                                                        <div className="w-12 h-12 text-[2.2rem] flex justify-center items-center leading-none mb-1">{item.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: item.icon}} className="max-w-full max-h-full flex justify-center items-center" /> : item.icon}</div>
+                                                        <div className="text-[0.8rem] font-bold shrink-0 w-full mb-1">{item.name}</div>
+                                                        <div className="bg-[#FF9F1C] text-white rounded-full px-2 py-0.5 text-[0.8rem] my-1.5 font-bold">💰 {itemId === 'key_strange' ? '1000 + 5種證明' : itemId === 'sword_paper_gold' ? '5種通關證明' : item.price}</div>
+                                                        <p className="text-[0.7rem] text-[#666] m-0 mb-2">{item.desc}</p>
+                                                        <button className="mt-auto bg-[#4361EE] text-white text-sm font-bold px-4 py-1.5 rounded-lg shadow-[0_2px_0_#2841ac] active:translate-y-0.5 active:shadow-none" onClick={() => buyItem(itemId)}>購買</button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {damageFloats.map(df => (
+                                <div key={df.id} className="absolute pointer-events-none z-[101] anim-floatUp"
+                                     style={df.target === 'wrong-answer' ? { color: '#FF2222', top: '38%', left: '55%', fontSize: '2.2rem', fontWeight: 'bold', textShadow: '2px 2px 0 #000', transform: 'translateX(-50%)' }
+                                          : df.target === 'player' ? { color: 'red', top: '60%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' }
+                                          : df.target === 'monster-crit' ? { color: '#FFD700', top: '35%', left: '45%', fontSize: '2.5rem', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }
+                                          : { color: 'red', top: '40%', left: '50%', fontSize: '2rem', fontWeight: 'bold', textShadow: '1px 1px 0 #fff' }}>
+                                    {typeof df.amount === 'number' && !df.target.includes('crit') ? `-${df.amount}` : df.amount}
+                                </div>
+                            ))}
+
+                            {scene === 'story' && (() => {
+                                const slide = STORY_SLIDES[storySlide];
+                                return (
+                                    <div className="story-scene absolute inset-0 flex flex-col bg-black z-[150]">
+                                        <button className="absolute top-3 right-3 z-20 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full border border-white/30 " onClick={storySkip}>跳過故事 ▶▶</button>
+                                        <div className="relative flex-1 overflow-hidden">
+                                            {slide.img
+                                                ? <img src={slide.img} className="w-full h-full object-contain" alt="" />
+                                                : <div className="w-full h-full bg-black flex items-center justify-center"><span className="text-white/40 text-2xl">⋯</span></div>
+                                            }
+                                        </div>
+                                        <div className="absolute bottom-0 left-0 right-0 bg-white px-5 pt-4 pb-4 min-h-[140px] flex flex-col justify-between shadow-[0_-6px_24px_rgba(0,0,0,0.35)] z-10">
+                                            <div className="text-[1.1rem] text-[#222] leading-relaxed whitespace-pre-line text-center">
+                                                {storyDoneLines.map((l, i) => <p key={i} className="m-0 mb-1.5">{l}</p>)}
+                                                {storyDisplayed && <p className="m-0">{storyDisplayed}<span className="inline-block w-[2px] h-[1.1em] bg-gray-600 align-middle ml-0.5 animate-pulse" /></p>}
+                                            </div>
+                                            {storySlideReady && (
+                                                <button className="self-end mt-3 bg-[#4361EE] text-white font-bold px-6 py-2 rounded-full shadow-[0_3px_0_#2841ac] active:translate-y-0.5 active:shadow-none" onClick={storyNext}>
+                                                    {storySlide < STORY_SLIDES.length - 1 ? '繼續 ▶' : '開始冒險！'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {scene === 'achievement_hall' && (() => {
+                                const ach = getAchievements(player);
+                                return (
+                                    <div className="absolute inset-0 flex flex-col overflow-hidden"
+                                        style={{background:'linear-gradient(180deg,#2c1a0e 0%,#3d2410 50%,#2c1a0e 100%)'}}>
+                                        {/* 頂部裝飾橫幅 */}
+                                        <div className="flex items-center justify-center py-4 relative"
+                                            style={{borderBottom:'3px solid #c8941a', background:'rgba(0,0,0,0.4)'}}>
+                                            <span className="text-3xl mr-3">⛪</span>
+                                            <h2 className="text-2xl font-black text-center m-0"
+                                                style={{color:'#f5d76e', textShadow:'0 0 12px #c8941a, 0 2px 4px rgba(0,0,0,0.8)', fontFamily:'serif', letterSpacing:'0.15em'}}>
+                                                成就教堂
+                                            </h2>
+                                            <span className="text-3xl ml-3">⛪</span>
+                                        </div>
+                                        {/* 匾額列表 */}
+                                        <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 custom-scroll">
+                                            {ACHIEVEMENTS.map(a => {
+                                                const unlocked = ach[a.id];
+                                                return (
+                                                    <div key={a.id} className="relative flex items-center justify-center py-4 px-6 rounded-xl"
+                                                        style={unlocked ? {
+                                                            background:'linear-gradient(135deg,#7c5200,#c8941a,#f5d76e,#c8941a,#7c5200)',
+                                                            border:'3px solid #f5d76e',
+                                                            boxShadow:'0 0 18px #c8941a, 0 4px 12px rgba(0,0,0,0.6)',
+                                                        } : {
+                                                            background:'linear-gradient(135deg,#1a1a1a,#333,#1a1a1a)',
+                                                            border:'3px solid #555',
+                                                            filter:'grayscale(1)',
+                                                            opacity:0.45,
+                                                        }}>
+                                                        {/* 左右角落裝飾 */}
+                                                        {unlocked && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">✦</span>}
+                                                        {unlocked && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg">✦</span>}
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <span className="text-lg font-black text-center"
+                                                                style={{
+                                                                    color: unlocked ? '#3d1f00' : '#888',
+                                                                    fontFamily:'serif',
+                                                                    letterSpacing:'0.1em',
+                                                                    textShadow: unlocked ? '0 1px 2px rgba(255,255,200,0.6)' : 'none'
+                                                                }}>
+                                                                {a.title}
+                                                            </span>
+                                                            <span className="text-xs text-center" style={{color: unlocked ? '#6b3a00' : '#666', opacity: 0.85}}>
+                                                                {a.cond}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <button className="m-4 mt-0 py-3 font-black rounded-xl text-white text-base"
+                                            style={{background:'#5D4037', border:'2px solid #8D6E63', boxShadow:'0 3px 0 #3e2723'}}
+                                            onClick={() => setScene('village')}>← 回村莊</button>
+                                    </div>
+                                );
+                            })()}
+
+                            {scene === 'end_story' && (() => {
+                                const slide = END_SLIDES[endSlide];
+                                return (
+                                    <div className="story-scene absolute inset-0 flex flex-col bg-black z-[150]">
+                                        <button className="absolute top-3 right-3 z-20 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full border border-white/30" onClick={endStorySkip}>跳過故事 ▶▶</button>
+                                        <div className="relative flex-1 overflow-hidden">
+                                            {slide.img
+                                                ? <img src={slide.img} className="w-full h-full object-contain" alt="" />
+                                                : <div className="w-full h-full bg-black flex items-center justify-center"><span className="text-white/40 text-2xl">⋯</span></div>
+                                            }
+                                        </div>
+                                        <div className="absolute bottom-0 left-0 right-0 bg-white px-5 pt-4 pb-4 min-h-[140px] flex flex-col justify-between shadow-[0_-6px_24px_rgba(0,0,0,0.35)] z-10">
+                                            <div className="text-[1.1rem] text-[#222] leading-relaxed whitespace-pre-line text-center">
+                                                {endDoneLines.map((l, i) => <p key={i} className="m-0 mb-1.5">{l}</p>)}
+                                                {endDisplayed && <p className="m-0">{endDisplayed}<span className="inline-block w-[2px] h-[1.1em] bg-gray-600 align-middle ml-0.5 animate-pulse" /></p>}
+                                            </div>
+                                            {endSlideReady && (
+                                                <button className="self-end mt-3 bg-[#4361EE] text-white font-bold px-6 py-2 rounded-full shadow-[0_3px_0_#2841ac] active:translate-y-0.5 active:shadow-none" onClick={endStoryNext}>
+                                                    {endSlide < END_SLIDES.length - 1 ? '繼續 ▶' : '結束 ✨'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {faqOpen && (() => {
+                                const FAQ = [
+                                    { q: '如何開始遊戲？', a: '點開包包 → 裝備武器 → 前往大地圖 → 點擊五大地區開始答題打怪！！！' },
+                                    { q: '轉蛋雞鑰匙在哪裡？', a: '在沙漠區域通關有機會拿到！' },
+                                    { q: '星願永恆宮怎麼進入？', a: '拿到五個關卡的通關證明後，去找哥布林商人買鑰匙，就能打開永恆宮的門！' },
+                                    { q: '星願永恆宮的關卡好難！', a: '因為沒有裝備對應的神獸寵物是沒辦法通關的喔！神獸寵物都藏在轉蛋雞裡！' },
+                                    { q: '抽到寵物蛋要怎麼孵化？', a: '到養雞場把蛋放進去，並且餵食營養劑唷！' },
+                                    { q: '怎麼賺錢？', a: '打怪！收集五個通關證明可以到哥布林商人那邊換錢，並且有些道具跟寵物有機會讓你的金幣更多！可以去試試看！' },
+                                    { q: '關卡說沒有怪了怎麼辦？', a: '那是你打太多次同一個關卡了！要先收集至少一組五通關證明去哥布林那邊換掉，才能繼續打同一個關卡。不可以偏科刷錢！' },
+                                    { q: '通關證明要幹嗎？', a: '集齊五個通關證明 → 去找哥布林商人 → 可以換錢或換取「奇怪的鑰匙」進入星願永恆宮！' },
+                                    { q: '死掉剩一滴血怎麼辦？', a: '去商店購買紅藥水 → 打開包包 → 喝水補血！記得存檔唷！' },
+                                ];
+                                const sel = faqExpanded !== null ? faqExpanded : 0;
+                                return (
+                                <div className="dialog-backdrop faq-backdrop absolute inset-0 bg-black/70 flex items-center justify-center z-[200]" onClick={() => setFaqOpen(false)}>
+                                    <div role="dialog" aria-modal="true" aria-labelledby="faq-title" className="faq-dialog bg-white rounded-[20px] shadow-[0_10px_25px_rgba(0,0,0,0.3)] w-[92%] max-w-[420px] max-h-[80vh] flex flex-col overflow-hidden anim-popIn" onClick={e => e.stopPropagation()}>
+                                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+                                            <h2 id="faq-title" className="text-lg font-black text-[#333]">冒險指南</h2>
+                                            <button aria-label="關閉冒險指南" className="text-gray-400 text-xl font-bold" onClick={() => setFaqOpen(false)}>✕</button>
+                                        </div>
+                                        <div className="flex flex-1 overflow-hidden min-h-0">
+                                            <div className="w-[42%] border-r border-gray-100 overflow-y-auto flex flex-col shrink-0">
+                                                {FAQ.map((item, i) => (
+                                                    <button key={i}
+                                                        className={`w-full text-left px-3 py-3 text-[0.75rem] font-bold border-b border-gray-100 leading-snug ${sel === i ? 'bg-indigo-50 text-indigo-700' : 'text-[#444] bg-white active:bg-gray-50'}`}
+                                                        onClick={() => setFaqExpanded(i)}>
+                                                        {item.q}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto p-4 text-[0.85rem] text-[#555] leading-relaxed">
+                                                {FAQ[sel].a}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                );
+                            })()}
+                            {overlay && (
+                                <div className="dialog-backdrop message-backdrop absolute inset-0 bg-black/70 flex items-center justify-center z-[200]">
+                                    <div role="dialog" aria-modal="true" aria-labelledby="message-title" aria-describedby="message-description" className="message-dialog bg-white p-6 px-8 rounded-[20px] text-center min-w-[300px] shadow-[0_10px_25px_rgba(0,0,0,0.3)] anim-popIn">
+                                        <div className="text-[3.5rem] block my-2 flex justify-center items-center">{overlay.icon.startsWith('<') ? <div dangerouslySetInnerHTML={{__html: overlay.icon}} /> : overlay.icon}</div>
+                                        <h2 id="message-title" className="text-2xl m-0 my-1 font-bold text-[#333]">{overlay.title}</h2>
+                                        <p id="message-description" className="whitespace-pre-line my-3 text-[#555]">{overlay.desc}</p>
+                                        <button className="w-full bg-[#4361EE] text-white font-bold text-lg py-2 rounded-lg shadow-[0_3px_0_#2841ac] mt-2 active:translate-y-1 active:shadow-none" onClick={() => { setOverlay(null); overlay.action && overlay.action(); }}>確定</button>
+                                    </div>
+                                </div>
+                            )}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
