@@ -1,3 +1,14 @@
 node_modules/
 .npm-cache/
 *.log
+
+# Keep publishing output and private production documents local.
+/.pages-dist/
+/.netlify/
+/*.docx
+/*企畫*.md
+/*施工*.md
+old_index.html
+docx_extracted.txt
+題目錯誤資料夾/
+STATUS.md

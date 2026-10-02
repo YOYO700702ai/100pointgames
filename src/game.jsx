@@ -2,7 +2,7 @@
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc, getDocFromServer } from 'firebase/firestore';
-        import { fetchQuestionCsv, addInventoryItem, removeInventoryItem, createActionGate, validateCloudPlayer, canSavePlayer, getGameplayScene } from './game-utils.mjs';
+        import { fetchQuestionCsv, addInventoryItem, removeInventoryItem, createActionGate, validateCloudPlayer, canSavePlayer, getGameplayScene, generateMathQuestion, answersMatch, questionOptions, readGuestCheckpoint, writeGuestCheckpoint } from './game-utils.mjs';
 
         const { useState, useEffect, useMemo, useRef } = React;
 
@@ -308,7 +308,9 @@
             const loginGateRef = useRef(createActionGate());
             const saveGateRef = useRef(createActionGate());
             const saveSessionRef = useRef(null);
-            const pendingCheatsRef = useRef([]);
+            const activeGuestRef = useRef(false);
+            const guestSaveKey = `yadrei.guest.v1:${location.pathname}:${location.hash}`;
+            const [guestStorage, setGuestStorage] = useState(() => readGuestCheckpoint(() => window.localStorage, guestSaveKey, ITEMS));
             const answerGateRef = useRef(createActionGate());
             const battleActionTimerRef = useRef(null);
             const battleSessionRef = useRef(0);
@@ -461,8 +463,17 @@
                     battleSessionRef.current += 1;
                     answerGateRef.current.release();
                 }
-                if (gameplayScene === 'start') { saveSessionRef.current = null; pendingCheatsRef.current = []; }
+                if (gameplayScene === 'start') { saveSessionRef.current = null; activeGuestRef.current = false; }
             }, [gameplayScene]);
+
+            // Save at each completed state update; resuming starts in the village,
+            // while inventory, stats, achievements and an incubating egg survive.
+            useEffect(() => {
+                if (activeGuestRef.current && !player.accountId && scene !== 'start') {
+                    const result = writeGuestCheckpoint(() => window.localStorage, guestSaveKey, player, hatchSlot);
+                    setGuestStorage(previous => result.error ? { ...previous, error: result.error } : result);
+                }
+            }, [player, hatchSlot, scene]);
 
             useEffect(() => { slidingPiecesRef.current = slidingGame.pieces; }, [slidingGame.pieces]);
 
@@ -499,7 +510,7 @@
                     setStoryDisplayed('');
                     setStorySlideReady(false);
                 } else {
-                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！\n\n⚠️ 注意：請牢記你的帳號密碼並且隨時存檔！！', '🌟', () => setScene('village'));
+                    showMessage('歡迎來到亞德雷大陸', '這裡是專為不喜歡念書的小朋友準備的天堂\n在這裡，學習就跟打怪練等一樣有趣唷~\n\n什麼？你想回家？？\n恩....我也不知道回家的方法呢！\n也許藏在世界的某個角落裡？\n那就....祝你好運啦！！！\n\n⚠️ 注意：訪客進度保存在這個瀏覽器；雲端角色請記得存檔！', '🌟', () => setScene('village'));
                 }
             };
 
@@ -542,7 +553,7 @@
                     setPlayer(prev => ({ ...prev, tutorialDone: true }));
                     setTimeout(() => showMessage('🎉 出發！', '開始冒險啦！！！\n\n去大地圖探索世界吧！', '⚔️', () => setScene('village')), 300);
                 }
-            }, [player.equipped?.weapon]);
+            }, [player.equipped?.weapon, tutorialStep]);
 
             const endStoryNext = () => {
                 if (endSlide < END_SLIDES.length - 1) {
@@ -556,7 +567,7 @@
                     const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
                     const ach = getAchievements(player); const earned = ACHIEVEMENTS.filter(a=>ach[a.id]).map(a=>a.title);
                     const achText = earned.length>0 ? earned.map(t=>`【${t}】`).join('　') : '（尚未解鎖）';
-                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：\n${achText}\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
+                    showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：\n${achText}\n\n${player.accountId ? '下次可用原帳號讀取冒險。' : '可從首頁繼續本機訪客冒險；若瀏覽器禁止儲存，請勿關閉頁面。'}`, '🌟', () => setScene('start'));
                 }
             };
 
@@ -564,7 +575,7 @@
                 clearInterval(endTimerRef.current);
                 setPlayer(prev => ({ ...prev, gameCleared: true }));
                 const titleLine = player.nickname ? `${player.nickname}（${player.accountId || '訪客'}）` : player.accountId || '訪客';
-                showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n您現在可以隨時登入\n回到還沒啟動時空機的存檔囉！！`, '🌟', () => setScene('start'));
+                showMessage('恭喜你完成亞德雷大陸的冒險！', `${titleLine}\n等級：LV.${player.level}　攻擊力：${stats.atk}\n\n成就稱號：（敬請期待）\n\n${player.accountId ? '下次可用原帳號讀取冒險。' : '可從首頁繼續本機訪客冒險；若瀏覽器禁止儲存，請勿關閉頁面。'}`, '🌟', () => setScene('start'));
             };
 
             const stats = useMemo(() => {
@@ -611,7 +622,12 @@
 
             const persistPlayer = async (overrides = {}) => {
                 const player = playerRef.current;
-                if (!player.accountId) { showMessage("存檔失敗", "您目前是訪客模式，無法存檔。\n請重新登入並輸入「冒險帳號」！", "⚠️"); return; }
+                if (!player.accountId) {
+                    const result = writeGuestCheckpoint(() => window.localStorage, guestSaveKey, { ...player, ...overrides }, hatchSlot);
+                    setGuestStorage(previous => result.error ? { ...previous, error: result.error } : result);
+                    if (result.error) showMessage('本機存檔失敗', result.error, '⚠️');
+                    return !result.error;
+                }
                 if (!canSavePlayer(player, saveSessionRef.current)) { showMessage('存檔未開放', '尚未成功確認此帳號的雲端存檔。請回首頁重新登入，以保護原本的冒險進度。', '🔒'); return false; }
                 if (!auth?.currentUser || !db) { showMessage("存檔失敗", "網路未連線或尚未設定 Firebase。", "⚠️"); return false; }
                 if (!saveGateRef.current.acquire()) return false;
@@ -625,14 +641,21 @@
             };
 
             const saveToCloud = async () => {
-                if (await persistPlayer()) showMessage("存檔成功", "您的冒險進度已安全保存在雲端！", "💾");
+                if (await persistPlayer()) showMessage('存檔成功', playerRef.current.accountId ? '您的冒險進度已保存在雲端！' : '訪客進度已保存在這個瀏覽器。下次從首頁按「繼續訪客冒險」即可接續；清除網站資料會刪除本機進度。', '💾');
             };
 
             const handleCompleteGame = async (allReady) => {
                 if (!allReady) { showMessage('能量不足', '能量不足', '⚡'); return; }
-                if (!await persistPlayer({ gameCleared: true })) return;
+                if (playerRef.current.accountId && !await persistPlayer({ gameCleared: true })) return;
+                let guestSaved = true;
+                if (!playerRef.current.accountId) {
+                    const result = writeGuestCheckpoint(() => window.localStorage, guestSaveKey, { ...playerRef.current, gameCleared: true }, hatchSlot);
+                    guestSaved = !result.error;
+                    setGuestStorage(previous => result.error ? { ...previous, error: result.error } : result);
+                }
                 setPlayer(prev => ({ ...prev, gameCleared: true }));
-                showMessage('存檔完成！', '你的冒險已永久記錄在雲端！\n按確認進入結局～', '💾', () => {
+                const savedMessage = playerRef.current.accountId ? '冒險進度已記錄在雲端。' : guestSaved ? '冒險進度已保存在這個瀏覽器。' : '此瀏覽器無法保存進度，仍可觀看完整結局。';
+                showMessage('冒險完成！', `${savedMessage}\n按確認進入結局～`, '💾', () => {
                     setEndSlide(0); setEndLineIdx(0); setEndDoneLines([]); setEndDisplayed(''); setEndSlideReady(false);
                     setScene('end_story');
                 });
@@ -762,11 +785,18 @@
                 return true;
             };
 
-            const handleStart = async () => {
-                const player = playerRef.current;
+            const handleStart = async (resumeGuest = false, replaceGuest = false) => {
+                const checkpoint = resumeGuest ? guestStorage.save : null;
+                if (resumeGuest && !checkpoint) return;
+                const player = checkpoint ? checkpoint.player : playerRef.current;
                 if (!/[a-zA-Z\u4e00-\u9fa5]+/.test(player.name) || player.name.length < 1) { showMessage('提示', '名字格式錯誤！\n請輸入至少1個中文字或英文字母。', '⚠️'); return; }
                 if (player.accountId && !/^[a-zA-Z0-9]{6,}$/.test(player.accountId)) { showMessage('提示', '帳號格式錯誤！\n請輸入至少6碼的英文或數字。', '⚠️'); return; }
+                if (!resumeGuest && !player.accountId && guestStorage.save && !replaceGuest) {
+                    setOverlay({ title: '開始新的訪客冒險？', desc: '這會取代此瀏覽器現有的訪客進度。若要接續，請取消並按「繼續訪客冒險」。', icon: '📖', cancelLabel: '保留原進度', action: () => handleStart(false, true) });
+                    return;
+                }
                 if (!loginGateRef.current.acquire()) return;
+                activeGuestRef.current = false;
                 setLoginBusy(true);
                 saveSessionRef.current = null;
                 isNewCharRef.current = false;
@@ -775,7 +805,7 @@
                     inventory: initialPlayerRef.current.inventory.map(slot => ({ ...slot })),
                     equipped: { ...initialPlayerRef.current.equipped }, zoneClears: { ...initialPlayerRef.current.zoneClears } };
                 try {
-                    let restoredPlayer = freshPlayer;
+                    let restoredPlayer = checkpoint ? { ...freshPlayer, ...checkpoint.player } : freshPlayer;
                     if (player.accountId) {
                         if (!db) throw new Error('雲端服務尚未設定，請聯絡老師');
                         await ensureAuth();
@@ -784,15 +814,18 @@
                         const docSnap = await getDocFromServer(docRef);
                         if (docSnap.exists()) {
                             restoredPlayer = { ...freshPlayer, ...validateCloudPlayer(docSnap.data(), player.name, player.accountId) };
-                        } else isNewCharRef.current = true;
-                    } else isNewCharRef.current = true;
+                        } else isNewCharRef.current = !checkpoint;
+                    } else isNewCharRef.current = !checkpoint;
                     setPlayer(restoredPlayer);
-                    setHatchSlot({ eggId: null, progress: 0 });
+                    setHatchSlot(checkpoint?.hatchSlot || { eggId: null, progress: 0 });
                     paperKillsRef.current = { sword_paper_kill: 0, sword_paper_gold: 0 };
                     const isNewCharacter = isNewCharRef.current;
-                    if (isNewCharacter) pendingCheatsRef.current.forEach(code => applyCheat(code, false));
                     if (!await loadAllDatabases()) return;
-                    pendingCheatsRef.current = [];
+                    activeGuestRef.current = !player.accountId;
+                    if (!player.accountId) {
+                        const result = writeGuestCheckpoint(() => window.localStorage, guestSaveKey, restoredPlayer, checkpoint?.hatchSlot || { eggId: null, progress: 0 });
+                        setGuestStorage(previous => result.error ? { ...previous, error: result.error } : result);
+                    }
                     if (player.accountId) saveSessionRef.current = { accountId: player.accountId, name: player.name };
                     if (!isNewCharacter) showMessage('讀取成功', `歡迎回來，${restoredPlayer.name}！\n(目前等級 ${restoredPlayer.level})`, '🎉');
                     else if (player.accountId) showMessage('建立新檔', `帳號 ${player.accountId} 不存在，已為您建立全新進度。`, '📝');
@@ -806,63 +839,6 @@
                     setLoadingMsg('');
                     setLoginBusy(false);
                     loginGateRef.current.release();
-                }
-            };
-
-            const applyCheat = (code, rememberForNewCharacter = true) => {
-                if (scene === 'start' && rememberForNewCharacter && ['YOYOLOVE', 'BLADESTORM', 'RICHRICH3000', 'RAINBOWDROP'].includes(code)) pendingCheatsRef.current.push(code);
-                if (code === 'YOYOLOVE') {
-                    setPlayer(p => {
-                        const newInventory = p.inventory.map(slot => ({ ...slot }));
-                        if (!newInventory.some(item => item.id === 'sword_god')) {
-                            newInventory.push({ id: 'sword_god', qty: 1 });
-                        }
-                        return { ...p, level: MAX_LEVEL, exp: 0, maxExp: 99999, gold: p.gold + 10000, hp: 9999, inventory: newInventory };
-                    });
-                    showMessage('秘技', '✨ 金手指生效：獲得一擊必殺的神劍、等級 MAX、10000 金幣！', '✨');
-                }
-                if (code === 'BLADESTORM') {
-                    setPlayer(p => {
-                        const newInventory = [...p.inventory];
-                        if (!newInventory.some(item => item.id === 'sword_god')) {
-                            newInventory.push({ id: 'sword_god', qty: 1 });
-                        }
-                        return { ...p, inventory: newInventory };
-                    });
-                    showMessage('秘技', '🗡️ 獲得【一擊必殺的神劍】！', '🗡️');
-                }
-                if (code === 'RICHRICH3000') {
-                    setPlayer(p => ({ ...p, gold: p.gold + 3000 }));
-                    showMessage('秘技', '💰 獲得 3000 金幣！', '💰');
-                }
-                if (code === 'RAINBOWDROP') {
-                    setPlayer(p => {
-                        const newInventory = addInventoryItem(p.inventory, 'potion_rainbow');
-                        return { ...p, inventory: newInventory };
-                    });
-                    showMessage('秘技', '🌈 獲得【藍波藥劑】×1！', '🌈');
-                }
-            };
-
-            const generateMathQuestion = () => {
-                const isFraction = Math.random() > 0.5; const ops = ['+', '-', '×', '÷']; const op = ops[Math.floor(Math.random() * 4)];
-                if (isFraction) {
-                    let n1 = Math.floor(Math.random() * 5) + 1; let d1 = Math.floor(Math.random() * 5) + 2; let n2 = Math.floor(Math.random() * 5) + 1; let d2 = Math.floor(Math.random() * 5) + 2;
-                    if(n1>=d1) d1=n1+1; if(n2>=d2) d2=n2+1;
-                    let ansN, ansD;
-                    if (op === '+') { ansN = n1*d2 + n2*d1; ansD = d1*d2; }
-                    else if (op === '-') { let v1 = n1/d1; let v2 = n2/d2; if(v1 < v2) { let t1=n1; n1=n2; n2=t1; let t2=d1; d1=d2; d2=t2; } ansN = n1*d2 - n2*d1; ansD = d1*d2; }
-                    else if (op === '×') { ansN = n1*n2; ansD = d1*d2; } else { ansN = n1*d2; ansD = d1*n2; }
-                    const gcd = (a, b) => b ? gcd(b, a % b) : a; const common = gcd(ansN, ansD); ansN /= common; ansD /= common;
-                    const qStr = `${n1}/${d1} ${op} ${n2}/${d2} = ?`; const aStr = `${ansN}/${ansD}`;
-                    let wrongs = []; let _t1 = 0; while(wrongs.length < 3 && _t1++ < 50) { let wN = ansN + Math.floor(Math.random()*5) - 2; let wD = ansD + Math.floor(Math.random()*5) - 2; if(wN<=0) wN=1; if(wD<=0) wD=2; let wStr = `${wN}/${wD}`; if(wStr !== aStr && !wrongs.includes(wStr)) wrongs.push(wStr); } for(let k=1; wrongs.length < 3; k++) { const fb = `${ansN+k}/${ansD+1}`; if(fb !== aStr && !wrongs.includes(fb)) wrongs.push(fb); }
-                    return { q: qStr, a: aStr, wrong: wrongs };
-                } else {
-                    let n1 = (Math.floor(Math.random() * 50) + 1) / 10; let n2 = (Math.floor(Math.random() * 50) + 1) / 10; let ans;
-                    if (op === '+') ans = n1 + n2; else if (op === '-') { if(n1 < n2) { let t=n1; n1=n2; n2=t; } ans = n1 - n2; } else if (op === '×') ans = n1 * n2; else { n2 = Math.floor(Math.random() * 5) + 1; n1 = n2 * (Math.floor(Math.random() * 5) + 1); ans = n1 / n2; }
-                    ans = Math.round(ans * 100) / 100; const qStr = `${n1} ${op} ${n2} = ?`;
-                    let wrongs = []; let _t2 = 0; while(wrongs.length < 3 && _t2++ < 50) { let w = Math.round((ans + (Math.random() > 0.5 ? 0.1 : -0.1) * (Math.floor(Math.random()*5) + 1)) * 100) / 100; if(w !== ans && !wrongs.includes(w) && w >= 0) wrongs.push(w); } for(let k=1; wrongs.length < 3; k++) { const fb = Math.round((ans + k * 0.1) * 100) / 100; if(fb !== ans && !wrongs.includes(fb)) wrongs.push(fb); }
-                    return { q: qStr, a: ans, wrong: wrongs };
                 }
             };
 
@@ -907,10 +883,9 @@
                 if (type === 'math_frac_dec') qObj = generateMathQuestion(); else if (type === 'mixed_all' && Math.random() > 0.5) qObj = generateMathQuestion();
                 else { if (newPool.length > 0) qObj = newPool.pop(); else { const bankKey = type === 'mixed_all' ? 'mixed' : zone.questionBank; newPool = [...QUESTION_BANKS[bankKey]].sort(() => Math.random() - 0.5); qObj = newPool.pop() || generateMathQuestion(); } }
                 if (!qObj) qObj = generateMathQuestion();
-                let opts = [qObj.a];
-                if (qObj.wrong && qObj.wrong.length > 0) { opts = opts.concat(qObj.wrong.slice(0, 3)); while(opts.length < 4) opts.push("???"); } else { while(opts.length < 4) opts.push(Math.floor(Math.random()*100).toString()); }
+                let opts = questionOptions(qObj);
                 opts.sort(() => Math.random() - 0.5);
-                setBattle(prev => { const wrong = opts.filter(o => o !== qObj.a); const finalOpts = prev.eliminateWrong ? [qObj.a, wrong[0]].sort(() => Math.random() - 0.5) : opts; return { ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, options: finalOpts, isProcessing: false, eliminateWrong: false }; });
+                setBattle(prev => { const wrong = opts.filter(o => !answersMatch(o, qObj.a, qObj.numericAnswer)); const finalOpts = prev.eliminateWrong && wrong.length ? [qObj.a, wrong[0]].sort(() => Math.random() - 0.5) : opts; return { ...prev, monster: currentMonster || prev.monster, questionPool: newPool, question: qObj.q, answer: qObj.a, numericAnswer: Boolean(qObj.numericAnswer), options: finalOpts, isProcessing: false, eliminateWrong: false }; });
                 answerGateRef.current.release();
             };
 
@@ -926,7 +901,7 @@
                     }, delay);
                 };
                 setBattle(prev => ({ ...prev, isProcessing: true }));
-                if (String(selectedVal) === String(battle.answer)) {
+                if (answersMatch(selectedVal, battle.answer, battle.numericAnswer)) {
                     playCorrectSound(); triggerCorrectAnim();
                     const currentStreak = player.streak + 1; let dmg = stats.atk; let isCrit = false;
                     if (player.equipped.weapon === 'bow_hunter' && currentStreak >= 3) { dmg += 25; isCrit = true; updatePlayer({ streak: 0 }); } else { updatePlayer({ streak: currentStreak }); }
@@ -945,7 +920,7 @@
                     }
                 } else {
                     setPlayer(prev => ({ ...prev, streak: 0, totalWrong: (prev.totalWrong||0)+1, neverWrong: false })); const dmg = battle.monster.atk;
-                    const btns = Array.from(btnEvent?.currentTarget?.parentElement?.children || []); for(let b of btns) { if(b.textContent === String(battle.answer)) b.classList.add('bg-green-400'); }
+                    const btns = Array.from(btnEvent?.currentTarget?.parentElement?.children || []); for(let b of btns) { if(answersMatch(b.textContent, battle.answer, battle.numericAnswer)) b.classList.add('bg-green-400'); }
                     triggerWrongShake(); showDamage('❌ 答錯了！', 'wrong-answer');
                     const isDead = takeDamage(dmg);
                     if (isDead) {
@@ -1853,7 +1828,8 @@
                                     )}
                                     <button className="nav-save" onClick={saveToCloud} disabled={isSaving} aria-busy={isSaving}>{isSaving ? '正在存檔…' : '儲存進度'}</button>
                                 </nav>
-                                <p className="sidebar-note">每一步，都讓你更接近回家的路。</p>
+                                    {!player.accountId && <p className="guest-save-notice" role="status">{guestStorage.error || '訪客進度自動保存於此瀏覽器'}</p>}
+                                    <p className="sidebar-note">每一步，都讓你更接近回家的路。</p>
                             </aside>
                         )}
 
@@ -1883,10 +1859,11 @@
                                         <input id="adventurer-name" name="adventurer-name" autoComplete="nickname" type="text" maxLength="5" required placeholder="你希望大家怎麼稱呼你？" value={player.name} onChange={e => updatePlayer({name: e.target.value})} disabled={loginBusy} />
                                         <label htmlFor="adventure-account">冒險帳號 <span>選填・至少 6 碼英數字</span></label>
                                         <input id="adventure-account" name="adventure-account" autoComplete="username" autoCapitalize="none" spellCheck={false} type="text" minLength="6" pattern="[A-Za-z0-9]{6,}" placeholder="例如：hero2026" value={player.accountId} onChange={e => updatePlayer({accountId: e.target.value})} disabled={loginBusy} aria-describedby="account-hint" />
-                                        <p className="entry-hint" id="account-hint">不填帳號可直接試玩；填寫帳號才能雲端存檔、接續冒險。</p>
+                                        <p className="entry-hint" id="account-hint">訪客進度會自動保存在此瀏覽器；清除網站資料會遺失。戰鬥與小遊戲重新開始，角色與道具保留。填帳號可使用雲端存檔。</p>
                                         <button type="submit" className="entry-submit" disabled={loginBusy}>{loginBusy ? '正在準備你的冒險…' : '開始 / 讀取冒險'}<span aria-hidden="true">→</span></button>
                                         <p className={`entry-status ${loadingMsg ? 'has-message' : ''}`} role="status" aria-live="polite">{loadingMsg || '新朋友與歸來的勇者，都從這裡出發。'}</p>
-                                        <details className="gm-tools"><summary>GM 測試工具</summary><div><label className="sr-only" htmlFor="cheat-input">GM 測試代碼</label><input id="cheat-input" type="password" autoComplete="off" placeholder="輸入測試代碼" /><button type="button" onClick={() => applyCheat(document.getElementById('cheat-input').value.trim().toUpperCase())}>啟用</button></div></details>
+                                        {guestStorage.save && <div className="guest-continue"><p>本機訪客：{guestStorage.save.player.name} · Lv. {guestStorage.save.player.level}</p><button type="button" disabled={loginBusy} onClick={() => handleStart(true)}>繼續訪客冒險</button></div>}
+                                        {guestStorage.error && <p className="guest-save-notice" role="status">{guestStorage.error}</p>}
                                     </form>
                                 </section>
                             )}
@@ -2837,6 +2814,7 @@
                                         <h2 id="message-title" className="text-2xl m-0 my-1 font-bold text-[#333]">{overlay.title}</h2>
                                         <p id="message-description" className="whitespace-pre-line my-3 text-[#555]">{overlay.desc}</p>
                                         <button className="w-full bg-[#4361EE] text-white font-bold text-lg py-2 rounded-lg shadow-[0_3px_0_#2841ac] mt-2 active:translate-y-1 active:shadow-none" onClick={() => { setOverlay(null); overlay.action && overlay.action(); }}>確定</button>
+                                        {overlay.cancelLabel && <button className="w-full mt-3" onClick={() => setOverlay(null)}>{overlay.cancelLabel}</button>}
                                     </div>
                                 </div>
                             )}

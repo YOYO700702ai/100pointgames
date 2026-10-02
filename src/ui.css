@@ -291,3 +291,10 @@ button,input { min-width:0; }
 @media (prefers-reduced-motion:reduce) {
   *,*:before,*:after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; }
 }
+
+/* Guest checkpoints remain readable inside small embedded game frames. */
+.guest-continue { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+.guest-continue p { font-size:12px; margin:0 0 8px; }
+.guest-continue button { width:100%; min-height:44px; border-radius:10px; border:1px solid #6c8b68; color:#274b35; background:#e7efdf; font-weight:700; }
+.guest-save-notice { font-size:11px; line-height:1.5; margin:10px 0 0; overflow-wrap:anywhere; }
+.adventure-sidebar .guest-save-notice { color:#f5dfb0; text-align:center; }

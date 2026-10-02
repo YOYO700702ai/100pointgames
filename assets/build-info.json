@@ -2,23 +2,23 @@
   "entry": "src/game.jsx",
   "sourceHashes": {
     "src/base.css": "6e5f52d59b42",
-    "src/game-utils.mjs": "9b83edeb5a88",
-    "src/game.jsx": "1239a8ba5f0c",
+    "src/game-utils.mjs": "76738269828c",
+    "src/game.jsx": "bbba8483c6c5",
     "src/index.template.html": "7789c513c727",
     "src/react-shim.js": "f1fb27dd8ff2",
-    "src/ui.css": "c7b645308972",
+    "src/ui.css": "fb5363dd6fbd",
     "tailwind.config.cjs": "d0a24c55d67b",
     "package-lock.json": "b5c9fed8fe6d"
   },
   "javascript": {
     "file": "assets/game.js",
-    "bytes": 282889,
-    "hash": "6c104d6f7315"
+    "bytes": 285352,
+    "hash": "1772edc04586"
   },
   "stylesheet": {
     "file": "assets/game.css",
-    "bytes": 65638,
-    "hash": "e525beb37eee"
+    "bytes": 65931,
+    "hash": "e54727807408"
   },
   "htmlBytes": 1958,
   "externalImports": [

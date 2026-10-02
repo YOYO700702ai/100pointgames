@@ -140,7 +140,7 @@
           <th>操作</th>
         </tr>
       </thead>
-      <tbody id="tableBody"><tr><td colspan="12" class="loading">載入中...</td></tr></tbody>
+      <tbody id="tableBody"><tr><td colspan="13" class="loading">載入中...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -164,6 +164,61 @@
   const db = getFirestore(app);
   let allPlayers = [];
 
+  // Firestore records are untrusted display data; only the SDK document ID may
+  // identify a delete target. Normalize before statistics, search or rendering.
+  const recordObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const displayText = (value, fallback = '') => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return fallback;
+  };
+  const finiteNumber = (value, fallback = 0) => {
+    if (typeof value !== 'number' && !(typeof value === 'string' && value.trim())) return fallback;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  };
+  function normalizePlayer(documentId, value) {
+    const data = recordObject(value);
+    const zoneData = recordObject(data.zoneClears);
+    const player = {
+      _id: displayText(documentId),
+      accountId: displayText(data.accountId),
+      name: displayText(data.name),
+      level: Math.max(1, finiteNumber(data.level, 1)),
+      hp: finiteNumber(data.hp),
+      baseMaxHp: finiteNumber(data.baseMaxHp, 15),
+      gold: finiteNumber(data.gold),
+      baseAtk: finiteNumber(data.baseAtk, 8),
+      inventory: Array.isArray(data.inventory) ? data.inventory
+        .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+        .map(item => ({ id: displayText(item.id) })) : [],
+      equipped: { pet: displayText(recordObject(data.equipped).pet) },
+      zoneClears: Object.fromEntries(['east_forest', 'west_desert', 'south_harbor', 'north_tundra', 'outer_ruins']
+        .map(id => [id, finiteNumber(zoneData[id])])),
+      examZeroClears: finiteNumber(data.examZeroClears),
+      gachaSpent: finiteNumber(data.gachaSpent),
+      totalGoldEarned: finiteNumber(data.totalGoldEarned),
+      achNoWrong: data.achNoWrong === true,
+      cardGodWon: data.cardGodWon === true,
+      gameCleared: data.gameCleared === true,
+      savedAt: null,
+    };
+    if (typeof data.savedAt === 'string' || (typeof data.savedAt === 'number' && Number.isFinite(data.savedAt))) {
+      const timestamp = new Date(data.savedAt).getTime();
+      if (Number.isFinite(timestamp)) player.savedAt = timestamp;
+    }
+    return player;
+  }
+  function tableStatus(message, className) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 13;
+    cell.className = className;
+    cell.textContent = message;
+    row.append(cell);
+    document.getElementById('tableBody').replaceChildren(row);
+  }
+
   // 登入
   window.login = () => {
     const pw = document.getElementById('pwInput').value;
@@ -186,15 +241,15 @@
 
   // 載入資料
   window.loadData = async () => {
-    document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading">載入中...</td></tr>';
+    tableStatus('載入中...', 'loading');
     try {
       const snap = await getDocs(collection(db, 'saves'));
-      allPlayers = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      allPlayers = snap.docs.map(d => normalizePlayer(d.id, d.data()));
       updateStats();
       renderTable();
       document.getElementById('lastRefresh').textContent = '更新：' + new Date().toLocaleTimeString('zh-TW');
     } catch(e) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty">讀取失敗：' + e.message + '</td></tr>';
+      tableStatus('讀取失敗：' + displayText(e?.message, '無法讀取資料'), 'empty');
     }
   };
 
@@ -224,17 +279,18 @@
       { id: 'outer_ruins', label: '社' },
     ];
     if (filtered.length === 0) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" class="empty">沒有資料</td></tr>';
+      tableStatus('沒有資料', 'empty');
       return;
     }
-    document.getElementById('tableBody').innerHTML = filtered.map(p => {
+    const tableBody = document.getElementById('tableBody');
+    tableBody.replaceChildren();
+    const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+    filtered.forEach(p => {
       const zoneClears = p.zoneClears || {};
-      const hasKey = (p.inventory||[]).some(i => i.id === 'key_strange');
-      const zoneDots = zones.map(z =>
-        `<span class="zone-dot ${(zoneClears[z.id]||0)>0 ? 'dot-on':'dot-off'}" title="${z.label} ${zoneClears[z.id]||0}次"></span>${z.label}`
-      ).join(' ');
-      const baseAtk = p.baseAtk || 8;
-      const atk = baseAtk + ((p.level||1)-1)*2;
+      const inventory = Array.isArray(p.inventory) ? p.inventory : [];
+      const hasKey = inventory.some(i => i?.id === 'key_strange');
+      const level = number(p.level, 1);
+      const atk = number(p.baseAtk, 8) + (level - 1) * 2;
       const TOTAL_ACH = 12;
       const achCount = [
         (p.examZeroClears||0)>=5,
@@ -248,24 +304,52 @@
         ((p.zoneClears||{}).outer_ruins||0)>=5,
         ((p.zoneClears||{}).east_forest||0)>=5,
         p.cardGodWon===true,
-        ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(id=>(p.inventory||[]).some(i=>i.id===id)||p.equipped?.pet===id),
+        ['pet_owl','pet_jellyfish','pet_ankylo','pet_rat','pet_stompy'].every(id=>inventory.some(i=>i?.id===id)||p.equipped?.pet===id),
       ].filter(Boolean).length;
-      return `<tr>
-        <td><input type="checkbox" class="select-cb row-cb" data-id="${p._id}"></td>
-        <td style="font-family:monospace;color:#94a3b8">${p.accountId||'-'}</td>
-        <td style="font-weight:bold">${p.name||'-'}</td>
-        <td><span class="badge badge-lv">LV.${p.level||1}</span></td>
-        <td><span class="badge badge-hp">${p.hp||0}/${(p.baseMaxHp||15)+((p.level||1)-1)*10}</span></td>
-        <td><span class="badge badge-gold">💰${p.gold||0}</span></td>
-        <td>⚔️${atk}</td>
-        <td style="font-size:0.8rem">${zoneDots}</td>
-        <td>${hasKey ? '🗝️':'—'}</td>
-        <td>${achCount}/${TOTAL_ACH}</td>
-        <td>${p.gameCleared ? '✅':'—'}</td>
-        <td style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">${p.savedAt ? new Date(p.savedAt).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
-        <td><button class="del-btn" onclick="deleteSingle('${p._id}', '${p.name||p.accountId}')">刪除</button></td>
-      </tr>`;
-    }).join('');
+      const row = document.createElement('tr');
+      const cell = (value = '') => {
+        const td = document.createElement('td');
+        td.textContent = String(value);
+        row.append(td);
+        return td;
+      };
+      const badge = (value, className) => {
+        const span = document.createElement('span');
+        span.className = `badge ${className}`;
+        span.textContent = value;
+        cell().append(span);
+      };
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'select-cb row-cb';
+      checkbox.dataset.id = String(p._id);
+      cell().append(checkbox);
+      cell(p.accountId || '-').style.cssText = 'font-family:monospace;color:#94a3b8';
+      cell(p.name || '-').style.fontWeight = 'bold';
+      badge(`LV.${level}`, 'badge-lv');
+      badge(`${number(p.hp)}/${number(p.baseMaxHp, 15) + (level - 1) * 10}`, 'badge-hp');
+      badge(`💰${number(p.gold)}`, 'badge-gold');
+      cell(`⚔️${atk}`);
+      const zoneCell = cell();
+      zoneCell.style.fontSize = '0.8rem';
+      zones.forEach(z => {
+        const count = number(zoneClears[z.id]);
+        const dot = document.createElement('span');
+        dot.className = `zone-dot ${count > 0 ? 'dot-on' : 'dot-off'}`;
+        dot.title = `${z.label} ${count}次`;
+        zoneCell.append(dot, document.createTextNode(`${z.label} `));
+      });
+      cell(hasKey ? '🗝️' : '—');
+      cell(`${achCount}/${TOTAL_ACH}`);
+      cell(p.gameCleared ? '✅' : '—');
+      cell(p.savedAt ? new Date(p.savedAt).toLocaleString('zh-TW', {timeZone:'Asia/Taipei',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—').style.cssText = 'font-size:0.78rem;color:#94a3b8;white-space:nowrap';
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'del-btn';
+      deleteButton.textContent = '刪除';
+      deleteButton.addEventListener('click', () => window.deleteSingle(String(p._id), String(p.name || p.accountId || '')));
+      cell().append(deleteButton);
+      tableBody.append(row);
+    });
 
     document.querySelectorAll('.row-cb').forEach(cb => {
       cb.addEventListener('change', updateDelBtn);
